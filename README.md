@@ -1,2 +1,2 @@
-# SSTMap
-Solvation Structure and Thermodynamic Mapping
+# Solvation Structure and Thermodynamic Mapping
+SSTMap is a tool to study structural and thermodynamic properties of water molecules on solute surfaces. It combines grid inhomogeneous solvation theory (IST) [Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson, J. Chem. Phys. 137, 044101 (2012)] with measures of water structure to produce mapping of solvation structure and thermodynamics in protein binding sites and on the surfaces of other molecules of interest, such as small-molecules or host-guest systems. The spatial decomposition of IST integrals allow determination of contribution of speicific regions towards solvation enthalpy and entropy. Alongside thermodynamic information, SSTMap calculates structural properties of water molecules that can aid in developing an understanding of water behvior on the surface and evaluating its displacement.
