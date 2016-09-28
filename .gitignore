@@ -1,4 +1,5 @@
 sstmap/tests/new_gist_tests
+test_build.sh
 #python object files
 *.pyc
 
