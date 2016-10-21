@@ -47,7 +47,7 @@ class GridWaterAnalysis(WaterAnalysis):
         # set 3D grid around the region of interest
         self.initialize_grid(grid_center, grid_resolution, grid_dimensions)
         # initialize data structures to store voxel data
-        self.voxeldata, self.voxeldict = self.initialize_voxel_dict()
+        self.voxeldata, self.voxeldict = self.initialize_voxel_data()
         #print "Reading in trajectory ..."        
         #self.trj = md.load(self.trajectory, top=self.paramname)[self.start_frame: self.start_frame + self.num_frames]
         #print "Done!"
@@ -72,7 +72,7 @@ class GridWaterAnalysis(WaterAnalysis):
         # Finally allocate the space for the grid
         self.grid = np.zeros(self.dims, dtype=np.int_)
 
-    def initialize_voxel_dict(self):
+    def initialize_voxel_data(self):
         voxel_dict = []
         v_count = 0
         voxel_array = np.zeros((self.grid.size, 35), dtype="float64")

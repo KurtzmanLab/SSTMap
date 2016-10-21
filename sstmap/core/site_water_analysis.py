@@ -26,12 +26,40 @@ class SiteWaterAnalysis(WaterAnalysis):
                  desmond_helper_file=None, prefix="test"):
         
         super(SiteWaterAnalysis, self).__init__(topology_file, trajectory,
-            start_frame, num_frames, desmond_helper_file)
-        self.ligand_file = ligand_file
-        self.cluster_center_file = cluster_center_file
-        self.hsa_data = self.get_clusters_from_file()
+            start_frame, num_frames, desmond_helper_file)        
         self.prefix = prefix
 
+        if cluster_center_file == None and ligand_file == None:
+            sys.exit("Please provide either a ligand file for clustering or\
+                        a cluster center file to generate hydration sites.")
+
+        if ligand_file != None:
+            cluster_coords = self.generate_clusters()
+            self.hsa_data = self.initialize_site_data(cluster_coords)
+        if cluster_center_file != None:
+            clusters_pdb_file = md.load_pdb(cluster_center_file)
+            cluster_coords = clusters_pdb_file.xyz * 10.0
+            self.hsa_data = self.initialize_site_data(cluster_coords[0, :, :])
+
+    def initialize_site_data(cluster_coords):
+        self.data_titles = ["x", "y", "z",
+                            "nwat", "occupancy", "gO",
+                            "Esw", "EswLJ", "EswElec", "Eww", "EwwLJ", "EwwElec", "Etot", "Ewwnbr",
+                            "TSsw", "TSww", "TStot",
+                            "Nnbrs", "Nhbww", "Nhbsw", "Nhbtot",
+                            "PercentHBww", "f_enc",
+                            "Acc_ww", "Don_ww", "Acc_sw", "Don_sw",
+                            "solute_acceptors", "solute_donors"]
+        n_sites = cluster_coords.shape[0]
+        hydration_sites = [{} for i in range(n_sites)]
+        for site_i in xrange(n_sites):
+            hydration_sites[site_i] = [{quantity: [] for quantity in self.data_titles[6:]}]
+            hydration_sites[site_i].append(np.zeros(len(self.data_titles), dtype="float64"))
+            hydration_sites[site_i][1][0] = cluster_coords[0, site_i, 0]
+            hydration_sites[site_i][1][1] = cluster_coords[0, site_i, 1]
+            hydration_sites[site_i][1][2] = cluster_coords[0, site_i, 2]
+    return hydration_sites
+            
     def get_clusters_from_file(self):
         '''
         Returns a dictionary with hydration site indices as keys and their properties as values.
@@ -44,9 +72,6 @@ class SiteWaterAnalysis(WaterAnalysis):
                             "PercentHBww", "f_enc",
                             "Acc_ww", "Don_ww", "Acc_sw", "Don_sw",
                             "solute_acceptors", "solute_donors"]
-        if self.cluster_center_file is not None:
-            clusters_pdb_file = md.load_pdb(self.cluster_center_file)
-            cluster_coords = clusters_pdb_file.xyz * 10.0
             n_sites = clusters_pdb_file.n_atoms
             # data for each sites consist of a dictionary
             # within which we have a list dictionaries for each quantity
@@ -59,6 +84,119 @@ class SiteWaterAnalysis(WaterAnalysis):
                 hydration_sites[site_i][1][1] = cluster_coords[0, site_i, 1]
                 hydration_sites[site_i][1][2] = cluster_coords[0, site_i, 2]
         return hydration_sites
+
+    def generate_clusters(self):
+        # Obtain binding site solute atoms
+        ligand = md.load_pdb(self.ligand_file)
+        ligand_coords = ligand.xyz[0, :, :] * 10.0
+        first_frame = md.load_frame(self.trajectory, 0, top=self.topology_file)
+        solute_pos = first_frame.xyz[0, self.non_water_atom_ids, :] * 10.0
+        search_space = NeighborSearch(solute_pos, 5.0)
+        near_indices = search_space.query_nbrs_multiple_points(ligand_coords)
+        solute_nbrs = [self.non_water_atom_ids[nbr_index]
+                       for nbr_index in near_indices]
+        ###DEBUGG###
+        ligand_arg_atom_ids = self.topology.select("resname ARG")
+        ###DEBUGG###
+
+        # Obtain waters solvating the binding site
+        print "Reading in trajectory for clustering..."
+        trj = md.load(self.trajectory, top=self.topology)[0:1000]
+        print "Done."
+        initial_time = time.time()
+        print "Obtaining a superconfiguration of all waters found in the binding site throught the trajectory, can take long time for big systems!"
+        #nbrs = md.compute_neighbors(trj, 0.50, solute_nbrs, haystack_indices=self.wat_oxygen_atom_ids)
+        ###DEBUGG###
+        nbrs = md.compute_neighbors(trj, 0.50, ligand_arg_atom_ids, haystack_indices=self.wat_oxygen_atom_ids)
+        ###DEBUGG###
+        all_nbrs = [(i, nbr) for i in range(len(nbrs)) for nbr in nbrs[i]]
+        # all_nbrs is a list of all waters with their frame ids
+        
+        print "Total number of waters to porcess: ", len(all_nbrs)
+        elapsed_time = time.time() - initial_time
+        print "Time took for creating superconfiguration: ", str(datetime.timedelta(seconds=elapsed_time))
+        # Perform Clustering
+        print "Performing clustering on superconfiguration..."
+        cutoff = self.num_frames * 2 * 0.1401
+        n_wat = 3 * cutoff
+        cluster_list = []
+        cluster_iter = 0
+        # Build KDTree and get initial nbr count for all waters
+        all_wat_coords = np.ma.array([trj.xyz[wat[0], wat[1], :] for wat in all_nbrs], mask=False)*10.0
+        tree = spatial.cKDTree(all_wat_coords)
+        nbr_list = tree.query_ball_point(all_wat_coords, 1.0)
+        #dist_matrix = np.zeros((all_wat_coords.shape[0], all_wat_coords.shape[0]), np.float_)
+        #calc.get_dist_matrix(all_wat_coords.shape[0], dist_matrix, all_wat_coords)
+        #print sys.getsizeof(dist_matrix), dist_matrix.nbytes
+        #nbr_list = []
+        #for point in all_wat_coords:
+        #    nbr_list.append(tree.query_ball_point(point, 0.10))
+
+
+        #print sys.getsizeof(nbr_list)
+        nbr_count_list = np.ma.array([len(nbrs)
+                                      for nbrs in nbr_list], mask=False)
+
+        # Clustering loop
+        initial_time = time.time()
+        while n_wat >= cutoff:
+            cluster_iter += 1
+            # get water with max nbrs, reterive its nbrs
+            print "\tCluster iteration: ", cluster_iter
+            print "\tretrieving maximum..."
+            max_index = np.argmax(nbr_count_list)
+            to_exclude = np.array(nbr_list[max_index])
+            print "\tindex of maximum: ", max_index, "population: ", len(to_exclude)
+            n_wat = len(to_exclude) + 1
+            cluster_list.append(all_nbrs[max_index])
+            # Mask current water and its nbrs so that they are not considered
+            # in the next iteration
+            nbr_count_list.mask[to_exclude] = True
+            nbr_count_list.mask[max_index] = True
+            updated_wat_coords = np.delete(all_wat_coords, to_exclude, 0)
+            #updated_wat_coords = np.delete(updated_wat_coords, max_index, 0)
+
+            # Update nbr_count_list
+            # Recalculate neighbors only for the neighbors of exlucded waters
+            # First obtain a list of nbrs, whose nbr counts are supposed to be
+            # updated
+            nbrs_of_to_exclude = np.unique(np.array([n_excluded for excluded_nbrs in nbr_list[
+                                           to_exclude] for n_excluded in excluded_nbrs]))
+            to_update = np.setdiff1d(nbrs_of_to_exclude, to_exclude)
+            to_update = np.setdiff1d(to_update, np.asarray(max_index))
+            # print "Current nbr counts are: "
+            # print nbr_count_list[to_update]
+            tree = spatial.cKDTree(updated_wat_coords)
+            updated_nbr_list = tree.query_ball_point(
+                all_wat_coords[to_update], 0.10)
+            updated_nbr_count_list = np.array(
+                [len(nbrs) for nbrs in updated_nbr_list])
+            for index, nbrs in enumerate(updated_nbr_list):
+                if not nbr_count_list.mask[to_update[index]]:
+                   # print "Updating nbrs of index: ", to_update[index], "
+                   # from: ", nbr_count_list[to_update[index]], " to: ",
+                   # len(nbrs)
+                    nbr_count_list[to_update[index]] = len(nbrs)
+            # print "Updated nbr counts are: "
+            # print updated_nbr_count_list
+
+        elapsed_time = time.time() - initial_time
+        print "Time took for Clustering: ", str(datetime.timedelta(seconds=elapsed_time))
+
+        # print cluster_list
+
+        f = open("test_clustercenterfile.pdb", "w")
+        header = "REMARK Initial number of clusters: {0}\n".format(
+            len(cluster_list))
+        f.write(header)
+        for cluster in cluster_list:
+            cluster_coords = trj.xyz[cluster[0], cluster[1], :]
+            # print "Cluster coords: ", cluster_coords
+            pdb_line = "ATOM      1  O   WAT A   1      {0[0]:2.3f}  {0[1]:2.3f}  {0[2]:2.3f}  0.00  0.00\n".format(
+                cluster_coords * 10.0)
+            f.write(pdb_line)
+        f.close()
+        print "Number of clusters: ", len(cluster_list)
 
     def calculate_site_quantities(self, energy=True, hbonds=True):
         '''
