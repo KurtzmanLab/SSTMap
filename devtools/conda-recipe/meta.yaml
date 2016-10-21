@@ -12,6 +12,7 @@ requirements:
     - setuptools
     - mdtraj
     - parmed
+    - progressbar
 
   run:
     - python

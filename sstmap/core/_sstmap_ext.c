@@ -236,13 +236,13 @@ PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
 PyObject *_sstmap_ext_getNNOrEntropy(PyObject *self, PyObject *args)
 {
     int nwtot, n, l;
-    double NNor, totR, dW, wat_or_ent;
+    double NNor, dW, wat_or_ent;
     double voxel_dTSor = 0.0;
     double rx, ry, rz;
     PyArrayObject *voxel_wat_Eulers; 
     double twopi = 2*M_PI;
     // Argument parsing to reterive everything sent from Python correctly    
-    if (!PyArg_ParseTuple(args, "iO!:getNNOr",
+    if (!PyArg_ParseTuple(args, "iO!",
                             &nwtot,
                             &PyArray_Type, &voxel_wat_Eulers))
         {
@@ -291,7 +291,7 @@ PyObject *_sstmap_ext_getNNTrEntropy(PyObject *self, PyObject *args)
     PyArrayObject *voxel_wat_coords; 
     double twopi = 2*M_PI;
     // Argument parsing to reterive everything sent from Python correctly    
-    if (!PyArg_ParseTuple(args, "iiO!:getNNOr",
+    if (!PyArg_ParseTuple(args, "iiO!",
                             &nwtot,
                             &n_frames,
                             &PyArray_Type, &voxel_wat_coords))
@@ -329,6 +329,42 @@ PyObject *_sstmap_ext_getNNTrEntropy(PyObject *self, PyObject *args)
     return Py_BuildValue("f", voxel_dTStr);
 }
 
+PyObject *_sstmap_ext_get_dist_matrix(PyObject *self, PyObject *args)
+{
+    int nwtot, n, l;
+    double dR, nx, ny, nz, lx, ly, lz;
+    PyArrayObject *dist_matrix;
+    PyArrayObject *wat_coords;
+    // Argument parsing to reterive everything sent from Python correctly    
+    if (!PyArg_ParseTuple(args, "iO!O!",
+                            &nwtot,
+                            &PyArray_Type, &dist_matrix,
+                            &PyArray_Type, &wat_coords))
+        {
+            return NULL; /* raise argument parsing exception*/
+        }
+    // for each water in the voxel
+    for (n = 0; n < nwtot; n++)
+    {
+        nx = *(double *)PyArray_GETPTR2(wat_coords, n, 0);
+        ny = *(double *)PyArray_GETPTR2(wat_coords, n, 1);
+        nz = *(double *)PyArray_GETPTR2(wat_coords, n, 2);
+
+        for (l = 0; l < nwtot; l++)
+        {
+            if(l == n) continue;
+            //printf("Calculating orientational distancce between water: %i and %i\n", l, n);
+            lx = *(double *)PyArray_GETPTR2(wat_coords, l, 0);
+            ly = *(double *)PyArray_GETPTR2(wat_coords, l, 1);
+            lz = *(double *)PyArray_GETPTR2(wat_coords, l, 2);
+            dR = dist(nx, ny, nz, lx, ly, lz);
+            *(double *)PyArray_GETPTR2(dist_matrix, n, l) = dR;
+        }
+    }
+    return Py_BuildValue("i", 1);
+}
+
+
 /* Method Table
  * Registering all the functions that will be called from Python
  */
@@ -358,6 +394,13 @@ static PyMethodDef _sstmap_ext_methods[] = {
     {
         "getNNTrEntropy",
         (PyCFunction)_sstmap_ext_getNNTrEntropy,
+        METH_VARARGS,
+        "get voxel entropy"
+    },  
+      
+    {
+        "get_dist_matrix",
+        (PyCFunction)_sstmap_ext_get_dist_matrix,
         METH_VARARGS,
         "get voxel entropy"
     },    
