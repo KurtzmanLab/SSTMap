@@ -47,6 +47,7 @@ class WaterAnalysis(object):
         
         if desmond_helper_file is not None:
             self.desmond_helper_file = desmond_helper_file
+        self.rho_bulk = 0.0334
         self._generate_indices()
         self._generate_non_bonded_params()
 
@@ -171,6 +172,50 @@ class WaterAnalysis(object):
         solute_water_eps = np.sqrt(water_eps*self.vdw[self.non_water_atom_ids, 1])
         self.solute_water_acoeff = 4*solute_water_eps*(solute_water_sig**12)
         self.solute_water_bcoeff = -4*solute_water_eps*(solute_water_sig**6)
+
+    def calculate_energy(self, distance_matrix):
+
+        wat_wat_dist = distance_matrix[0, :][self.wat_oxygen_atom_ids]
+        wat_solute_dist = distance_matrix[0, :][self.non_water_atom_ids]
+        with np.errstate(invalid='ignore', divide='ignore'):
+            energy_sw_lj = (self.solute_water_acoeff*np.power(wat_solute_dist, -12)) + (self.solute_water_bcoeff*np.power(wat_solute_dist, -6))
+            energy_ww_lj = (self.water_water_acoeff*np.power(wat_wat_dist, -12)) + (self.water_water_bcoeff*np.power(wat_wat_dist, -6))
+            water_chg = self.chg[self.wat_atom_ids[0:self.water_sites]].reshape(self.water_sites, 1)
+            energy_elec = water_chg*np.tile(self.chg[self.all_atom_ids], (3, 1))
+            energy_elec *= np.power(distance_matrix, -1)
+
+        #print "Solute-water LJ Energy of this water: ", np.nansum(energy_sw_lj)
+        #print "Solute-water Elec Energy of this water: ", np.sum(energy_elec[:, self.non_water_atom_ids])
+        #print "Water-water LJ Energy of this water: ", np.nansum(energy_ww_lj)/2.0
+        #print "Water-water Elec Energy of this water: ", (np.sum(energy_elec[:, self.wat_atom_ids[0]:water_id])/2.0) + (np.sum(energy_elec[:, water_id + self.water_sites:])/2.0)
+        energy_lj = np.concatenate((energy_sw_lj, energy_ww_lj), axis=0)
+        return energy_lj, energy_elec
+
+
+    def calculate_hydrogen_bonds(self, traj, water, water_nbrs, solute_nbrs):
+        hbond_data = []
+        angle_triplets = []
+        for wat_nbr in water_nbrs:
+            angle_triplets.extend([[water, wat_nbr, wat_nbr+1], [water, wat_nbr, wat_nbr+2], [wat_nbr, water, water+1], [wat_nbr, water, water+2]])
+        for solute_nbr in solute_nbrs:
+            if self.prot_hb_types[solute_nbr] == 1 or self.prot_hb_types[solute_nbr] == 3:
+                angle_triplets.extend([[solute_nbr, water, water+1], [solute_nbr, water, water+2]])
+            if self.prot_hb_types[solute_nbr] == 2 or self.prot_hb_types[solute_nbr] == 3:
+                for don_H_pair in self.don_H_pair_dict[solute_nbr]:
+                    angle_triplets.extend([[water, solute_nbr, don_H_pair[1]]])
+        angle_triplets = np.asarray(angle_triplets)
+        angles = md.utils.in_units_of(md.compute_angles(traj, angle_triplets), "radians", "degrees")
+        angles_ww = angles[0, 0:water_nbrs.shape[0]*4]
+        angles_sw = angles[0, water_nbrs.shape[0]*4:]
+        angle_triplets_ww = angle_triplets[:water_nbrs.shape[0]*4]
+        angle_triplets_sw = angle_triplets[water_nbrs.shape[0]*4:]
+        hbonds_ww = angle_triplets_ww[np.where(angles_ww <= 30.0)]
+        hbonds_sw = angle_triplets_sw[np.where(angles_sw <= 30.0)]
+        return (hbonds_ww, hbonds_sw)
+
+
+
+
 ##########################################################################
 # Class and methods for 'efficient' neighbor search                                                             #
 ##########################################################################

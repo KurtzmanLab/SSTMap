@@ -14,7 +14,6 @@ from progressbar import Bar, Percentage, ProgressBar, ETA
 from water_analysis import WaterAnalysis, function_timer
 import _sstmap_ext as calc
 
-DEG_PER_RAD = 180.0 / np.pi
 GASKCAL = 0.0019872041
 
 
@@ -43,7 +42,6 @@ class GridWaterAnalysis(WaterAnalysis):
             com[0, :] = lig.xyz[0, :].astype('float64').T.dot(masses)
             grid_center = com[0, :] * 10.0
         self.voxel_vol = self.resolution**3.0
-        self.rho_bulk = 0.0334
         # set 3D grid around the region of interest
         self.initialize_grid(grid_center, grid_resolution, grid_dimensions)
         # initialize data structures to store voxel data
@@ -172,50 +170,6 @@ class GridWaterAnalysis(WaterAnalysis):
         self.voxeldict[voxel_id][0].append([theta, phi, psi])
         self.voxeldict[voxel_id][1].append(owat)
 
-    def calculate_energy(self, distance_matrix):
-
-        wat_wat_dist = distance_matrix[0, :][self.wat_oxygen_atom_ids]
-        wat_solute_dist = distance_matrix[0, :][self.non_water_atom_ids]
-        with np.errstate(invalid='ignore', divide='ignore'):
-            energy_sw_lj = (self.solute_water_acoeff*np.power(wat_solute_dist, -12)) + (self.solute_water_bcoeff*np.power(wat_solute_dist, -6))
-            energy_ww_lj = (self.water_water_acoeff*np.power(wat_wat_dist, -12)) + (self.water_water_bcoeff*np.power(wat_wat_dist, -6))
-            water_chg = self.chg[self.wat_atom_ids[0:self.water_sites]].reshape(self.water_sites, 1)
-            energy_elec = water_chg*np.tile(self.chg[self.all_atom_ids], (3, 1))
-            energy_elec *= np.power(distance_matrix, -1)
-
-        #print "Solute-water LJ Energy of this water: ", np.nansum(energy_sw_lj)
-        #print "Solute-water Elec Energy of this water: ", np.sum(energy_elec[:, self.non_water_atom_ids])
-        #print "Water-water LJ Energy of this water: ", np.nansum(energy_ww_lj)/2.0
-        #print "Water-water Elec Energy of this water: ", (np.sum(energy_elec[:, self.wat_atom_ids[0]:water_id])/2.0) + (np.sum(energy_elec[:, water_id + self.water_sites:])/2.0)
-        energy_lj = np.concatenate((energy_sw_lj, energy_ww_lj), axis=0)
-        return energy_lj, energy_elec
-
-
-    def calculate_hydrogen_bonds(self, traj, water, water_nbrs, solute_nbrs):
-        hbond_data = []
-        angle_triplets = []
-        for wat_nbr in water_nbrs:
-            angle_triplets.extend([[water, wat_nbr, wat_nbr+1], [water, wat_nbr, wat_nbr+2], [wat_nbr, water, water+1], [wat_nbr, water, water+2]])
-        for solute_nbr in solute_nbrs:
-            if self.prot_hb_types[solute_nbr] == 1 or self.prot_hb_types[solute_nbr] == 3:
-                angle_triplets.extend([[solute_nbr, water, water+1], [solute_nbr, water, water+2]])
-            if self.prot_hb_types[solute_nbr] == 2 or self.prot_hb_types[solute_nbr] == 3:
-                for don_H_pair in self.don_H_pair_dict[solute_nbr]:
-                    angle_triplets.extend([[water, solute_nbr, don_H_pair[1]]])
-        angle_triplets = np.asarray(angle_triplets)
-
-        #FIXME: Why does using self.trj[frame] take too long?
-        angles = md.compute_angles(traj, angle_triplets) * DEG_PER_RAD
-        angles_ww = angles[0, 0:water_nbrs.shape[0]*4]
-        angles_sw = angles[0, water_nbrs.shape[0]*4:]
-        hbonds_ww = angle_triplets[np.where(angles_ww <= 30.0)]
-        hbonds_sw = angle_triplets[np.where(angles_sw <= 30.0)]
-        acc_ww = hbonds_ww[:, 0][np.where(hbonds_ww[:, 0] == water)].shape[0]
-        don_ww = hbonds_ww.shape[0] - acc_ww
-        acc_sw = hbonds_sw[:, 0][np.where(hbonds_sw[:, 0] == water)].shape[0]
-        don_sw = hbonds_sw.shape[0] - acc_sw
-
-        return (hbonds_ww.shape[0], hbonds_sw.shape[0], acc_ww, don_ww, acc_sw, don_sw)
 
     @function_timer
     def calculate_entropy(self):
@@ -280,13 +234,17 @@ class GridWaterAnalysis(WaterAnalysis):
                     # H-bond calcuations
                     #TODO: document the algorithm
                     if hbonds:
-                        hb_data = self.calculate_hydrogen_bonds(trj, wat[1], wat_nbrs, prot_nbrs)
-                        self.voxeldata[wat[0], 24] += hb_data[0]
-                        self.voxeldata[wat[0], 26] += hb_data[1]
-                        self.voxeldata[wat[0], 28] += hb_data[2]
-                        self.voxeldata[wat[0], 30] += hb_data[3]
-                        self.voxeldata[wat[0], 32] += hb_data[4]
-                        self.voxeldata[wat[0], 34] += hb_data[5]
+                        hb_ww, hb_sw = self.calculate_hydrogen_bonds(trj, wat[1], wat_nbrs, prot_nbrs)
+                        acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat[1])].shape[0]
+                        don_ww = hb_ww.shape[0] - acc_ww
+                        acc_sw = hb_sw[:, 0][np.where(hb_sw[:, 0] == wat[1])].shape[0]
+                        don_sw = hb_sw.shape[0] - acc_sw
+                        self.voxeldata[wat[0], 24] += hb_sw.shape[0]
+                        self.voxeldata[wat[0], 26] += hb_ww.shape[0]
+                        self.voxeldata[wat[0], 28] += don_sw
+                        self.voxeldata[wat[0], 30] += acc_sw
+                        self.voxeldata[wat[0], 32] += don_ww
+                        self.voxeldata[wat[0], 34] += acc_ww
                 if entropy:
                     # calculate Euler angles
                     self.calculate_euler_angles(wat, pos[0, :, :])
