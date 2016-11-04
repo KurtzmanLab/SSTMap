@@ -58,6 +58,6 @@ lib
 build/
 
 #test outputs during local testing
-wateranalysistools/tests/*.txt
-wateranalysistools/tests/*.log
-wateranalysistools/tests/*_data
+sstmap/tests/*.txt
+sstmap/tests/*.log
+sstmap/tests/*_data

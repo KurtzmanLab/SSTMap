@@ -1,7 +1,5 @@
 
 import sys
-import time
-import datetime
 import os
 
 import numpy as np
@@ -11,7 +9,6 @@ import parmed as pmd
 from progressbar import Bar, Percentage, ProgressBar, ETA
 
 from water_analysis import WaterAnalysis, NeighborSearch, function_timer
-#import _sstmap_ext_old as calc_old
 import _sstmap_ext as calc
 
 
@@ -94,7 +91,6 @@ class SiteWaterAnalysis(WaterAnalysis):
         nbr_list = tree.query_ball_point(water_coordinates, sphere_radius)
         nbr_count_list = np.ma.array([len(nbrs) for nbrs in nbr_list], mask=False)
         # Clustering loop
-        initial_time = time.time()
         while n_wat > cutoff:
             cluster_iter += 1
             # get water with max nbrs and retrieve its nbrs, which are later marked for exclusion
@@ -227,7 +223,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                             for i in xrange(self.water_sites):
                                 e_nbr_i += np.sum(energy_elec[:, nbr_i + i])
                         self.hsa_dict[site_i][13].append(e_nbr_i)
-                    if hbonds:                        
+                    if hbonds:
                         hb_ww, hb_sw = self.calculate_hydrogen_bonds(frame, wat_O, wat_nbrs, prot_nbrs)
                         acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat_O)].shape[0]
                         don_ww = hb_ww.shape[0] - acc_ww
@@ -250,7 +246,6 @@ class SiteWaterAnalysis(WaterAnalysis):
             pbar.update(frame_i)
         pbar.finish()
         # normalize site quantities
-        print "Start Normalization"        
         sphere_volume = (4 / 3) * np.pi
         bulk_water_per_site = self.rho_bulk * sphere_volume * self.num_frames
         skip_normalization = ["index", "x", "y", "z", "nwat", "occupancy", "gO",
@@ -262,72 +257,77 @@ class SiteWaterAnalysis(WaterAnalysis):
                 for quantity_i in xrange(len(self.data_titles)):
                     if self.data_titles[quantity_i] not in skip_normalization:
                         if self.data_titles[quantity_i] in ["Esw", "EswLJ", "EswElec", "Eww", "EwwLJ", "EwwElec", "Etot"]:                        
-                            self.hsa_data[site_i, quantity_i] = (np.sum(self.hsa_dict[site_i][quantity_i])/n_wat)*0.5
+                            self.hsa_data[site_i, quantity_i] = np.sum(self.hsa_dict[site_i][quantity_i])/n_wat
                         elif self.data_titles[quantity_i] in ["Ewwnbr"]:
-                            self.hsa_data[site_i, quantity_i] = (np.sum(self.hsa_dict[site_i][quantity_i])/len(self.hsa_dict[site_i][quantity_i]))*0.5
+                            self.hsa_data[site_i, quantity_i] = np.sum(self.hsa_dict[site_i][quantity_i])/len(self.hsa_dict[site_i][quantity_i])
+
                         else:
                             self.hsa_data[site_i, quantity_i] = np.sum(self.hsa_dict[site_i][quantity_i])/n_wat
                     if self.data_titles[quantity_i] in ["solute_acceptors", "solute_donors"]:
                         self.hsa_dict[site_i][quantity_i] = np.unique(self.hsa_dict[site_i][quantity_i])
-        print "End Normalization"        
 
-    def calculate_angular_structure(self, dist_cutoff=6.0, site_indices=[]):
+    @function_timer
+    def calculate_angular_structure(self, site_indices=[], dist_cutoff=6.0):
         '''
         Returns energetic quantities for each hydration site
         '''
+        if len(site_indices) == 0:
+            site_indices = [int(i) for i in self.hsa_data[:, 0]]
+        else:
+            for index in site_indices:
+                if index > self.hsa_data[:, 0][-1]:
+                    sys.exit("Site %d does not exits, please provide valid site indices." % index)
+        n_sites = len(site_indices)
+        r_theta_data =[[] for i in xrange(n_sites)]
         pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()], maxval=self.start_frame + self.num_frames).start()
-        angular_strucure_data = [[] for site in self.hsa_data]
-        for i in xrange(self.start_frame, self.start_frame + self.num_frames):
-            # print "Processing frame: ", i+1, "..."
-            frame = md.load_frame(self.trajectory, i, top=self.topology)
-            pos = frame.xyz[0, :, :] * 10.0
-            pbc = frame.unitcell_lengths[0] * 10.0
-            #pos = self.trj[i].xyz[0,:,:]*10.0
-            # obtain coords of O-atoms
-            oxygen_pos = pos[self.wat_oxygen_atom_ids]
-
+        for frame_i in xrange(self.start_frame, self.start_frame + self.num_frames):
+            frame = md.load_frame(self.trajectory, frame_i, top=self.topology)
+            pos = md.utils.in_units_of(frame.xyz, "nanometers", "angstroms")
+            pbc = md.utils.in_units_of(frame.unitcell_lengths, "nanometers", "angstroms")
+            oxygen_pos = pos[0, self.wat_oxygen_atom_ids, :]
             cluster_search_space = NeighborSearch(oxygen_pos, 1.0)
-            water_search_space = NeighborSearch(oxygen_pos, dist_cutoff)
-
-            for site_i, site_data in enumerate(self.hsa_data):
-                #cluster_center_coords = (site_data["x"], site_data["y"], site_data["z"])
-                cluster_center_coords = (site_data[1][0], site_data[1][1], site_data[1][2])
-                nbr_indices = cluster_search_space.query_nbrs_single_point(cluster_center_coords)
-                cluster_wat_oxygens = [self.wat_oxygen_atom_ids[nbr_index] for nbr_index in nbr_indices]
-                # begin iterating over water oxygens found in this cluster in
-                # current frame
-                for wat_O in cluster_wat_oxygens:
-                    cluster_water_all_atoms = self.topology.select("resid " + str(self.topology.atom(wat_O).residue.index))
-                    nbr_indices = water_search_space.query_point_and_distance(pos[wat_O])
-                    firstshell_wat_oxygens = [self.wat_oxygen_atom_ids[nbr_index[0]] for nbr_index in nbr_indices]
-                    nbr_dist = [nbr_index[1] for nbr_index in nbr_indices]
-                    #nbr_angle = []
-                    if len(firstshell_wat_oxygens) != 0:
-                        nbr_water_residues = [self.topology.select("resid " + str(self.topology.atom(
-                            nbr_wat_O).residue.index)) for nbr_wat_O in firstshell_wat_oxygens]
-                        for idx, water_res in enumerate(nbr_water_residues):
-                            hbangle_combinations = np.asarray([[wat_O, water_res[0], water_res[1]], [wat_O, water_res[0], 
-                                water_res[2]], [water_res[0], wat_O, wat_O + 1], [water_res[0], wat_O, wat_O + 2]])
-                            theta_list = md.compute_angles(frame, hbangle_combinations) * DEG_PER_RAD
-                            #nbr_angle.append(np.min(theta_list))  # min angle is a potential Hbond
-                            angular_strucure_data[site_i].append([nbr_dist[idx], np.min(theta_list)])
-            pbar.update(i + 1)
+            for index, site_i in enumerate(site_indices):
+                wat_O = None
+                if self.site_waters is not None:
+                    if len(self.site_waters[site_i]) != 0:
+                        if self.site_waters[site_i][0][0] == frame_i:
+                            wat_O = self.site_waters[site_i].pop(0)[1]
+                            self.hsa_data[site_i, 4] += 1
+                else:
+                    cluster_center_coords = (self.hsa_data[site_i, 1], self.hsa_data[site_i, 2], self.hsa_data[site_i, 3])
+                    nbr_indices = cluster_search_space.query_nbrs_single_point(cluster_center_coords)
+                    cluster_wat_oxygens = [self.wat_oxygen_atom_ids[nbr_index] for nbr_index in nbr_indices]
+                    if len(cluster_wat_oxygens) != 0:
+                        wat_O = cluster_wat_oxygens[0]
+                        self.hsa_data[site_i, 4] += 1
+                if wat_O is not None:
+                    distance_matrix = np.zeros((self.water_sites, self.all_atom_ids.shape[0]), np.float_)
+                    calc.get_pairwise_distances(np.asarray([site_i, wat_O]), self.all_atom_ids, pos, pbc, distance_matrix)
+                    wat_nbrs = self.wat_oxygen_atom_ids[np.where((distance_matrix[0, :][self.wat_oxygen_atom_ids] <= dist_cutoff) & (distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
+                    angle_triplets = []
+                    for wat_nbr in wat_nbrs:
+                        angle_triplets.extend([[wat_O, wat_nbr, wat_nbr+1], [wat_O, wat_nbr, wat_nbr+2], 
+                                                [wat_nbr, wat_O, wat_O+1], [wat_nbr, wat_O, wat_O+2]])
+                    angle_triplets = np.asarray(angle_triplets)
+                    angles = md.utils.in_units_of(md.compute_angles(frame, angle_triplets), "radians", "degrees")
+                    for angle_index in xrange(0, angles.shape[1], 4):
+                        hb_angle = np.min(angles[0, angle_index:angle_index+4])
+                        nbr_index = angle_index/4
+                        r_theta_data[index].append((hb_angle, distance_matrix[0, wat_nbrs[nbr_index]]))
+            pbar.update(frame_i)
         pbar.finish()
-
         cwd = os.getcwd()
-        # create directory to store detailed data for individual columns in HSA
-        directory = cwd + "/" + self.prefix + "_angular_data"
+        directory = cwd + "/" + self.prefix + "_angular_structure_data"
         if not os.path.exists(directory):
             os.makedirs(directory)
         os.chdir(directory)
-
-        for site_i, data in enumerate(angular_strucure_data):
+        for index, site_i in enumerate(site_indices):
             with open("%03d_r_theta.txt" % site_i, "w") as f:
-                for d in data:
+                for d in r_theta_data[index]:
                     line = "{0[0]:.3f} {0[1]:.3f}\n".format(d)
                     f.write(line)
 
-
+    @function_timer
     def calculate_lonranged_ww_energy(self, site_indices=[], shell_radii=[3.5, 5.5, 8.5]):
 
         if len(site_indices) == 0:
@@ -600,7 +600,7 @@ def read_hsa_summary(hsa_data_file):
     return hsa_data
 def main():
 
-    test_1 = False
+    test_1 = True
 
     if test_1:
         hsa = SiteWaterAnalysis("/Users/kamranhaider/arg_gist_calcs/mdtraj/arg.prmtop", "/Users/kamranhaider/arg_gist_calcs/mdtraj/md10ns.ncdf", start_frame=0, num_frames=1000, ligand_file="/Users/kamranhaider/arg_gist_calcs/mdtraj/ligand_arg.pdb", prefix="test_1")
@@ -608,13 +608,15 @@ def main():
         hsa.calculate_site_quantities()
         hsa.write_summary()
         hsa.write_data()
+        hsa.calculate_angular_structure([1, 3])
     else:
         hsa = SiteWaterAnalysis("/Users/kamranhaider/arg_gist_calcs/mdtraj/arg.prmtop", "/Users/kamranhaider/arg_gist_calcs/mdtraj/md10ns.ncdf", start_frame=0, num_frames=1000, cluster_center_file="/Users/kamranhaider/arg_gist_calcs/03_organizewaters/clustercenterfile.pdb", prefix="test_2")
         hsa.print_system_summary()
+        hsa.calculate_angular_structure([1, 3])
         #hsa.calculate_lonranged_ww_energy([1, 3])
-        hsa.calculate_site_quantities()
-        hsa.write_summary()
-        hsa.write_data()
+        #hsa.calculate_site_quantities()
+        #hsa.write_summary()
+        #hsa.write_data()
 
 
 def entry_point():

@@ -189,7 +189,7 @@ class WaterAnalysis(object):
         #print "Water-water LJ Energy of this water: ", np.nansum(energy_ww_lj)/2.0
         #print "Water-water Elec Energy of this water: ", (np.sum(energy_elec[:, self.wat_atom_ids[0]:water_id])/2.0) + (np.sum(energy_elec[:, water_id + self.water_sites:])/2.0)
         energy_lj = np.concatenate((energy_sw_lj, energy_ww_lj), axis=0)
-        return energy_lj, energy_elec
+        return energy_lj*0.5, energy_elec*0.5
 
 
     def calculate_hydrogen_bonds(self, traj, water, water_nbrs, solute_nbrs):
