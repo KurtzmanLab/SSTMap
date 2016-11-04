@@ -1,0 +1,3 @@
+markdown: redcarpet
+baseurl: sstmp
+exclude: ['README.md']
