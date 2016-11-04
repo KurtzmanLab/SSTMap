@@ -1,7 +1,5 @@
 
 import sys
-import time
-import datetime
 import os
 
 import numpy as np
@@ -11,7 +9,6 @@ import parmed as pmd
 from progressbar import Bar, Percentage, ProgressBar, ETA
 
 from water_analysis import WaterAnalysis, NeighborSearch, function_timer
-#import _sstmap_ext_old as calc_old
 import _sstmap_ext as calc
 
 
@@ -94,7 +91,6 @@ class SiteWaterAnalysis(WaterAnalysis):
         nbr_list = tree.query_ball_point(water_coordinates, sphere_radius)
         nbr_count_list = np.ma.array([len(nbrs) for nbrs in nbr_list], mask=False)
         # Clustering loop
-        initial_time = time.time()
         while n_wat > cutoff:
             cluster_iter += 1
             # get water with max nbrs and retrieve its nbrs, which are later marked for exclusion
@@ -250,7 +246,6 @@ class SiteWaterAnalysis(WaterAnalysis):
             pbar.update(frame_i)
         pbar.finish()
         # normalize site quantities
-        print "Start Normalization"        
         sphere_volume = (4 / 3) * np.pi
         bulk_water_per_site = self.rho_bulk * sphere_volume * self.num_frames
         skip_normalization = ["index", "x", "y", "z", "nwat", "occupancy", "gO",
@@ -262,15 +257,16 @@ class SiteWaterAnalysis(WaterAnalysis):
                 for quantity_i in xrange(len(self.data_titles)):
                     if self.data_titles[quantity_i] not in skip_normalization:
                         if self.data_titles[quantity_i] in ["Esw", "EswLJ", "EswElec", "Eww", "EwwLJ", "EwwElec", "Etot"]:                        
-                            self.hsa_data[site_i, quantity_i] = (np.sum(self.hsa_dict[site_i][quantity_i])/n_wat)*0.5
+                            self.hsa_data[site_i, quantity_i] = np.sum(self.hsa_dict[site_i][quantity_i])/n_wat
                         elif self.data_titles[quantity_i] in ["Ewwnbr"]:
-                            self.hsa_data[site_i, quantity_i] = (np.sum(self.hsa_dict[site_i][quantity_i])/len(self.hsa_dict[site_i][quantity_i]))*0.5
+                            self.hsa_data[site_i, quantity_i] = np.sum(self.hsa_dict[site_i][quantity_i])/len(self.hsa_dict[site_i][quantity_i])
+
                         else:
                             self.hsa_data[site_i, quantity_i] = np.sum(self.hsa_dict[site_i][quantity_i])/n_wat
                     if self.data_titles[quantity_i] in ["solute_acceptors", "solute_donors"]:
                         self.hsa_dict[site_i][quantity_i] = np.unique(self.hsa_dict[site_i][quantity_i])
-        print "End Normalization"        
 
+    @function_timer
     def calculate_angular_structure(self, site_indices=[], dist_cutoff=6.0):
         '''
         Returns energetic quantities for each hydration site
@@ -331,6 +327,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                     line = "{0[0]:.3f} {0[1]:.3f}\n".format(d)
                     f.write(line)
 
+    @function_timer
     def calculate_lonranged_ww_energy(self, site_indices=[], shell_radii=[3.5, 5.5, 8.5]):
 
         if len(site_indices) == 0:
@@ -603,7 +600,7 @@ def read_hsa_summary(hsa_data_file):
     return hsa_data
 def main():
 
-    test_1 = False
+    test_1 = True
 
     if test_1:
         hsa = SiteWaterAnalysis("/Users/kamranhaider/arg_gist_calcs/mdtraj/arg.prmtop", "/Users/kamranhaider/arg_gist_calcs/mdtraj/md10ns.ncdf", start_frame=0, num_frames=1000, ligand_file="/Users/kamranhaider/arg_gist_calcs/mdtraj/ligand_arg.pdb", prefix="test_1")
@@ -611,8 +608,9 @@ def main():
         hsa.calculate_site_quantities()
         hsa.write_summary()
         hsa.write_data()
+        hsa.calculate_angular_structure([1, 3])
     else:
-        hsa = SiteWaterAnalysis("/Users/kamranhaider/arg_gist_calcs/mdtraj/arg.prmtop", "/Users/kamranhaider/arg_gist_calcs/mdtraj/md10ns.ncdf", start_frame=0, num_frames=100, cluster_center_file="/Users/kamranhaider/arg_gist_calcs/03_organizewaters/clustercenterfile.pdb", prefix="test_2")
+        hsa = SiteWaterAnalysis("/Users/kamranhaider/arg_gist_calcs/mdtraj/arg.prmtop", "/Users/kamranhaider/arg_gist_calcs/mdtraj/md10ns.ncdf", start_frame=0, num_frames=1000, cluster_center_file="/Users/kamranhaider/arg_gist_calcs/03_organizewaters/clustercenterfile.pdb", prefix="test_2")
         hsa.print_system_summary()
         hsa.calculate_angular_structure([1, 3])
         #hsa.calculate_lonranged_ww_energy([1, 3])

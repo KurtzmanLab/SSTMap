@@ -2,26 +2,29 @@ from argparse import ArgumentParser
 from sstmap.core.site_water_analysis import SiteWaterAnalysis
 
 def parse_args():
-    """Parse the command line arguments and perform some validation on the
-    arguments
+    """Parse the command-line arguments and check if input args are valid.
+
     Returns
     -------
     args : argparse.Namespace
         The namespace containing the arguments
     """
-    parser = ArgumentParser(description='''Run GIST calculations through command-line.''')
-    
-    parser.add_argument('-i', '--input_parm', required=True, type=str,
+    parser = ArgumentParser(description='''Run site-based SSTMap calculations through command-line.''')    
+    required = parser.add_argument_group('required arguments')
+    required.add_argument('-i', '--input_parm', required=True, type=str,
                           help='''Input toplogy File.''')
-    parser.add_argument('-t', '--input_traj', required=True, type=str,
+    required.add_argument('-t', '--input_traj', required=True, type=str,
                           help='''Input trajectory file.''')
-    parser.add_argument('-c', '--clusters', required=True, type=str,
+    required.add_argument('-l', '--ligand', required=True, type=str,
+                          help='''PDB file containing ligand molecule.''')
+    parser._action_groups.append(parser._action_groups.pop(1))
+    parser.add_argument('-c', '--clusters', type=str,
                           help='''PDB file containing cluster centers.''')
-    parser.add_argument('-f', '--num_frames', required=False, type=int,
+    parser.add_argument('-f', '--num_frames', type=int,
                           help='''Total number of frames to process.''')
-    parser.add_argument('-s', '--start_frame', required=False, type=int,
+    parser.add_argument('-s', '--start_frame', type=int,
                           help='''Starting frame.''')
-    parser.add_argument('-o', '--output_prefix', required=False, type=str,
+    parser.add_argument('-o', '--output_prefix', type=str,
                           help='''Prefix for all the results files.''')
     args = parser.parse_args()
     return args
