@@ -1,0 +1,34 @@
+# Dependencies
+markdown:         kramdown
+highlighter:      rouge
+
+# Permalinks
+#
+# Use of `relative_permalinks` ensures post links from the index work properly.
+permalink:           pretty
+
+# Setup
+title:               SSTMap
+tagline:             'Solvation Strucure and Thermodynamic Mapping'
+description:         'A computational tool for studying structure and thermodynamics of water molecules on solute surfaces, developed at <a href="http://www.lehman.edu/faculty/tkurtzman/" target="_blank">Kurtzman Lab</a>.'
+url:                 https://github.com/KurtzmanLab/SSTMap
+baseurl:             ''
+paginate:            5
+
+# About/contact
+author:
+  name:              Kamran Haider
+  url:               https://twitter.com/kam_haider
+  email:             kamranhaider.mb@gmail.com
+
+# Custom vars
+version:             1.0.0
+
+
+github:
+  repo:           https://github.com/KurtzmanLab/SSTMap
+
+# Gems
+gems:
+  - jekyll-paginate
+  - jekyll-gist
