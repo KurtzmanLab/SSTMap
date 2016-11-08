@@ -12,7 +12,7 @@ title:               SSTMap
 tagline:             'Solvation Strucure and Thermodynamic Mapping'
 description:         'A computational tool for studying structure and thermodynamics of water molecules on solute surfaces, developed at <a href="http://www.lehman.edu/faculty/tkurtzman/" target="_blank">Kurtzman Lab</a>.'
 url:                 https://KurtzmanLab.github.io/SSTMap/
-baseurl:             /
+baseurl:             /SSTMap
 paginate:            5
 
 # About/contact
