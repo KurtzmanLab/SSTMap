@@ -3,6 +3,7 @@ import sys
 import time
 import datetime
 import os
+import string
 
 import numpy as np
 from scipy import stats, spatial
@@ -19,10 +20,12 @@ import _sstmap_ext as calc
 class SiteWaterAnalysis(WaterAnalysis):
     """
     """
+    @function_timer
     def __init__(self, topology_file, trajectory, start_frame=0, num_frames=0,
                  ligand_file=None, cluster_center_file=None, 
                  desmond_helper_file=None, prefix="test"):
         
+        print "Initializing..."
         super(SiteWaterAnalysis, self).__init__(topology_file, trajectory,
             start_frame, num_frames, desmond_helper_file)        
         self.prefix = prefix
@@ -30,11 +33,11 @@ class SiteWaterAnalysis(WaterAnalysis):
         if cluster_center_file == None and ligand_file == None:
             sys.exit("Please provide either a ligand file for clustering or\
                         a cluster center file to generate hydration sites.")
-        if ligand_file != None:
+        if ligand_file is not None:
             cluster_coords, self.site_waters = self.generate_clusters(ligand_file)
             self.hsa_data, self.hsa_dict = self.initialize_site_data(cluster_coords)
 
-        if cluster_center_file != None:
+        if cluster_center_file is not None:
             clusters_pdb_file = md.load_pdb(cluster_center_file)
             cluster_coords = md.utils.in_units_of(clusters_pdb_file.xyz[0, :, :], "nanometers", "angstroms")
             self.hsa_data, self.hsa_dict = self.initialize_site_data(cluster_coords)
@@ -62,17 +65,18 @@ class SiteWaterAnalysis(WaterAnalysis):
     def generate_clusters(self, ligand_file):
         # Obtain binding site solute atoms using ligand atom coordinates
         ligand = md.load_pdb(ligand_file)
-        ligand_coords = md.utils.in_units_of(ligand.xyz[0, :, :], "nanometers", "angstroms", inplace=True)
-        first_frame = md.load_frame(self.trajectory, 0, top=self.topology_file)
-        solute_pos = md.utils.in_units_of(first_frame.xyz[0, self.non_water_atom_ids, :], "nanometers", "angstroms")
-        search_space = NeighborSearch(solute_pos, 5.0)
-        near_indices = search_space.query_nbrs_multiple_points(ligand_coords)
-        binding_site_atom_indices = [self.non_water_atom_ids[nbr_index] for nbr_index in near_indices]
+        ligand_coords = ligand.xyz[0, :, :]
+        binding_site_atom_indices = range(ligand_coords.shape[0])
         # Obtain water molecules solvating the binding site
         stride = 10
         print "Reading in trajectory for clustering."
         trj = md.load(self.trajectory, top=self.topology)
+        for i_frame in xrange(trj.n_frames):
+            for pseudo_index in xrange(ligand_coords.shape[0]):
+                trj.xyz[i_frame, pseudo_index, :] = ligand_coords[pseudo_index, :]
+        
         trj_short = trj[self.start_frame:self.start_frame + trj.n_frames:stride]
+
         print "Obtaining a superconfiguration of all water molecules found in the binding site throught the trajectory."
         binding_site_waters = md.compute_neighbors(trj_short, 0.50, binding_site_atom_indices, haystack_indices=self.wat_oxygen_atom_ids)
         # generate a list of all waters with their frame ids
@@ -87,54 +91,60 @@ class SiteWaterAnalysis(WaterAnalysis):
         n_wat = 3 * cutoff
         cluster_list = []
         cluster_iter = 0
-        sphere_radius = 1.0
+        sphere_radius = 0.1
         # Build KDTree and get initial neighbor count for all waters
-        water_coordinates = np.ma.array([trj_short.xyz[wat[0], wat[1], :] for wat in water_id_frame_list], mask=False)*10.0        
+        water_coordinates = np.ma.array([trj_short.xyz[wat[0], wat[1], :] for wat in water_id_frame_list], mask=False)
         tree = spatial.cKDTree(water_coordinates)
         nbr_list = tree.query_ball_point(water_coordinates, sphere_radius)
         nbr_count_list = np.ma.array([len(nbrs) for nbrs in nbr_list], mask=False)
         # Clustering loop
-        initial_time = time.time()
         while n_wat > cutoff:
-            cluster_iter += 1
-            # get water with max nbrs and retrieve its nbrs, which are later marked for exclusion
-            print "\tCluster iteration: ", cluster_iter
+            # get water with max nbrs and retrieve its nbrs, which are marked for exclusion
             max_index = np.argmax(nbr_count_list)
             to_exclude = np.array(nbr_list[max_index])
             # set current water count to current neighbors plus one for the water itself
             n_wat = len(to_exclude) + 1
-            cluster_list.append(water_id_frame_list[max_index])
-            # Mask current water and its nbrs so that they are not considered in the next iteration
+            # Mask current water, its nbrs so that they are not considered in the next iteration
             nbr_count_list.mask[to_exclude] = True
             nbr_count_list.mask[max_index] = True
-            # Create a version of water coordinates, after deleting the coordinates of waters set for exclsuion 
-            updated_wat_coords = np.delete(water_coordinates, to_exclude, 0)
-            updated_wat_coords = np.delete(updated_wat_coords, max_index, 0)
-            
+            water_coordinates.mask[to_exclude] = True
+            water_coordinates.mask[max_index] = True
             # For each members of this cluster, get its neighbors, create a unique set out of this list
             nbrs_of_to_exclude = np.unique(np.array([n_excluded for excluded_nbrs in nbr_list[to_exclude] for n_excluded in excluded_nbrs]))
             # Remove original members of the cluster from this list to get the final list of waters to update
-            to_update = np.setdiff1d(nbrs_of_to_exclude, to_exclude)
+            to_update = np.setxor1d(to_exclude, nbrs_of_to_exclude)
             to_update = np.setdiff1d(to_update, np.asarray(max_index))
-            # Update the neighbor count for each water in the update list
-            tree = spatial.cKDTree(updated_wat_coords)
-            updated_nbr_list = tree.query_ball_point(water_coordinates[to_update], sphere_radius)
-            # for each updated member, get its original index and update the original neighbor search list
-            for index, nbrs in enumerate(updated_nbr_list):
-                if not nbr_count_list.mask[to_update[index]]:
-                    nbr_count_list[to_update[index]] = len(nbrs)
-        init_cluster_coords = [trj_short.xyz[cluster[0], cluster[1], :]*10.0 for cluster in cluster_list]
-        print "Initial number of clusters: ", len(init_cluster_coords)
-        with open("initial_clustercenterfile.pdb", "w") as f:
-            header = "REMARK Initial number of clusters: {0}\n".format(len(init_cluster_coords))
-            f.write(header)
-            for cluster in init_cluster_coords:
-                pdb_line = "ATOM      1  O   WAT A   1      {0[0]:2.3f}  {0[1]:2.3f}  {0[2]:2.3f}  0.00  0.00\n".format(cluster)
-                f.write(pdb_line)
+            # Update the neighbor count for each water in the update list, if update list is not empty
+            if to_update.shape[0] != 0:
+                tree = spatial.cKDTree(water_coordinates)
+                updated_nbr_list = tree.query_ball_point(water_coordinates[to_update], sphere_radius)
+                # for each updated member, get its original index and update the original neighbor search list
+                for index, nbrs in enumerate(updated_nbr_list):
+                    if not nbr_count_list.mask[to_update[index]]:
+                        nbr_count_list[to_update[index]] = len(nbrs)        
+            # check distance with previously identified clusters and do not consider if within 1.2A of an existing cluster
+            current_wat = water_id_frame_list[max_index]
+            current_wat_coords = md.utils.in_units_of(trj_short.xyz[current_wat[0], current_wat[1], :], "nanometers", "angstroms")
+            near_flag = 0
+            if len(cluster_list) != 0:
+                for clust in cluster_list:
+                    clust_coords = md.utils.in_units_of(trj_short.xyz[clust[0], clust[1], :], "nanometers", "angstroms")
+                    dist = np.linalg.norm(current_wat_coords - clust_coords)
+                    if round(dist, 2) <= 1.2:
+                        near_flag += 1
+            if near_flag == 0:
+                cluster_iter += 1
+                print "\tCluster iteration: ", cluster_iter
+                cluster_list.append(water_id_frame_list[max_index])
+
+        self.write_wat_pdb(trj_short, self.prefix +"_initial_clustercenterfile", water_id_list=cluster_list)
+        init_cluster_coords = [trj_short.xyz[cluster[0], cluster[1], :] for cluster in cluster_list]
         print "Refining initial cluster positions by considering %d frames." % trj.n_frames
         binding_site_waters = md.compute_neighbors(trj, 0.50, binding_site_atom_indices, haystack_indices=self.wat_oxygen_atom_ids)
         water_id_frame_list = [(i, nbr) for i in range(len(binding_site_waters)) for nbr in binding_site_waters[i]]
-        water_coordinates = np.array([trj.xyz[wat[0], wat[1], :] for wat in water_id_frame_list])*10.0
+        print "Writing all waters within 5 Angstrom of ligand to pdb file."
+        self.write_wat_pdb(trj, self.prefix + "_within5Aofligand", water_id_list=water_id_frame_list)
+        water_coordinates = np.array([trj.xyz[wat[0], wat[1], :] for wat in water_id_frame_list])
         tree = spatial.cKDTree(water_coordinates)        
         nbr_list = tree.query_ball_point(init_cluster_coords, sphere_radius)
         final_cluster_coords = []
@@ -155,15 +165,9 @@ class SiteWaterAnalysis(WaterAnalysis):
                 masses /= masses.sum()
                 com[:] = water_coordinates[cluster].T.dot(masses)
                 cluster_center = com[:]
-                final_cluster_coords.append(cluster_center)
+                final_cluster_coords.append(md.utils.in_units_of(cluster_center, "nanometers", "angstroms"))
 
-        with open("clustercenterfile.pdb", "w") as f:
-            header = "REMARK Initial number of clusters: {0}\n".format(
-                len(final_cluster_coords))
-            f.write(header)
-            for cluster in final_cluster_coords:
-                pdb_line = "ATOM      1  O   WAT A   1      {0[0]:2.3f}  {0[1]:2.3f}  {0[2]:2.3f}  0.00  0.00\n".format(cluster)
-                f.write(pdb_line)
+        self.write_wat_pdb(trj_short, self.prefix + "_clustercenterfile", wat_coords=final_cluster_coords)        
         print "Final number of clusters: ", len(final_cluster_coords)
         return np.asarray(final_cluster_coords), site_waters
 
@@ -271,6 +275,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                         self.hsa_dict[site_i][quantity_i] = np.unique(self.hsa_dict[site_i][quantity_i])
         print "End Normalization"        
 
+    @function_timer
     def calculate_angular_structure(self, site_indices=[], dist_cutoff=6.0):
         '''
         Returns energetic quantities for each hydration site
@@ -330,7 +335,9 @@ class SiteWaterAnalysis(WaterAnalysis):
                 for d in r_theta_data[index]:
                     line = "{0[0]:.3f} {0[1]:.3f}\n".format(d)
                     f.write(line)
+        os.chdir("../")
 
+    @function_timer
     def calculate_lonranged_ww_energy(self, site_indices=[], shell_radii=[3.5, 5.5, 8.5]):
 
         if len(site_indices) == 0:
@@ -413,6 +420,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                 % (self.num_frames, self.all_atom_ids.shape[0], self.wat_oxygen_atom_ids.shape[0], self.non_water_atom_ids.shape[0])
         print "\tH-bond Donors: %d, H-bond Acceptors: %d, H-bond Donors & Acceptors: %d\n" \
                 % (self.solute_don_ids.shape[0], self.solute_acc_ids.shape[0], self.solute_acc_don_ids.shape[0])
+    
     @function_timer
     def write_summary(self):
         with open(self.prefix + "_hsa_summary.txt", "w") as f:
@@ -457,172 +465,41 @@ class SiteWaterAnalysis(WaterAnalysis):
                     with open(data_file_name, "w") as data_file:
                         data_file.writelines("%s\n" % item for item in self.hsa_dict[site_i][quantity_i])
         os.chdir("../")
-        
-def plot_enbr_distribution(site_data, data_dir, sites=[], nbr_norm = False):
-    """
-    generate an Enbr plot for an arbitrary list of sites. First site should be the reference system.
-    sites: a list of keys which represent site labels
-    data: a dictionary of sites
-    x_values: data points on x-axis
-    nbr_norm: Normalize by number of neighbors
-    outname: name of output file
-    """
-    colors = ["green", "blue", "red", "orange"]
-    for k in data.keys():
-        "generating Enbr plot for: ", k
-        y_values = data[k][0]*data[k][1]
-        #for val in range(len(x_values)):
-        #    if x_values[val] <= -3.26:
-        #         y_values[val] = 0.0
-        fig, ax = plt.subplots(1)
-        fig.set_size_inches(3, 3)
-        # set some basic settings for fonts and rendering
-        # set x and y axes limits, hard coded for now
-        plt.xlim(-4.0, 2.5)
-        plt.ylim(0.0, 1.0)
-        # set x and y axes label titles and font sizes
-        x_label = r'$\mathit{E_{n} (kcal/mol)}$'
-        y_label = r'$\mathit{\rho(E_{n})}$'
-        # set some features for the tick marks and labels
-        ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
-        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
-        start, end = ax.get_xlim()
-        ax.xaxis.set_ticks(np.arange(start, end, 2.0))
-        #start, end = ax.get_ylim()
-        #ax.yaxis.set_ticks(np.arange(start, end, 0.1))
-        if nbr_norm:
-            y_label = r'$\mathit{\rho(E_{n})/N^{nbr}}$'
-            plt.ylim(0.0, 0.5)
-            start, end = ax.get_ylim()
-            ax.yaxis.set_ticks(np.arange(start, end, 0.1))
-        ax.set_xlabel(x_label, size=14)
-        ax.set_ylabel(y_label, size=14)
-        ax.spines["right"].set_visible(False)
-        ax.spines["top"].set_visible(False)
-
-        plt.minorticks_on()
-        plt.tick_params(which='major', width=1, length=4, direction='in')
-        plt.tick_params(which='minor', width=1, length=2, direction='in')
-        plt.tick_params(axis='x', labelsize=12)
-        plt.tick_params(axis='y', labelsize=12)
-        ax.yaxis.tick_left()
-        ax.xaxis.tick_bottom()
-        # set legend locations
-        # save figure with optimal settings
-        plt.tight_layout()
-        #plt.plot(x_1, y_1, antialiased=True, linewidth=1.0, color="red", label="Methane")
-        plt.plot(x_values, y_values, antialiased=True, linewidth=1.0, color="red", label=k)
-
-        plt.legend(loc='upper right', prop={'size':10}, frameon=False)
-        plt.savefig(save_dir + "/" + k + "_Enbr_plot.png", dpi=300)
-        plt.close()
-
-    """
-    set sites to all sites if sites==[] (take all sites from site_data)
-    for each site in sites
-      get enbr_data into an array
-      construct kernel density estimate
-      get a range of x_values
-      evaluate density at x_values
-      set plot formatting
-      plot data
-      save plot
-    """
-
-#site_data, data_dir, sites=[], 
-def plot_rtheta_distribution(rtheta_file, site_data, legend_label, nwat):
     
-    integ_counts = 16.3624445886
-    #integ_counts = 22560
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    theta_data = np.loadtxt(theta_file)
-    r_data = np.loadtxt(r_file)
-    Nnbr = len(r_data)/nwat
-    print nwat, Nnbr
-    # generate index matrices
-    X, Y = np.mgrid[0:130:131j, 2.0:5.0:31j]
-    # generate kernel density estimates
-    values = np.vstack([theta_data, r_data])
-    kernel =  stats.gaussian_kde(values)
-    positions = np.vstack([X.ravel(), Y.ravel()])
-    Z = np.reshape(kernel(positions).T, X.shape)
-    Z *= integ_counts*0.1
-    #Z /= integ_counts
-    sum_counts_kernel = 0
-    #print kernel.n
-    # correct Z
-    for i in xrange(0, Y.shape[1]):
-        d = Y[0,i]
-        # get shell_vol
-        d_low = d - 0.1
-        vol = (4.0/3.0)*np.pi*(d**3)
-        vol_low = (4.0/3.0)*np.pi*(d_low**3)
-        shell_vol =  vol - vol_low
-
-        counts_bulk = 0.0329*shell_vol
-        sum_counts_kernel += np.sum(Z[:,i])
-        #Z[:,i] /= counts_bulk
-        Z[:,i] = Z[:,i]/counts_bulk
-
-    print sum_counts_kernel
-    ax.plot_surface(X, Y, Z, rstride=1, cstride=1, linewidth=0.5, antialiased=True, alpha=1.0, cmap=cm.coolwarm, label=legend_label)
-    x_label = r"$\theta^\circ$"
-    y_label = r"$r (\AA)$"
-    ax.set_xlabel(x_label)
-    ax.set_xlim(0, 130)
-    ax.set_ylabel(y_label)
-    ax.set_ylim(2.0, 5.0)
-    z_label = r'$\mathrm{P(\theta, \AA)}$'
-    ax.set_zlabel(z_label)
-    ax.legend(legend_label, loc='upper left', prop={'size':6})
-    ax.set_zlim(0.0, 0.15)
-    plt.savefig(legend_label + ".png", dpi=300)
-    plt.close()
-
-def read_hsa_summary(hsa_data_file):
-    '''
-    Returns a dictionary with hydration site index as keys and a list of various attributes as values.
-    Parameters
-    ----------
-    hsa_data_file : string
-        Text file containing 
-    Returns
-    -------
-
-    '''
-    f = open(hsa_data_file, 'r')
-    data = f.readlines()
-    hsa_header = data[0]
-    data_keys = hsa_header.strip("\n").split()
-    hsa_data = {}
-    for l in data[1:]:
-        float_converted_data = [float(x) for x in l.strip("\n").split()[1:27]]
-        hsa_data[int(l.strip("\n").split()[0])] = float_converted_data
-    f.close()
-    return hsa_data
-def main():
-
-    test_1 = False
-
-    if test_1:
-        hsa = SiteWaterAnalysis("/Users/kamranhaider/arg_gist_calcs/mdtraj/arg.prmtop", "/Users/kamranhaider/arg_gist_calcs/mdtraj/md10ns.ncdf", start_frame=0, num_frames=1000, ligand_file="/Users/kamranhaider/arg_gist_calcs/mdtraj/ligand_arg.pdb", prefix="test_1")
-        hsa.print_system_summary()
-        hsa.calculate_site_quantities()
-        hsa.write_summary()
-        hsa.write_data()
-    else:
-        hsa = SiteWaterAnalysis("/Users/kamranhaider/arg_gist_calcs/mdtraj/arg.prmtop", "/Users/kamranhaider/arg_gist_calcs/mdtraj/md10ns.ncdf", start_frame=0, num_frames=100, cluster_center_file="/Users/kamranhaider/arg_gist_calcs/03_organizewaters/clustercenterfile.pdb", prefix="test_2")
-        hsa.print_system_summary()
-        hsa.calculate_angular_structure([1, 3])
-        #hsa.calculate_lonranged_ww_energy([1, 3])
-        #hsa.calculate_site_quantities()
-        #hsa.write_summary()
-        #hsa.write_data()
-
-
-def entry_point():
-    main()
-
-if __name__ == '__main__':
-    entry_point()
+    @function_timer
+    def write_wat_pdb(self, traj, filename, water_id_list=None, wat_coords=None, full_water_res=False):
+        pdb_line_format = "{0:6}{1:>5} {2:<4}{3:<1}{4:>3} {5:1}{6:>4}{7:1}   {8[0]:>8.3f}{8[1]:>8.3f}{8[2]:>8.3f}{9:>6.2f}{10:>6.2f}\n"
+        possible_chains = " " + string.ascii_uppercase + string.ascii_lowercase + string.digits
+        chain_id_index = 0
+        pdb_lines = []
+        # write form the list of (water, frame) tuples
+        if wat_coords is None:
+            coords = traj.xyz
+            if not full_water_res:
+                for at_index, wat in enumerate(water_id_list):
+                    wat_coords = md.utils.in_units_of(coords[wat[0], wat[1], :], "nanometers", "angstroms")
+                    res_index = at_index % 10000
+                    if res_index == 9999:
+                        pdb_lines.append("TER\n")
+                    #chain_id = possible_chains[chain_id_index]
+                    chain_id = "A"
+                    pdb_line = pdb_line_format.format("ATOM", at_index, "O", " ", "WAT", chain_id, res_index, " ", wat_coords, 0.00, 0.00)
+                    pdb_lines.append(pdb_line)
+                    #if full_water_res:
+                    #    pdb_line = pdb_line_format.format("ATOM", at_index, "O", " ", "WAT", chain_id, res_index, " ", wat_coords, 0.00, 0.00)
+                    #    pdb_line = pdb_line_format.format("ATOM", at_index, "O", " ", "WAT", chain_id, res_index, " ", wat_coords, 0.00, 0.00)
+        # write directly from the array of coords
+        else:
+            for at_index, wat_coord in enumerate(wat_coords):                    
+                res_index = at_index % 10000
+                #if res_index == 0:
+                #    chain_id_index += 1
+                #chain_id = possible_chains[chain_id_index]
+                chain_id = "A"
+                pdb_line = pdb_line_format.format("ATOM", at_index, "O", " ", "WAT", chain_id, res_index, " ", wat_coord, 0.00, 0.00)
+                pdb_lines.append(pdb_line)
+                if res_index == 9999:
+                    pdb_lines.append("TER\n")
+        with open(filename + ".pdb", "w") as f:
+            f.write("".join(pdb_lines))
+        

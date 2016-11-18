@@ -15,6 +15,7 @@ import mdtraj as md
 import parmed as pmd
 
 DON_ACC_LIST = ["oxygen", "nitrogen", "sulfur"]
+_WATER_RESNAMES = ['H2O', 'HHO', 'OHH', 'HOH',  'OH2', 'SOL', 'WAT', 'TIP', 'TIP2', 'TIP3', 'TIP4', 'T3P', 'T4P', 'T5P']
 
 def function_timer(function):
     @wraps(function)
@@ -39,7 +40,8 @@ class WaterAnalysis(object):
         self.start_frame = start_frame
         self.num_frames = num_frames
         self.box_type = "Unspecified"
-        orthogonal = np.allclose(md.load_frame(self.trajectory, 0, top=self.topology_file).unitcell_angles, 90)
+        self.desmond_helper_file = desmond_helper_file
+        orthogonal = np.allclose(md.load_frame(self.trajectory, 9999, top=self.topology_file).unitcell_angles, 90)
         if orthogonal:
             self.box_type = "Orthorhombic"
         else:
@@ -58,30 +60,24 @@ class WaterAnalysis(object):
         # use mdtraj to load in first frame to obtain indices
         # FIXME: add IO error handling for both topology and trajectory
         # reading.
+        super_wat_select_exp = ""
+        for i, wat_res in enumerate(_WATER_RESNAMES):
+            if i < len(_WATER_RESNAMES) - 1:
+                super_wat_select_exp += "resname %s or " % wat_res
+            else:
+                super_wat_select_exp += "resname %s" % wat_res        
         self.all_atom_ids = self.topology.select("all")
         self.wat_atom_ids = self.topology.select("water")
-        self.wat_oxygen_atom_ids = self.topology.select("water and name O")
+        if self.wat_atom_ids.shape[0] == 0:
+            self.wat_atom_ids = self.topology.select(super_wat_select_exp)
+        assert (self.wat_atom_ids.shape[0] != 0), "Unable to recognize waters in the system!"
+        assert (self.topology.atom(self.wat_atom_ids[0]).name == "O"), "Failed while constructing water oxygen atom indices!"
+        self.wat_oxygen_atom_ids = np.asarray([atom for atom in self.wat_atom_ids if self.topology.atom(atom).name == "O"])
         # NOTE: The name is misleading, this is all solute atoms, including
         # ions in the system
-        self.non_water_atom_ids = self.topology.select("not water")
-        ######################################################
-        # Not sure what this does
-        wat_O_sites = []
-        for i, at in enumerate(self.wat_oxygen_atom_ids):
-            if i < len(self.wat_oxygen_atom_ids) - 1:
-                # print i, self.wat_oxygen_atom_ids[i],
-                # self.wat_oxygen_atom_ids[i + 1] - self.wat_oxygen_atom_ids[i]
-                wat_O_sites.append(
-                    self.wat_oxygen_atom_ids[i + 1] - self.wat_oxygen_atom_ids[i])
-            else:
-                # print i, self.wat_oxygen_atom_ids[i], self.wat_atom_ids[-1] -
-                # self.wat_oxygen_atom_ids[i] + 1
-                wat_O_sites.append(
-                    self.wat_atom_ids[-1] - self.wat_oxygen_atom_ids[i] + 1)
-        self.wat_O_sites = np.asarray(wat_O_sites)
-        #######################################################
-        # FIXME: is non water atom id just the protein atoms or everything else
-        # apart from water
+        #self.non_water_atom_ids = self.topology.select("not water")
+        self.non_water_atom_ids = np.setdiff1d(self.all_atom_ids, self.wat_atom_ids)
+        assert (self.wat_atom_ids.shape[0] + self.non_water_atom_ids.shape[0] == self.all_atom_ids.shape[0]), "Failed to partition atom indices in the system correctly!"
         # Obtain H-bond typing info
         acc_list = []
         don_list = []
@@ -91,7 +87,9 @@ class WaterAnalysis(object):
         self.don_H_pair_dict = {}
         # obtain a list of non-water bonds
         non_water_bonds = [(bond[0].index, bond[1].index)
-                           for bond in self.topology.bonds if bond[0].residue.name != "HOH"]
+                           for bond in self.topology.bonds if bond[0].residue.name not in _WATER_RESNAMES]
+        
+        assert (len(non_water_bonds) != 0), "Could not read topology information to construct H-bond atom types."
         # iterate over solute atom ids
         for at in self.non_water_atom_ids:
             # obtain bonds associated with donors or acceptors
@@ -101,6 +99,7 @@ class WaterAnalysis(object):
                     # if a nitrogen atom is bonded to a hydrogn atom, save donor-H pair and added to donors
                     # print at, bonds_of_at
                     don_h_pairs = []
+                    #print "found nitrogen", bonds_of_at
                     for at1, at2 in bonds_of_at:
                         if self.topology.atom(at2).element.name == "hydrogen":
                             don_h_pairs.append([at1, at2])
@@ -129,7 +128,6 @@ class WaterAnalysis(object):
                     # if no bonds with hydrogen found, add to acceptors
                     if len(don_h_pairs) == 0:
                         acc_list.append(at)
-
         self.solute_acc_ids = np.array(acc_list, dtype=np.int)
         self.solute_acc_don_ids = np.array(acc_don_list, dtype=np.int)
         self.solute_don_ids = np.array(don_list, dtype=np.int)
@@ -149,19 +147,26 @@ class WaterAnalysis(object):
 
         # use parmed to get parameters
         # the way parameters are provided by parmed is essentially
-        parmed_topology_object = pmd.load_file(self.topology_file)
-        vdw = []
-        chg = []
-        for at in self.all_atom_ids:
-            # print at, self.param_class.atoms[at].charge*18.2223,
-            # self.param_class.atoms[at].sigma,
-            # self.param_class.atoms[at].epsilon
-            vdw.append([parmed_topology_object.atoms[at].sigma,
-                        parmed_topology_object.atoms[at].epsilon])
-            chg.append(parmed_topology_object.atoms[at].charge)
-        # FIXME: Is this multiplication step applicable to all topologies
-        self.vdw = np.asarray(vdw)
-        self.chg = np.asarray(chg) * 18.2223
+        if self.desmond_helper_file is not None:
+            nb_data = np.loadtxt(self.desmond_helper_file)
+            self.chg = nb_data[:, 0]
+            self.vdw = nb_data[:, 1:]
+        else:
+            parmed_topology_object = pmd.load_file(self.topology_file)
+            vdw = []
+            chg = []
+            for at in self.all_atom_ids:
+                # print at, self.param_class.atoms[at].charge*18.2223,
+                # self.param_class.atoms[at].sigma,
+                # self.param_class.atoms[at].epsilon
+                vdw.append([parmed_topology_object.atoms[at].sigma,
+                            parmed_topology_object.atoms[at].epsilon])
+                chg.append(parmed_topology_object.atoms[at].charge)
+            # FIXME: Is this multiplication step applicable to all topologies
+            self.vdw = np.asarray(vdw)
+            self.chg = np.asarray(chg) * 18.2223
+            
+
         self.water_sites = self.wat_oxygen_atom_ids[1] - self.wat_oxygen_atom_ids[0]
         water_sig = self.vdw[self.wat_oxygen_atom_ids[0]][0]
         water_eps = self.vdw[self.wat_oxygen_atom_ids[0]][1]        
