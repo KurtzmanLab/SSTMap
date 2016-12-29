@@ -16,7 +16,7 @@ import parmed as pmd
 
 DON_ACC_LIST = ["oxygen", "nitrogen", "sulfur"]
 _WATER_RESNAMES = ['H2O', 'HHO', 'OHH', 'HOH',  'OH2', 'SOL', 'WAT', 'TIP', 'TIP2', 'TIP3', 'TIP4', 'T3P', 'T4P', 'T5P']
-
+_WAT_NBR_AVG = ["T3P": 5.25]
 def function_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):

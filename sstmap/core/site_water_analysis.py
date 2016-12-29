@@ -206,6 +206,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                     prot_nbrs = np.asarray([prot_nbr for prot_nbr in prot_nbrs if self.topology.atom(prot_nbr).name[0] not in ["C", "H"]])
                     self.hsa_dict[site_i][17].append(wat_nbrs.shape[0])
                     #TODO: 5.25 should be replaced with a variable
+                    # 5.25 comes from TIP3P water model, define dictionary based on water residue names
                     self.hsa_dict[site_i][22].append(1.0 - (wat_nbrs.shape[0]/5.25))
                     if energy:
                         energy_lj, energy_elec = self.calculate_energy(distance_matrix)
@@ -469,18 +470,17 @@ class SiteWaterAnalysis(WaterAnalysis):
     @function_timer
     def write_wat_pdb(self, traj, filename, water_id_list=None, wat_coords=None, full_water_res=False):
         pdb_line_format = "{0:6}{1:>5} {2:<4}{3:<1}{4:>3} {5:1}{6:>4}{7:1}   {8[0]:>8.3f}{8[1]:>8.3f}{8[2]:>8.3f}{9:>6.2f}{10:>6.2f}\n"
-        possible_chains = " " + string.ascii_uppercase + string.ascii_lowercase + string.digits
-        chain_id_index = 0
+        ter_line_format = "{0:3}   {1:>5}      {2:>3} {3:1}{4:4} \n"
         pdb_lines = []
         # write form the list of (water, frame) tuples
         if wat_coords is None:
             coords = traj.xyz
             if not full_water_res:
-                for at_index, wat in enumerate(water_id_list):
+                for at in xrange(len(water_id_list)): #at_index, wat in enumerate(water_id_list):
+                    wat = water_id_list[at]
+                    at_index = at % 10000
+                    res_index = at % 10000
                     wat_coords = md.utils.in_units_of(coords[wat[0], wat[1], :], "nanometers", "angstroms")
-                    res_index = at_index % 10000
-                    if res_index == 9999:
-                        pdb_lines.append("TER\n")
                     #chain_id = possible_chains[chain_id_index]
                     chain_id = "A"
                     pdb_line = pdb_line_format.format("ATOM", at_index, "O", " ", "WAT", chain_id, res_index, " ", wat_coords, 0.00, 0.00)
@@ -488,18 +488,26 @@ class SiteWaterAnalysis(WaterAnalysis):
                     #if full_water_res:
                     #    pdb_line = pdb_line_format.format("ATOM", at_index, "O", " ", "WAT", chain_id, res_index, " ", wat_coords, 0.00, 0.00)
                     #    pdb_line = pdb_line_format.format("ATOM", at_index, "O", " ", "WAT", chain_id, res_index, " ", wat_coords, 0.00, 0.00)
+                    if res_index == 9999:
+                        ter_line = ter_line_format.format("TER", at_index, "WAT", chain_id, res_index)
+                        pdb_lines.append(ter_line)
+                pdb_lines.append("END")
+
         # write directly from the array of coords
         else:
-            for at_index, wat_coord in enumerate(wat_coords):                    
-                res_index = at_index % 10000
-                #if res_index == 0:
-                #    chain_id_index += 1
-                #chain_id = possible_chains[chain_id_index]
+            for at in xrange(len(wat_coords)):
+                wat_coord = wat_coords[at]
+                at_index = at % 10000
+                res_index = at % 10000
                 chain_id = "A"
                 pdb_line = pdb_line_format.format("ATOM", at_index, "O", " ", "WAT", chain_id, res_index, " ", wat_coord, 0.00, 0.00)
                 pdb_lines.append(pdb_line)
+                #if full_water_res:
+                #    pdb_line = pdb_line_format.format("ATOM", at_index, "O", " ", "WAT", chain_id, res_index, " ", wat_coords, 0.00, 0.00)
+                #    pdb_line = pdb_line_format.format("ATOM", at_index, "O", " ", "WAT", chain_id, res_index, " ", wat_coords, 0.00, 0.00)
                 if res_index == 9999:
-                    pdb_lines.append("TER\n")
+                    ter_line = ter_line_format.format("TER", at_index, "WAT", chain_id, res_index)
+                    pdb_lines.append(ter_line)
         with open(filename + ".pdb", "w") as f:
             f.write("".join(pdb_lines))
         
