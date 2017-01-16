@@ -1,4 +1,3 @@
-from __future__ import print_function
 import sys
 
 """
@@ -75,13 +74,13 @@ def main():
     n_frame = 100
     s_frame = 0
 
-    print("Testing SiteBased water analysis for Arg in TIP3P, using 100 ps simulation.")
+    print "Testing SiteBased water analysis for Arg in TIP3P, using 100 ps simulation."
     #testSiteBased(topology, trajectory, ligand, n_frame, s_frame, hydration_sites, prefix)
-    print("Skipping")
-    print("Testing ProteinBased water analysis for Arg in TIP3P, using 100 ps simulation.")
+    print "Skipping"
+    print "Testing ProteinBased water analysis for Arg in TIP3P, using 100 ps simulation."
     #testProteinBased(topology, trajectory, ligand, n_frame, s_frame, hydration_sites, prefix)
-    print("Skipping.")
-    print("Testing GridBased water analysis for Arg in TIP3P, using 100 ps simulation.")
+    print "Skipping."
+    print "Testing GridBased water analysis for Arg in TIP3P, using 100 ps simulation."
     testSiteBased(topology, trajectory, ligand, n_frame, s_frame, prefix)
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
-from __future__ import absolute_import
-from .site_water_analysis import SiteWaterAnalysis
+from site_water_analysis import SiteWaterAnalysis
 test_1 = True
 
 if test_1:

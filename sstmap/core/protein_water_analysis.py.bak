@@ -3,10 +3,6 @@ docstring for this class
 """
 from __future__ import print_function
 from __future__ import absolute_import
-from __future__ import division
-from builtins import str
-from builtins import range
-from past.utils import old_div
 import sys
 import time
 import os
@@ -17,7 +13,7 @@ import mdtraj as md
 import parmed as pmd
 
 from .water_analysis import WaterAnalysisBase, NeighborSearch
-DEG_PER_RAD = old_div(180.0, np.pi)
+DEG_PER_RAD = 180.0 / np.pi
 # root class definition
 
 
@@ -77,7 +73,7 @@ class ProteinWaterAnalysis(WaterAnalysisBase):
             (self.solute_don_ids, self.solute_acc_don_ids))
         combined_acc_accdon_ids = np.concatenate(
             (self.solute_acc_ids, self.solute_acc_don_ids))
-        for i in range(self.start_frame, self.start_frame + self.num_frames):
+        for i in xrange(self.start_frame, self.start_frame + self.num_frames):
             print("Processing frame: ", i + 1, "...")
             # Load frame and obtain coordinates
             frame = md.load_frame(self.trajectory, i, top=self.topology)

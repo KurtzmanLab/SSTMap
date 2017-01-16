@@ -1,7 +1,4 @@
 from __future__ import print_function
-from __future__ import division
-from builtins import range
-from past.utils import old_div
 import sys
 import os
 
@@ -57,7 +54,7 @@ def plot_enbr_distribution(data_dir, site_indices=None, nbr_norm=False, ref_data
         enbr[site_i] = np.loadtxt(data_dir + "/" + file)
         if nbr_norm:
             nbrs = np.loadtxt(data_dir + "/" + nbr_files[index])
-            nbr_values.append(old_div(np.sum(nbrs),nbrs.shape[0]))
+            nbr_values.append(np.sum(nbrs)/nbrs.shape[0])
     if ref_data is not None:
         ref_enbr = np.loadtxt(ref_data)
         if nbr_norm:
@@ -165,18 +162,18 @@ def plot_rtheta_distribution(data_dir, site_indices=None):
         sum_counts_kernel = 0
         # print kernel.n
         # correct Z
-        for i in range(0, Y.shape[1]):
+        for i in xrange(0, Y.shape[1]):
             d = Y[0, i]
             # get shell_vol
             d_low = d - 0.1
-            vol = (old_div(4.0,3.0))*np.pi*(d**3)
-            vol_low = (old_div(4.0,3.0))*np.pi*(d_low**3)
+            vol = (4.0/3.0)*np.pi*(d**3)
+            vol_low = (4.0/3.0)*np.pi*(d_low**3)
             shell_vol = vol - vol_low
 
             counts_bulk = 0.0329*shell_vol
             sum_counts_kernel += np.sum(Z[:, i])
             #Z[:,i] /= counts_bulk
-            Z[:, i] = old_div(Z[:, i],counts_bulk)
+            Z[:, i] = Z[:, i]/counts_bulk
 
         print(sum_counts_kernel)
         legend_label = "%03d_" % site_i

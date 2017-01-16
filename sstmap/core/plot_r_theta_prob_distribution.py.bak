@@ -1,8 +1,4 @@
 from __future__ import print_function
-from __future__ import division
-from builtins import str
-from builtins import range
-from past.utils import old_div
 import numpy as np
 from scipy import stats
 import matplotlib as mpl
@@ -42,7 +38,7 @@ def plotRTheta(theta_file, r_file, legend_label, nwat):
     ax = fig.gca(projection='3d')
     theta_data = np.loadtxt(theta_file)
     r_data = np.loadtxt(r_file)
-    Nnbr = old_div(len(r_data),nwat)
+    Nnbr = len(r_data)/nwat
     print(nwat, Nnbr)
     # generate index matrices
     X, Y = np.mgrid[0:130:131j, 2.0:5.0:31j]
@@ -56,18 +52,18 @@ def plotRTheta(theta_file, r_file, legend_label, nwat):
     sum_counts_kernel = 0
     #print kernel.n
     # correct Z
-    for i in range(0, Y.shape[1]):
+    for i in xrange(0, Y.shape[1]):
         d = Y[0,i]
         # get shell_vol
         d_low = d - 0.1
-        vol = (old_div(4.0,3.0))*np.pi*(d**3)
-        vol_low = (old_div(4.0,3.0))*np.pi*(d_low**3)
+        vol = (4.0/3.0)*np.pi*(d**3)
+        vol_low = (4.0/3.0)*np.pi*(d_low**3)
         shell_vol =  vol - vol_low
 
         counts_bulk = 0.0329*shell_vol
         sum_counts_kernel += np.sum(Z[:,i])
         #Z[:,i] /= counts_bulk
-        Z[:,i] = old_div(Z[:,i],counts_bulk)
+        Z[:,i] = Z[:,i]/counts_bulk
 
     print(sum_counts_kernel)
     ax.plot_surface(X, Y, Z, rstride=1, cstride=1, linewidth=0.5, antialiased=True, alpha=1.0, cmap=cm.coolwarm, label=legend_label)
@@ -104,13 +100,13 @@ if (__name__ == '__main__') :
     list_dict = {}
     for l in lines:
         prot_hs_pair = l.strip("\n\t").split("\t")
-        if prot_hs_pair[0] in list(list_dict.keys()):
+        if prot_hs_pair[0] in list_dict.keys():
             #print prot_hs_pair
             list_dict[prot_hs_pair[0]].append(int(prot_hs_pair[1]))
         else:
             list_dict[prot_hs_pair[0]] = [int(prot_hs_pair[1])]
 
-    for k in list(list_dict.keys()):
+    for k in list_dict.keys():
         dir_path_hsa_summary = "../../../../raw_data/"+k+"/hsa_energy_calcs/"+k+"_hsa_ene_summary.txt"
         dir_path_clust_data = "../../../../raw_data/"+k+"/r_theta_data/"+k+"_cluster_hb_data/"
         hsa_dict = getHSData(dir_path_hsa_summary)

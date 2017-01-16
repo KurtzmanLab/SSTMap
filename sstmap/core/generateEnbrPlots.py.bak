@@ -1,6 +1,5 @@
 from __future__ import print_function
 # system imports
-from builtins import range
 import os
 from optparse import OptionParser
 
@@ -31,7 +30,7 @@ def genPlot(data, save_dir, x_values = x_range, nbr_norm = False):
 	outname: name of output file
 	"""
 	colors = ["green", "blue", "red", "orange"]
-	for k in list(data.keys()):
+	for k in data.keys():
 		"generating Enbr plot for: ", k
 		y_values = data[k][0]*data[k][1]
 		for val in range(len(x_values)):
