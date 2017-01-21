@@ -1,3 +1,5 @@
+"""Summary
+"""
 ##############################################################################
 # SSTMap: A Python library for the calculation of water structure and
 #         thermodynamics on solute surfaces from molecular dynamics
@@ -57,6 +59,15 @@ class SiteWaterAnalysis(WaterAnalysis):
     """
     Hydration site analysis calculations for water molecules on solute surfaces
     in a simulation.
+    
+    Attributes
+    ----------
+    data_titles : TYPE
+        Description
+    prefix : TYPE
+        Description
+    site_waters : TYPE
+        Description
     """
     @function_timer
     def __init__(self, topology_file, trajectory, start_frame=0, num_frames=0,
@@ -64,7 +75,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                  desmond_helper_file=None, prefix="hsa"):
         """Initialize a SiteWaterAnalysis object for site-based solvation structure
         and thermodynamic calculations.
-
+        
         Parameters
         ----------
         topology_file : string
@@ -76,14 +87,14 @@ class SiteWaterAnalysis(WaterAnalysis):
         num_frames : int, optional
             The total number of frames or the length of simulation over which
             calculations will be performed. Default: 10000
-        cluster_center_file : None, optional
-            Filename for a PDB file containing a set of pre-generated cluster
-            centers. If not provided, default clustering method would generate
-            a set of clusters.
         ligand_file : None, optional
             Filename for a PDB file containing coordinates of a co-crystallized
             ligand. This is used by the clustering method to identify binding
             site water molecules in the trjectory.
+        cluster_center_file : None, optional
+            Filename for a PDB file containing a set of pre-generated cluster
+            centers. If not provided, default clustering method would generate
+            a set of clusters.
         desmond_helper_file : None, optional
             Filename for a pre-generated text file containing non-bonded
             parametersfor every particle in the system, applicable only
@@ -117,13 +128,13 @@ class SiteWaterAnalysis(WaterAnalysis):
 
     def initialize_site_data(self, cluster_coords):
         """Initializes data elements to store the results of site-based calculations
-
+        
         Parameters
         ----------
         cluster_coords : np.ndarray, float, shape(N_sites, 3)
             Array of Cartesian coordinates for cluster centers where N is the
             total number of cluster centers.
-
+        
         Returns
         -------
         site_array : np.ndarray, float, shape(N,len(self.data_titles))
@@ -159,13 +170,13 @@ class SiteWaterAnalysis(WaterAnalysis):
     def generate_clusters(self, ligand_file):
         """Generate hydration sites from water molecules found in the binding site
         during the simulation.
-
+        
         Parameters
         ----------
         ligand_file : string
             Name of the PDB file containing atomic coordinates of the ligand,
             assumed to be co-crystallized with the protein.
-
+        
         Returns
         -------
         TYPE
@@ -323,7 +334,7 @@ class SiteWaterAnalysis(WaterAnalysis):
     def calculate_site_quantities(self, energy=True, hbonds=True, entropy=True):
         '''
         TODO: replace TIP3P nbr count constant with variable that depends on water model
-
+        
         Parameters
         ----------
         energy : bool, optional
@@ -467,7 +478,16 @@ class SiteWaterAnalysis(WaterAnalysis):
     def calculate_angular_structure(self, site_indices=[], dist_cutoff=6.0):
         '''
         Returns energetic quantities for each hydration site
+        
+        Parameters
+        ----------
+        site_indices : list, optional
+            Description
+        dist_cutoff : float, optional
+            Description
+        
         '''
+
         if len(site_indices) == 0:
             site_indices = [int(i) for i in self.hsa_data[:, 0]]
         else:
@@ -539,7 +559,20 @@ class SiteWaterAnalysis(WaterAnalysis):
 
     @function_timer
     def calculate_lonranged_ww_energy(self, site_indices=[], shell_radii=[3.5, 5.5, 8.5]):
-
+        """Summary
+        
+        Parameters
+        ----------
+        site_indices : list, optional
+            Description
+        shell_radii : list, optional
+            Description
+        
+        Returns
+        -------
+        TYPE
+            Description
+        """
         if len(site_indices) == 0:
             site_indices = [int(i) for i in self.hsa_data[:, 0]]
         else:
@@ -630,6 +663,13 @@ class SiteWaterAnalysis(WaterAnalysis):
                 f.write(site_data_line)
 
     def print_system_summary(self):
+        """Summary
+        
+        Returns
+        -------
+        TYPE
+            Description
+        """
         print("System information:")
         print("\tParameter file: %s\n" % self.topology_file)
         print("\tTrajectory: %s\n" % self.trajectory)
@@ -642,6 +682,13 @@ class SiteWaterAnalysis(WaterAnalysis):
 
     @function_timer
     def write_summary(self):
+        """Summary
+        
+        Returns
+        -------
+        TYPE
+            Description
+        """
         with open(self.prefix + "_hsa_summary.txt", "w") as f:
             header = " ".join(self.data_titles) + "\n"
             f.write(header)
@@ -692,6 +739,26 @@ class SiteWaterAnalysis(WaterAnalysis):
 
     @function_timer
     def write_wat_pdb(self, traj, filename, water_id_list=None, wat_coords=None, full_water_res=False):
+        """Summary
+        
+        Parameters
+        ----------
+        traj : TYPE
+            Description
+        filename : TYPE
+            Description
+        water_id_list : None, optional
+            Description
+        wat_coords : None, optional
+            Description
+        full_water_res : bool, optional
+            Description
+        
+        Returns
+        -------
+        TYPE
+            Description
+        """
         pdb_line_format = "{0:6}{1:>5} {2:<4}{3:<1}{4:>3} {5:1}{6:>4}{7:1}   {8[0]:>8.3f}{8[1]:>8.3f}{8[2]:>8.3f}{9:>6.2f}{10:>6.2f}\n"
         ter_line_format = "{0:3}   {1:>5}      {2:>3} {3:1}{4:4} \n"
         pdb_lines = []

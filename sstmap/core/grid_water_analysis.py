@@ -1,4 +1,6 @@
 """
+Attributes:
+    GASKCAL (float): Description
 
 """
 from __future__ import print_function
@@ -8,8 +10,6 @@ from __future__ import division
 # import statements
 from builtins import range
 from past.utils import old_div
-import sys
-import time
 
 import numpy as np
 import mdtraj as md
@@ -24,6 +24,19 @@ GASKCAL = 0.0019872041
 
 class GridWaterAnalysis(WaterAnalysis):
     """
+    Attributes:
+        center (TYPE): Description
+        dims (TYPE): Description
+        grid (TYPE): Description
+        grid_size (TYPE): Description
+        gridmax (TYPE): Description
+        origin (TYPE): Description
+        param_class (TYPE): Description
+        paramname (TYPE): Description
+        prefix (TYPE): Description
+        resolution (TYPE): Description
+        spacing (TYPE): Description
+        voxel_vol (TYPE): Description
     
     """
     @function_timer
@@ -31,7 +44,20 @@ class GridWaterAnalysis(WaterAnalysis):
                  ligand_file=None, desmond_helper_file=None, prefix="test",
                  grid_center=[0.0, 0.0, 0.0], grid_dimensions=[5.0, 5.0, 5.0],
                  grid_resolution=[0.5, 0.5, 0.5]):
-
+        """Summary
+        
+        Args:
+            topology_file (TYPE): Description
+            trajectory (TYPE): Description
+            start_frame (int, optional): Description
+            num_frames (int, optional): Description
+            ligand_file (None, optional): Description
+            desmond_helper_file (None, optional): Description
+            prefix (str, optional): Description
+            grid_center (list, optional): Description
+            grid_dimensions (list, optional): Description
+            grid_resolution (list, optional): Description
+        """
         super(GridWaterAnalysis, self).__init__(topology_file, trajectory, start_frame, num_frames, desmond_helper_file)
         self.paramname = topology_file
         self.param_class = pmd.load_file(self.paramname)
@@ -57,6 +83,19 @@ class GridWaterAnalysis(WaterAnalysis):
 
 
     def initialize_grid(self, center, resolution, dimensions):
+        """Summary
+        
+        Args:
+            center (TYPE): Description
+            resolution (TYPE): Description
+            dimensions (TYPE): Description
+            center (TYPE): Description
+            resolution (TYPE): Description
+            dimensions (TYPE): Description
+        
+        Returns:
+            TYPE: Description
+        """
         # set grid center, res and dimension
         #self.center = np.array(center,dtype=np.float_)
         #self.dims = np.array(dimensions)
@@ -76,6 +115,11 @@ class GridWaterAnalysis(WaterAnalysis):
         self.grid = np.zeros(self.dims, dtype=np.int_)
 
     def initialize_voxel_data(self):
+        """Summary
+        
+        Returns:
+            TYPE: Description
+        """
         voxel_dict = []
         v_count = 0
         voxel_array = np.zeros((self.grid.size, 35), dtype="float64")
@@ -100,6 +144,15 @@ class GridWaterAnalysis(WaterAnalysis):
         return voxel_array, voxel_dict
 
     def calculate_euler_angles(self, water, coords):
+        """Summary
+        
+        Args:
+            water (TYPE): Description
+            coords (TYPE): Description
+        
+        Returns:
+            TYPE: Description
+        """
         pi = np.pi
         twopi = 2 * np.pi
         # define the lab frame of reference
@@ -178,6 +231,11 @@ class GridWaterAnalysis(WaterAnalysis):
 
     @function_timer
     def calculate_entropy(self):
+        """Summary
+        
+        Returns:
+            TYPE: Description
+        """
         bulkwaterpervoxel = self.voxel_vol * self.rho_bulk * self.num_frames        
         for voxel, waters in enumerate(self.voxeldict):
             if len(waters[0]) > 1.0:
@@ -204,6 +262,16 @@ class GridWaterAnalysis(WaterAnalysis):
 
     @function_timer
     def process_grid(self, energy=True, hbonds=True, entropy=True):
+        """Summary
+        
+        Args:
+            energy (bool, optional): Description
+            hbonds (bool, optional): Description
+            entropy (bool, optional): Description
+        
+        Returns:
+            TYPE: Description
+        """
         pbar = ProgressBar(widgets=[Percentage(), Bar()], maxval=self.num_frames).start()
         for frame in range(self.start_frame, self.start_frame + self.num_frames):
             trj = md.load_frame(self.trajectory, frame, top=self.topology_file)
@@ -279,6 +347,14 @@ class GridWaterAnalysis(WaterAnalysis):
 
     @function_timer
     def write_data(self, prefix=None):
+        """Summary
+        
+        Args:
+            prefix (None, optional): Description
+        
+        Returns:
+            TYPE: Description
+        """
         if prefix == None:
             prefix = self.prefix
         print("Writing voxel data ...")
@@ -300,6 +376,14 @@ class GridWaterAnalysis(WaterAnalysis):
 
     @function_timer
     def generate_dx_files(self, prefix=None):
+        """Summary
+        
+        Args:
+            prefix (None, optional): Description
+        
+        Returns:
+            TYPE: Description
+        """
         if prefix == None:
             prefix = self.prefix
         print("Generating dx files ...")
@@ -349,6 +433,11 @@ class GridWaterAnalysis(WaterAnalysis):
                 f.close()
 
     def print_system_summary(self):
+        """Summary
+        
+        Returns:
+            TYPE: Description
+        """
         print("System information:")
         print("\tParameter file: %s\n" % self.topology_file)
         print("\tTrajectory: %s\n" % self.trajectory)
@@ -363,6 +452,11 @@ class GridWaterAnalysis(WaterAnalysis):
         print("\tGIST grid dimensions: %i %i %i\n" % (self.dims[0], self.dims[1], self.dims[2]))
         print("\tGIST grid spacing: %5.3f A^3\n" % (self.spacing[0]))
     def print_calcs_summary(self):        
+        """Summary
+        
+        Returns:
+            TYPE: Description
+        """
         print("Summary of main calculations:")
         nwat_grid = 0.0
         Eswtot = 0.0
@@ -390,6 +484,11 @@ class GridWaterAnalysis(WaterAnalysis):
         print("\tTotal Solute-Water Translational Entropy over the grid: %.6f" % dTStr_tot)
 
 def entry_point():
+    """Summary
+    
+    Returns:
+        TYPE: Description
+    """
     main()
 
 if __name__ == '__main__':
