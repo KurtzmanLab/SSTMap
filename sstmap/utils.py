@@ -1,9 +1,35 @@
+##############################################################################
+# SSTMap: A Python library for the calculation of water structure and
+#         thermodynamics on solute surfaces from molecular dynamics
+#         trajectories.
+# Copyright 2016-2017 Lehman College City University of New York
+# and the Authors
+#
+# Authors: Kamran Haider
+# Contributors: Steven Ramsay, Anthony Cruz Balberdy
+#
+# SSTMap is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation, either version 2.1
+# of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with SSTMap. If not, see <http://www.gnu.org/licenses/>.
+##############################################################################
+
 from __future__ import print_function
 from __future__ import division
 from builtins import range
 from past.utils import old_div
 import sys
 import os
+import time
+from functools import wraps
 
 import numpy as np
 from scipy import stats
@@ -16,8 +42,51 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from matplotlib import cm
 
-rcParams['font.family'] = 'serif'
-rcParams['font.serif'] = ['Cambria Math'] + rcParams['font.serif']
+#rcParams['font.family'] = 'serif'
+#rcParams['font.serif'] = ['Cambria Math'] + rcParams['font.serif']
+
+##############################################################################
+# Utilities
+##############################################################################
+
+def function_timer(function):
+    @wraps(function)
+    def function_timer(*args, **kwargs):
+        t0 = time.time()
+        result = function(*args, **kwargs)
+        t1 = time.time()
+        print ("Total time running %s: %2.2f seconds" %
+               (function.__name__, t1-t0))
+        return result
+    return function_timer
+
+def print_progress_bar (count, total):
+    """
+    Create and update progress bar during a loop.
+    
+    Parameters
+    ----------
+    iteration : int
+        The number of current iteration, used to calculate current progress. 
+    total : int
+        Total number of iterations
+    
+    Notes
+    -----
+        Based on:
+        http://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
+    """
+    bar_len = 60
+    filled_len = int(round(bar_len * count / float(total)))
+
+    percents = round(100.0 * count / float(total), 1)
+    bar = u"\u2588" * filled_len + '-' * (bar_len - filled_len)
+
+    sys.stdout.write('Progress |%s| %s%s Done\r' % (bar, percents, '%'))
+    sys.stdout.flush()
+    if count == total: 
+        print()
+
 
 
 def plot_enbr_distribution(data_dir, site_indices=None, nbr_norm=False, ref_data=None, ref_nbrs=None):
@@ -28,6 +97,19 @@ def plot_enbr_distribution(data_dir, site_indices=None, nbr_norm=False, ref_data
     x_values: data points on x-axis
     nbr_norm: Normalize by number of neighbors
     outname: name of output file
+    
+    Parameters
+    ----------
+    data_dir : TYPE
+        Description
+    site_indices : None, optional
+        Description
+    nbr_norm : bool, optional
+        Description
+    ref_data : None, optional
+        Description
+    ref_nbrs : None, optional
+        Description
     """
     enbr_files = []
     enbr = {}
@@ -125,6 +207,15 @@ def plot_enbr_distribution(data_dir, site_indices=None, nbr_norm=False, ref_data
 
 def plot_rtheta_distribution(data_dir, site_indices=None):
 
+    """
+    Parameters
+    ----------
+    data_dir : TYPE
+        Description
+    site_indices : None, optional
+        Description
+    
+    """
     rtheta_files = []
     rtheta_data = {}
 
@@ -203,6 +294,7 @@ def read_hsa_summary(hsa_data_file):
     ----------
     hsa_data_file : string
         Text file containing 
+    
     Returns
     -------
 
@@ -219,27 +311,135 @@ def read_hsa_summary(hsa_data_file):
     return hsa_data
 
 
-def read_hsa_summary(hsa_data_file):
-    '''
-    Returns a dictionary with hydration site index as keys and a list of various attributes as values.
-    Parameters
-    ----------
-    hsa_data_file : string
-        Text file containing 
-    Returns
-    -------
+class NeighborSearch(object):
+    """
+    Class for relatively fast queries of coordinates within a distance
+    of specified coordinate. 
+    """
+    def __init__(self, xyz, dist):
+        """Initialize a NeighborSearch object by providing an array of
+        coordinates and a distance threshold.
 
-    '''
-    with open(hsa_data_file, 'r') as f:
-        data = f.readlines()
-        hsa_header = data[0]
-        data_keys = hsa_header.strip("\n").split()
-        hsa_data = {}
-        for l in data[1:]:
-            float_converted_data = [float(x)
-                                    for x in l.strip("\n").split()[1:27]]
-            hsa_data[int(l.strip("\n").split()[0])] = float_converted_data
-    return hsa_data
+        Parameters
+        ----------
+        xyz : np.ndarray, float, shape=(N, 3)
+            A multidmimensional array of three dimensional coordinates
+        dist : float
+            A distance cutoff to identify points within this distance of the
+            query point.
+        """
+        # create an array of indices around a cubic grid
+        self.neighbors = []
+        for i in (-1, 0, 1):
+            for j in (-1, 0, 1):
+                for k in (-1, 0, 1):
+                    self.neighbors.append((i, j, k))
+        self.neighbor_array = np.array(self.neighbors, np.int)
+
+        self.min_ = np.min(xyz, axis=0)
+        self.cell_size = np.array([dist, dist, dist], np.float)
+        cell = np.array(old_div((xyz - self.min_), self.cell_size))  # , dtype=np.int)
+        # create a dictionary with keys corresponding to integer representation
+        # of transformed XYZ's
+        self.cells = {}
+        for ix, assignment in enumerate(cell):
+            # convert transformed xyz coord into integer index (so coords like
+            # 1.1 or 1.9 will go to 1)
+            indices = assignment.astype(int)
+            # create interger indices
+            t = tuple(indices)
+
+            # NOTE: a single index can have multiple coords associated with it
+            # if this integer index is already present
+            if t in self.cells:
+                # obtain its value (which is a list, see below)
+                xyz_list, trans_coords, ix_list = self.cells[t]
+                # append new xyz to xyz list associated with this entry
+                xyz_list.append(xyz[ix])
+                # append new transformed xyz to transformed xyz list associated
+                # with this entry
+                trans_coords.append(assignment)
+                # append new array index
+                ix_list.append(ix)
+            # if this integer index is encountered for the first time
+            else:
+                # create a dictionary key value pair,
+                # key: integer index
+                # value: [[list of x,y,z], [list of transformed x,y,z], [list
+                # of array indices]]
+                self.cells[t] = ([xyz[ix]], [assignment], [ix])
+
+        self.dist_squared = dist * dist
+
+    def query_nbrs_single_point(self, point):
+        """
+        Given a coordinate point, return all point indexes (0-indexed) that
+        are within the threshold distance from it.
+        """
+        cell0 = np.array(old_div((point - self.min_), self.cell_size), dtype=np.int)
+        tuple0 = tuple(cell0)
+        near = []
+        for index_array in tuple0 + self.neighbor_array:
+            t = tuple(index_array)
+            if t in self.cells:
+                xyz_list, trans_xyz_list, ix_list = self.cells[t]
+                for (xyz, ix) in zip(xyz_list, ix_list):
+                    diff = xyz - point
+                    if np.dot(diff, diff) <= self.dist_squared and float(
+                            np.dot(diff, diff)) > 0.0:
+                        # near.append(ix)
+                        # print ix, np.dot(diff, diff)
+                        near.append(ix)
+        return near
+
+    def query_point_and_distance(self, point):
+        """
+        Given a coordinate point, return all point indexes (0-indexed) and 
+        corresponding distances that are within the threshold distance from it.
+        """
+        cell0 = np.array(old_div((point - self.min_), self.cell_size), dtype=np.int)
+        tuple0 = tuple(cell0)
+        near = []
+        for index_array in tuple0 + self.neighbor_array:
+            t = tuple(index_array)
+            if t in self.cells:
+                xyz_list, trans_xyz_list, ix_list = self.cells[t]
+                for (xyz, ix) in zip(xyz_list, ix_list):
+                    diff = xyz - point
+                    if np.dot(diff, diff) <= self.dist_squared and float(
+                            np.dot(diff, diff)) > 0.0:
+                        # near.append(ix)
+                        # print ix, np.dot(diff, diff)
+                        near.append((ix, np.sqrt(np.dot(diff, diff))))
+        return near
+
+    def query_nbrs_multiple_points(self, points):
+        """
+        Given a coordinate point, return all point indexes (0-indexed) that
+        are within the threshold distance from it.
+        shape of points has to be (n_lig_atoms, 3)
+        """
+        near = []
+        for point in points:
+            cell0 = np.array(
+                old_div((point - self.min_), self.cell_size),
+                dtype=np.int)
+            tuple0 = tuple(cell0)
+
+            for index_array in tuple0 + self.neighbor_array:
+                t = tuple(index_array)
+                if t in self.cells:
+                    xyz_list, trans_xyz_list, ix_list = self.cells[t]
+                    for (xyz, ix) in zip(xyz_list, ix_list):
+                        diff = xyz - point
+                        if np.dot(diff, diff) <= self.dist_squared and float(
+                                np.dot(diff, diff)) > 0.0:
+                            # near.append(ix)
+                            # print ix, np.dot(diff, diff)
+                            if ix not in near:
+                                near.append(ix)
+        return near
+
 
 
 def main():

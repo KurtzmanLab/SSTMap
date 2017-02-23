@@ -1,5 +1,7 @@
 sstmap/tests/new_gist_tests
 test_build.sh
+local_build.sh
+
 #python object files
 *.pyc
 
@@ -58,6 +60,3 @@ lib
 build/
 
 #test outputs during local testing
-wateranalysistools/tests/*.txt
-wateranalysistools/tests/*.log
-wateranalysistools/tests/*_data
