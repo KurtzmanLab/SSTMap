@@ -33,6 +33,7 @@ from functools import wraps
 
 import numpy as np
 from scipy import stats
+import mdtraj as md
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
@@ -310,6 +311,113 @@ def read_hsa_summary(hsa_data_file):
     f.close()
     return hsa_data
 
+def write_watpdb_from_list(traj, filename, water_id_list, full_water_res=False):
+    """Summary
+    
+    Parameters
+    ----------
+    traj : TYPE
+        Description
+    filename : TYPE
+        Description
+    water_id_list : None, optional
+        Description
+    wat_coords : None, optional
+        Description
+    full_water_res : bool, optional
+        Description
+    
+    Returns
+    -------
+    TYPE
+        Description
+    """
+    
+    pdb_line_format = "{0:6}{1:>5}  {2:<3}{3:<1}{4:>3} {5:1}{6:>4}{7:1}   {8[0]:>8.3f}{8[1]:>8.3f}{8[2]:>8.3f}{9:>6.2f}{10:>6.2f}{11:>12s}\n"
+    ter_line_format = "{0:3}   {1:>5}      {2:>3} {3:1}{4:4} \n"
+    pdb_lines = []
+    # write form the list of (water, frame) tuples
+    coords = traj.xyz
+    # at_index, wat in enumerate(water_id_list):
+    at = 1
+    res = 1
+    for i in range(0,len(water_id_list)):
+        wat = water_id_list[i]
+        at_index = at #% 10000
+        res_index = res % 10000
+        wat_coords = md.utils.in_units_of(
+            coords[wat[0], wat[1], :], "nanometers", "angstroms")
+        #chain_id = possible_chains[chain_id_index]
+        chain_id = "A"
+        pdb_line = pdb_line_format.format(
+            "ATOM", at_index, "O", " ", "WAT", chain_id, res_index, " ", wat_coords, 0.00, 0.00, "O")
+        pdb_lines.append(pdb_line)
+        if full_water_res:
+            H1_coords = md.utils.in_units_of(
+                coords[wat[0], wat[1] + 1, :], "nanometers", "angstroms")
+            pdb_line_H1 = pdb_line_format.format("ATOM", at_index + 1, "H1", " ", "WAT", chain_id, res_index, " ", H1_coords, 0.00, 0.00, "H")
+            pdb_lines.append(pdb_line_H1)
+            H2_coords = md.utils.in_units_of(
+                coords[wat[0], wat[1] + 2, :], "nanometers", "angstroms")
+            pdb_line_H2 = pdb_line_format.format("ATOM", at_index + 2, "H2", " ", "WAT", chain_id, res_index, " ", H2_coords, 0.00, 0.00, "H")
+            pdb_lines.append(pdb_line_H2)
+            at += 3
+            res += 1
+        else:
+            at += 1
+            res += 1
+        if res_index == 9999:
+            ter_line = ter_line_format.format(
+                "TER", at, "WAT", chain_id, res_index)
+            at = 1
+            #pdb_lines.append(ter_line)
+    #pdb_lines.append("END")
+
+    # write directly from the array of coords
+    with open(filename + ".pdb", "w") as f:
+        f.write("".join(pdb_lines))
+
+def write_watpdb_from_coords(traj, filename, wat_coords):
+    """Summary
+    
+    Parameters
+    ----------
+    traj : TYPE
+        Description
+    filename : TYPE
+        Description
+    water_id_list : None, optional
+        Description
+    wat_coords : None, optional
+        Description
+    full_water_res : bool, optional
+        Description
+    
+    Returns
+    -------
+    TYPE
+        Description
+    """
+    
+    pdb_line_format = "{0:6}{1:>5}  {2:<3}{3:<1}{4:>3} {5:1}{6:>4}{7:1}   {8[0]:>8.3f}{8[1]:>8.3f}{8[2]:>8.3f}{9:>6.2f}{10:>6.2f}{11:>12s}\n"
+    ter_line_format = "{0:3}   {1:>5}      {2:>3} {3:1}{4:4} \n"
+    pdb_lines = ["REMARK Initial number of clusters: N/A\n"]
+    # write form the list of (water, frame) tuples
+    for at in range(len(wat_coords)):
+        wat_coord = wat_coords[at]
+        at_index = at % 10000
+        res_index = at % 10000
+        chain_id = "A"
+        pdb_line = pdb_line_format.format(
+            "ATOM", at_index, "O", " ", "WAT", chain_id, res_index, " ", wat_coord, 0.00, 0.00, "O")
+        pdb_lines.append(pdb_line)
+        if res_index == 9999:
+            ter_line = ter_line_format.format(
+                "TER", at_index, "WAT", chain_id, res_index)
+            pdb_lines.append(ter_line)
+    
+    with open(filename + ".pdb", "w") as f:
+        f.write("".join(pdb_lines))
 
 class NeighborSearch(object):
     """
