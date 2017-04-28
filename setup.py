@@ -4,24 +4,11 @@ import numpy
 ext_module = Extension('_sstmap_ext', 
 					sources=['sstmap/_sstmap_ext.c'], 
 					include_dirs=[numpy.get_include()])
-# run a limited setup for just the C ext
+
 setup(name='sstmap',
       version='0.1',
       description='Library for analysis of water molecules in MD trajectories',
-      url='https://github.com/KurtzmanLab/WatAnalTool',
-      author='Kamran Haider',
-      author_email='kamranhaider.mb@gmail.com',
-      license='None',
-      ext_modules=[ext_module],
-      zip_safe=False,
-      )
-
-
-"""
-setup(name='sstmap',
-      version='0.1',
-      description='Library for analysis of water molecules in MD trajectories',
-      url='https://github.com/KurtzmanLab/WatAnalTool',
+      url='https://github.com/KurtzmanLab/SSTMap',
       author='Kamran Haider',
       author_email='kamranhaider.mb@gmail.com',
       license='None',
@@ -31,6 +18,8 @@ setup(name='sstmap',
       )
 entry_points={
       'console_scripts':
-      ['run_hsa = wateranalysistools.scripts.run_hsa:entry_point',
-      'run_gist = wateranalysistools.scripts.run_phba:entry_point',]},
-"""
+      ['run_hsa = sstmap.scripts.run_hsa:entry_point',
+      'run_gist = sstmap.scripts.run_gist:entry_point',
+      'desmond_extract_nbparams = sstmap.scripts.desmond_extract_nbparams:entry_point',
+      'dtr_to_netcdf = sstmap.scripts.dtr_to_netcdf:entry_point',]},
+

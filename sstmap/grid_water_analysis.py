@@ -31,6 +31,7 @@ from __future__ import absolute_import
 from __future__ import division
 from builtins import range
 from past.utils import old_div
+import sys
 
 import numpy as np
 import mdtraj as md
@@ -48,14 +49,18 @@ class GridWaterAnalysis(WaterAnalysis):
     @function_timer
     def __init__(self, topology_file, trajectory, start_frame=0, num_frames=0,
                  ligand_file=None, desmond_helper_file=None, prefix="test",
-                 grid_center=[0.0, 0.0, 0.0], grid_dimensions=[5.0, 5.0, 5.0],
+                 grid_center=None, grid_dimensions=[5.0, 5.0, 5.0],
                  grid_resolution=[0.5, 0.5, 0.5]):
         super(GridWaterAnalysis, self).__init__(topology_file, trajectory, start_frame, num_frames, desmond_helper_file)
         self.paramname = topology_file
         self.param_class = pmd.load_file(self.paramname)
         self.resolution = grid_resolution[0]
         self.prefix = prefix
-        if ligand_file is not None:
+        if ligand_file is None and grid_center is None:
+            sys.exit("Please provide value of the grid center as a list of x, y, z coordinates or\
+                         speicify a ligand PDB file whose center would be chosen as grid center.")
+
+        if ligand_file is not None and grid_center is None:
             # TODO: change this as a utility function
             # get ligad center
             lig = md.load_pdb(ligand_file)
@@ -203,25 +208,30 @@ class GridWaterAnalysis(WaterAnalysis):
 
 
     @function_timer
-    def calculate_entropy(self):
-
-        bulkwaterpervoxel = self.voxel_vol * self.rho_bulk * self.num_frames        
-        for voxel, waters in enumerate(self.voxeldict):
-            if len(waters[0]) > 1.0:
-                self.voxeldata[voxel, 5]  = old_div(len(waters), bulkwaterpervoxel)
+    def calculate_entropy(self, num_frames=None):
+        if num_frames is None:
+            num_frames = self.num_frames
+        bulkwaterpervoxel = self.voxel_vol * self.rho_bulk * num_frames        
+        for voxel in xrange(self.voxeldata.shape[0]):
+            if self.voxeldata[voxel, 4] >= 1.0:
+        
+        #for voxel, waters in enumerate(self.voxeldict):
+        #    if len(waters[0]) > 1.0:
+                dens = old_div(1.0 * self.voxeldata[voxel, 4], num_frames*self.voxel_vol)
+                self.voxeldata[voxel, 5]  = old_div(dens, self.rho_bulk)
                 #density-weighted trans entropy
                 dTStr_dens = -GASKCAL * 300 * self.rho_bulk * self.voxeldata[voxel, 5] * np.log(self.voxeldata[voxel, 5])
                 self.voxeldata[voxel, 7] = dTStr_dens
-                self.voxeldata[voxel, 8] = self.voxeldata[voxel, 7] * self.num_frames * self.voxel_vol / (1.0 * self.voxeldata[voxel, 4])
+                self.voxeldata[voxel, 8] = self.voxeldata[voxel, 7] * num_frames * self.voxel_vol / (1.0 * self.voxeldata[voxel, 4])
                 #print voxel, self.voxeldata[voxel, 7], self.voxeldata[voxel, 8]
-                angle_array = np.asarray(waters[0])
+                angle_array = np.asarray(self.voxeldict[voxel][0])
                 #TODO: unintuitive name for this variable 
                 #density-weighted orinet entropy
-                dTS_nn_or = calc.getNNOrEntropy(len(waters[0]), angle_array)
+                dTS_nn_or = calc.getNNOrEntropy(int(self.voxeldata[voxel, 4]), angle_array)
                 # normalized orientational entropy
                 self.voxeldata[voxel, 10] = GASKCAL * 300 * ((old_div(dTS_nn_or, self.voxeldata[voxel, 4])) + 0.5772)
                 # density-weighted orientational entropy
-                self.voxeldata[voxel, 9] = self.voxeldata[voxel, 10] * self.voxeldata[voxel, 4] / (self.num_frames * self.voxel_vol)
+                self.voxeldata[voxel, 9] = self.voxeldata[voxel, 10] * self.voxeldata[voxel, 4] / (num_frames * self.voxel_vol)
                 #coord_array = np.asarray(waters[1])
                 #dTS_nn_tr = calc.getNNTrEntropy(len(waters[0]), self.num_frames, coord_array)
                 # normalized translational entropy
@@ -230,14 +240,19 @@ class GridWaterAnalysis(WaterAnalysis):
                 #self.voxeldata[voxel, 7] = self.voxeldata[voxel, 8] * self.voxeldata[voxel, 4]/(self.num_frames * self.voxel_vol)
 
     @function_timer
-    def process_grid(self, energy=True, hbonds=True, entropy=True):
+    def calculate_grid_quantities(self, energy=True, hbonds=True, entropy=True, start_frame=None, num_frames=None):
+
+        if start_frame is None:
+            start_frame = self.start_frame
+        if num_frames is None:
+            num_frames = self.num_frames
         if energy is True:
             self.generate_nonbonded_params()
         if hbonds is True:
             self.assign_hb_types()
 
-        print_progress_bar(self.start_frame, self.start_frame + self.num_frames)
-        for frame in range(self.start_frame, self.start_frame + self.num_frames):
+        print_progress_bar(start_frame, start_frame + num_frames)
+        for frame in range(start_frame, start_frame + num_frames):
             trj = md.load_frame(self.trajectory, frame, top=self.topology_file)
             pos = trj.xyz * 10.0
             periodic_box = trj.unitcell_lengths * 10.0
@@ -251,22 +266,22 @@ class GridWaterAnalysis(WaterAnalysis):
                     calc.get_pairwise_distances(wat, self.all_atom_ids, pos, periodic_box, distance_matrix)
                     wat_nbrs = self.wat_oxygen_atom_ids[np.where((distance_matrix[0, :][self.wat_oxygen_atom_ids] <= 3.5) &(distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
                     prot_nbrs = self.non_water_atom_ids[np.where(distance_matrix[0, :][self.non_water_atom_ids] <= 3.5)]
-                    self.voxeldata[wat[0], 18] += wat_nbrs.shape[0]
+                    self.voxeldata[wat[0], 17] += wat_nbrs.shape[0]
                     if energy:
                         energy_lj, energy_elec = self.calculate_energy(distance_matrix)
-                        self.voxeldata[wat[0], 11] += np.nansum(energy_lj[self.wat_oxygen_atom_ids[0]:])
-                        self.voxeldata[wat[0], 11] += np.sum(energy_elec[:, self.wat_atom_ids[0]:wat[1]]) + np.sum(energy_elec[:, wat[1] + self.water_sites:])
-                        self.voxeldata[wat[0], 13] += np.sum(energy_lj[:self.wat_oxygen_atom_ids[0]:])
-                        self.voxeldata[wat[0], 13] += np.sum(energy_elec[:, self.non_water_atom_ids])
+                        self.voxeldata[wat[0], 11] += np.sum(energy_lj[:self.wat_oxygen_atom_ids[0]:])
+                        self.voxeldata[wat[0], 11] += np.sum(energy_elec[:, self.non_water_atom_ids])
+                        self.voxeldata[wat[0], 13] += np.nansum(energy_lj[self.wat_oxygen_atom_ids[0]:])
+                        self.voxeldata[wat[0], 13] += np.sum(energy_elec[:, self.wat_atom_ids[0]:wat[1]]) + np.sum(energy_elec[:, wat[1] + self.water_sites:])
                         #print "Water-water LJ Energy of this water: ", np.nansum(energy_lj[self.wat_oxygen_atom_ids[0]:])
                         #print "Water-water Elec Energy of this water: ", np.sum(energy_elec[:, self.wat_atom_ids[0]:wat[1]]) + np.sum(energy_elec[:, wat[1] + self.water_sites:])
                         #print "Solute-water LJ Energy of this water: ", np.sum(energy_lj[:self.wat_oxygen_atom_ids[0]:])
                         #print "Solute-water Elec Energy of this water: ", np.sum(energy_elec[:, self.non_water_atom_ids])
                         # calc Enbr and other water structure metrics here
-                        self.voxeldata[wat[0], 16] += np.sum(energy_lj[self.wat_oxygen_atom_ids[0]:][old_div((wat_nbrs - self.wat_oxygen_atom_ids[0]),3)])
+                        self.voxeldata[wat[0], 15] += np.sum(energy_lj[self.wat_oxygen_atom_ids[0]:][old_div((wat_nbrs - self.wat_oxygen_atom_ids[0]),3)])
                         for i in range(self.water_sites):
                             #print energy_elec[:, wat_nbrs + i].shape
-                            self.voxeldata[wat[0], 16] += np.sum(energy_elec[:, wat_nbrs + i])
+                            self.voxeldata[wat[0], 15] += np.sum(energy_elec[:, wat_nbrs + i])
                     # H-bond calcuations
                     #TODO: document the algorithm
                     if hbonds:
@@ -274,38 +289,41 @@ class GridWaterAnalysis(WaterAnalysis):
                         acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat[1])].shape[0]
                         don_ww = hb_ww.shape[0] - acc_ww
                         acc_sw = hb_sw[:, 0][np.where(hb_sw[:, 0] == wat[1])].shape[0]
-                        don_sw = hb_sw.shape[0] - acc_sw
-                        self.voxeldata[wat[0], 24] += hb_sw.shape[0]
-                        self.voxeldata[wat[0], 26] += hb_ww.shape[0]
-                        self.voxeldata[wat[0], 28] += don_sw
-                        self.voxeldata[wat[0], 30] += acc_sw
-                        self.voxeldata[wat[0], 32] += don_ww
-                        self.voxeldata[wat[0], 34] += acc_ww
+                        don_sw = hb_sw.shape[0] - acc_sw                        
+                        self.voxeldata[wat[0], 23] += hb_sw.shape[0]
+                        self.voxeldata[wat[0], 25] += hb_ww.shape[0]
+                        self.voxeldata[wat[0], 27] += don_sw
+                        self.voxeldata[wat[0], 29] += acc_sw
+                        self.voxeldata[wat[0], 31] += don_ww
+                        self.voxeldata[wat[0], 33] += acc_ww
+                        if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
+                            self.voxeldata[wat[0], 19] += old_div(wat_nbrs.shape[0], hb_ww.shape[0])
+                        f_enc =  1.0 - (old_div(wat_nbrs.shape[0], 5.25))
+                        if f_enc < 0.0:
+                            f_enc = 0.0
+                        self.voxeldata[wat[0], 21] += f_enc
                 if entropy:
                     # calculate Euler angles
                     self.calculate_euler_angles(wat, pos[0, :, :])
-            print_progress_bar(frame, self.num_frames)
+            print_progress_bar(frame, num_frames)
                     
         # get normalized and density-weighted values
-        for voxel, waters in enumerate(self.voxeldict):
-            #print voxel, waters
-            if len(waters) >= 1.0:
-                # deal with water-water energies
-                self.voxeldata[voxel, 12] = old_div(self.voxeldata[voxel, 11], len(waters))
-                self.voxeldata[voxel, 11] /= (self.num_frames * self.voxel_vol * 2.0) 
-                # deal with solute-water energies
-                self.voxeldata[voxel, 14] = old_div(self.voxeldata[voxel, 13], len(waters))
-                self.voxeldata[voxel, 13] /= (self.num_frames * self.voxel_vol)
-                # deal with water-water nbr energies
-                if self.voxeldata[voxel, 18] > 0.0:
-                    self.voxeldata[voxel, 16] = old_div(self.voxeldata[voxel, 15], self.voxeldata[voxel, 18])
-                    self.voxeldata[voxel, 15] /= (self.num_frames * self.voxel_vol * 2.0)
-                # deal with rest
+        for voxel in xrange(self.voxeldata.shape[0]):
+            if self.voxeldata[voxel, 4] >= 1.0:
+                self.voxeldata[voxel, 12] = old_div(self.voxeldata[voxel, 11], self.voxeldata[voxel, 4])
+                self.voxeldata[voxel, 11] /= (num_frames * self.voxel_vol) 
+                self.voxeldata[voxel, 14] = old_div(self.voxeldata[voxel, 13], self.voxeldata[voxel, 4] * 2.0)
+                self.voxeldata[voxel, 13] /= (num_frames * self.voxel_vol * 2.0)
+                if self.voxeldata[voxel, 17] > 0.0:
+                    self.voxeldata[voxel, 16] = old_div(self.voxeldata[voxel, 15], self.voxeldata[voxel, 17] * 2.0)
+                    self.voxeldata[voxel, 15] /= (num_frames * self.voxel_vol * self.voxeldata[voxel, 17] * 2.0)
                 for i in range(17, 35, 2):
-                    self.voxeldata[voxel, i + 1] = old_div(self.voxeldata[voxel, i], len(waters))
-                    self.voxeldata[voxel, i] /= (self.num_frames * self.voxel_vol)
+                    self.voxeldata[voxel, i + 1] = old_div(self.voxeldata[voxel, i], self.voxeldata[voxel, 4])
+                    self.voxeldata[voxel, i] /= (num_frames * self.voxel_vol)
         if entropy:
-            self.calculate_entropy()
+            self.calculate_entropy(num_frames=num_frames)
+        
+        self.print_calcs_summary(num_frames=num_frames)
 
     @function_timer
     def write_data(self, prefix=None):
@@ -314,7 +332,7 @@ class GridWaterAnalysis(WaterAnalysis):
             prefix = self.prefix
         print("Writing voxel data ...")
         with open(prefix + "_gist_data.txt", "w") as f:
-            gist_header = "voxel x y z nwat gO gH dTStr-dens dTStr-norm dTSor-dens dTSor-norm Esw-dens Esw-norm Eww-dens Eww-norm Eww-nbr-dens Eww-nbr-norm Nnbr-dens Nnbr-norm fHB-dens fHB-norm fenc-dens fenc-norm Nhbww-dens Nhbww-norm Nhbsw-dens Nhbsw-norm Ndonsw-dens Ndonsw-norm Naccsw-dens Naccsw-norm Ndonww-dens Ndonww-norm Naccww-dens Naccww-norm\n"
+            gist_header = "voxel x y z nwat gO gH dTStr-dens dTStr-norm dTSor-dens dTSor-norm Esw-dens Esw-norm Eww-dens Eww-norm Eww-nbr-dens Eww-nbr-norm Nnbr-dens Nnbr-norm fHB-dens fHB-norm fenc-dens fenc-norm Nhbsw_dens Nhbsw_norm Nhbww_dens Nhbww_norm Ndonsw_dens Ndonsw_norm Naccsw_dens Naccsw_norm Ndonww_dens Ndonww_norm Naccww_dens Naccww_norm\n"
             f.write(gist_header)
             formatted_output_occupied_voxels = "{0[0]:.0f} {0[1]:.3f} {0[2]:.3f} {0[3]:.3f} {0[4]:.0f} {0[5]:.6f} {0[6]:.0f} " 
             formatted_output_empty_voxels = formatted_output_occupied_voxels
@@ -393,8 +411,11 @@ class GridWaterAnalysis(WaterAnalysis):
         print("\tGIST grid center: %5.3f %5.3f %5.3f\n" % (self.center[0], self.center[1], self.center[2]))
         print("\tGIST grid dimensions: %i %i %i\n" % (self.dims[0], self.dims[1], self.dims[2]))
         print("\tGIST grid spacing: %5.3f A^3\n" % (self.spacing[0]))
-    def print_calcs_summary(self):        
+    
+    def print_calcs_summary(self, num_frames=None):        
 
+        if num_frames is None:
+            num_frames = self.num_frames
         print("Summary of main calculations:")
         nwat_grid = 0.0
         Eswtot = 0.0
@@ -403,7 +424,7 @@ class GridWaterAnalysis(WaterAnalysis):
         dTSor_tot = 0.0
         for k in self.voxeldata:
             if k[4] > 1.0:
-                nwat_grid += old_div(k[4], (self.num_frames * self.voxel_vol))
+                nwat_grid += old_div(k[4], (num_frames * self.voxel_vol))
                 #print k[11]
                 Ewwtot += k[11]
                 Eswtot += k[13]
@@ -420,10 +441,3 @@ class GridWaterAnalysis(WaterAnalysis):
         print("\tTotal Water-Water Energy over the grid: %.6f" % Ewwtot)
         print("\tTotal Solute-Water Orientational Entropy over the grid: %.6f" % dTSor_tot)
         print("\tTotal Solute-Water Translational Entropy over the grid: %.6f" % dTStr_tot)
-
-def entry_point():
-
-    main()
-
-if __name__ == '__main__':
-    entry_point()

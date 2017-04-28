@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from sstmap.core.site_water_analysis import SiteWaterAnalysis
+from sstmap.site_water_analysis import SiteWaterAnalysis
 
 
 def parse_args():
@@ -34,9 +34,10 @@ def main():
     h = SiteWaterAnalysis(args.input_parm, args.input_traj,
                           start_frame=args.start_frame, num_frames=args.num_frames,
                           cluster_center_file=args.clusters, prefix=args.output_prefix)
+    h.initialize_hydration_sites()
     h.print_system_summary()
     h.calculate_site_quantities()
-    h.write_summary()
+    h.write_calculation_summary()
     h.write_data()
 
 

@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from sstmap.core.grid_water_analysis import GridWaterAnalysis
+from sstmap.grid_water_analysis import GridWaterAnalysis
 
 
 def parse_args():
@@ -39,11 +39,10 @@ def main():
                           ligand_file=args.ligand, prefix=args.output_prefix,
                           grid_dimensions=args.grid_dim)
     g.print_system_summary()
-    g.process_grid()
+    g.calculate_grid_quantities()
     g.print_calcs_summary()
-    g.write_data(args.output_prefix)
-    g.generate_dx_files(args.output_prefix)
-
+    g.write_data()
+    g.generate_dx_files()
 
 def entry_point():
     main()

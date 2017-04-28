@@ -114,6 +114,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         self.hsa_dict = None
         self.is_bs_watpdb_written = False
         self.is_site_waters_populated = False
+    
     def initialize_hydration_sites(self):
         """
         Generates hydration sites and initialize data structures for storing hydration site
@@ -420,8 +421,11 @@ class SiteWaterAnalysis(WaterAnalysis):
                     # TODO: 5.25 should be replaced with a variable
                     # 5.25 comes from TIP3P water model, define dictionary
                     # based on water residue names
-                    self.hsa_dict[site_i][22].append(
-                        1.0 - (old_div(wat_nbrs.shape[0], 5.25)))
+                    f_enc =  1.0 - (old_div(wat_nbrs.shape[0], 5.25))
+                    if f_enc < 0.0:
+                        f_enc = 0.0
+                    self.hsa_dict[site_i][22].append(f_enc)
+
                     if energy:
                         energy_lj, energy_elec = self.calculate_energy(
                             distance_matrix)
@@ -458,13 +462,8 @@ class SiteWaterAnalysis(WaterAnalysis):
                             e_nbr_i += energy_lj[self.wat_oxygen_atom_ids[0]                                                 :][old_div((nbr_i - self.wat_oxygen_atom_ids[0]), 3)]
                             for i in range(self.water_sites):
                                 e_nbr_i += np.sum(energy_elec[:, nbr_i + i])
-                            e_nbr += e_nbr_i
-                                #print(e_nbr_i)
-                        if wat_nbrs.shape[0] > 0:
-                            self.hsa_dict[site_i][13].append(old_div(e_nbr, wat_nbrs.shape[0]))
-                        #print(wat_nbrs.shape[0])
-                        #print(e_nbr_i/2.0)
-                        #print(distance_matrix[0, wat_nbrs][0])
+                            self.hsa_dict[site_i][13].append(e_nbr_i)
+
                     if hbonds:
                         hb_ww, hb_sw = self.calculate_hydrogen_bonds(
                             frame, wat_O, wat_nbrs, prot_nbrs)
@@ -492,7 +491,8 @@ class SiteWaterAnalysis(WaterAnalysis):
                         if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
                             self.hsa_dict[site_i][28].append(
                                 old_div(wat_nbrs.shape[0], hb_ww.shape[0]))
-            print_progress_bar(frame_i + 1, start_frame + num_frames)
+            print_progress_bar(frame_i, num_frames)
+        
         if entropy:
             self.generate_data_for_entropycalcs(start_frame, num_frames)
             self.run_entropy_scripts()
@@ -521,9 +521,7 @@ class SiteWaterAnalysis(WaterAnalysis):
 
             print("Generating PDB file of all hydration sites waters in the binidng site to initialize entropy calculations.")
             for k in self.hsa_dict.keys():
-                print("writing PDB files for: ", k)
                 cluster_waters = self.hsa_dict[k][-1]
-                print(len(cluster_waters))
                 cluster_name = '{0:06d}'.format(k + 1)
                 write_watpdb_from_list(trj, "cluster." + cluster_name,
                             water_id_list=cluster_waters, full_water_res=True)
@@ -532,6 +530,7 @@ class SiteWaterAnalysis(WaterAnalysis):
     def run_entropy_scripts(self, output_dir=None):
         "Rerurns list of trans and orient entropies for each cluster."
         # run bruteclust
+        curr_dir = os.getcwd()
         if output_dir is not None:
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
@@ -549,13 +548,13 @@ class SiteWaterAnalysis(WaterAnalysis):
 
         input_c_arg = os.path.abspath(self.clustercenter_file)
         input_w_arg = os.path.abspath("within5Aofligand.pdb")
-        os.chdir(os.getcwd() + "/" + output_dir)
+        os.chdir(curr_dir + "/" + output_dir)
         try:
             subprocess.check_call("bruteclust  -c " + input_c_arg + " -w " + input_w_arg, shell=True)
         except Exception as e:
             print(e)
         
-        os.chdir("../")
+        os.chdir(curr_dir)
         # run entropy code
         for site_i in range(self.hsa_data.shape[0]):
             cluster_filename = "cluster.{0:06d}.pdb".format(site_i + 1)
@@ -605,7 +604,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                         #                                         quantity_i]), len(self.hsa_dict[site_i][quantity_i]))) * 0.5
                         elif self.data_titles[quantity_i] in ["Ewwnbr"]:
                             self.hsa_data[site_i, quantity_i] = (old_div(np.sum(self.hsa_dict[site_i][
-                                                                 quantity_i]), n_wat)) * 0.5
+                                                                 quantity_i]), len(self.hsa_dict[site_i][quantity_i]))) * 0.5
                         else:
                             self.hsa_data[site_i, quantity_i] = old_div(np.sum(
                                 self.hsa_dict[site_i][quantity_i]), n_wat)
@@ -614,7 +613,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                             self.hsa_dict[site_i][quantity_i])
 
     @function_timer
-    def calculate_angular_structure(self, site_indices=[], dist_cutoff=6.0):
+    def calculate_angular_structure(self, site_indices=[], dist_cutoff=6.0, start_frame=None, num_frames=None):
         '''
         Returns energetic quantities for each hydration site
         
@@ -626,6 +625,12 @@ class SiteWaterAnalysis(WaterAnalysis):
             Description
         
         '''
+        if start_frame is None:
+            start_frame = self.start_frame
+        if num_frames is None:
+            num_frames = self.num_frames
+
+
 
         if len(site_indices) == 0:
             site_indices = [int(i) for i in self.hsa_data[:, 0]]
@@ -636,23 +641,27 @@ class SiteWaterAnalysis(WaterAnalysis):
                         "Site %d does not exits, please provide valid site indices." % index)
         n_sites = len(site_indices)
         r_theta_data = [[] for i in range(n_sites)]
-        for frame_i in range(self.start_frame, self.start_frame + self.num_frames):
+        site_waters_copy = list(self.site_waters)
+
+        print_progress_bar(start_frame, start_frame + num_frames)
+        for frame_i in range(start_frame, start_frame + num_frames):
             frame = md.load_frame(self.trajectory, frame_i, top=self.topology)
             pos = md.utils.in_units_of(frame.xyz, "nanometers", "angstroms")
             pbc = md.utils.in_units_of(
                 frame.unitcell_lengths, "nanometers", "angstroms")
             oxygen_pos = pos[0, self.wat_oxygen_atom_ids, :]
             cluster_search_space = NeighborSearch(oxygen_pos, 1.0)
-            for index, site_i in enumerate(site_indices):
+            water_search_space = NeighborSearch(oxygen_pos, 3.5)
+            for site_i in range(len(site_indices)):
                 wat_O = None
-                if self.site_waters is not None:
-                    if len(self.site_waters[site_i]) != 0:
-                        if self.site_waters[site_i][0][0] == frame_i:
-                            wat_O = self.site_waters[site_i].pop(0)[1]
+                if self.is_site_waters_populated:
+                    if len(site_waters_copy[site_i]) != 0:
+                        if site_waters_copy[site_i][0][0] == frame_i:
+                            wat_O = site_waters_copy[site_i].pop(0)[1]
                             self.hsa_data[site_i, 4] += 1
                 else:
                     cluster_center_coords = (self.hsa_data[site_i, 1], self.hsa_data[
-                                             site_i, 2], self.hsa_data[site_i, 3])
+                                                site_i, 2], self.hsa_data[site_i, 3])
                     nbr_indices = cluster_search_space.query_nbrs_single_point(
                         cluster_center_coords)
                     cluster_wat_oxygens = [self.wat_oxygen_atom_ids[
@@ -660,6 +669,9 @@ class SiteWaterAnalysis(WaterAnalysis):
                     if len(cluster_wat_oxygens) != 0:
                         wat_O = cluster_wat_oxygens[0]
                         self.hsa_data[site_i, 4] += 1
+                        self.site_waters.append((frame_i, wat_O))
+                        self.hsa_dict[site_i][-1].append((frame_i, wat_O))
+
                 if wat_O is not None:
                     distance_matrix = np.zeros(
                         (self.water_sites, self.all_atom_ids.shape[0]), np.float_)
@@ -678,9 +690,9 @@ class SiteWaterAnalysis(WaterAnalysis):
                         hb_angle = np.min(
                             angles[0, angle_index:angle_index + 4])
                         nbr_index = old_div(angle_index, 4)
-                        r_theta_data[index].append(
+                        r_theta_data[site_i].append(
                             (hb_angle, distance_matrix[0, wat_nbrs[nbr_index]]))
-
+            print_progress_bar(frame_i, num_frames)
         directory = self.prefix + "_angular_structure_data"
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -691,7 +703,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                     f.write(line)
 
     @function_timer
-    def calculate_lonranged_ww_energy(self, site_indices=[], shell_radii=[3.5, 5.5, 8.5]):
+    def calculate_lonranged_ww_energy(self, site_indices=[], shell_radii=[3.5, 5.5, 8.5], start_frame=None, num_frames=None):
         """Summary
         
         Parameters
@@ -706,6 +718,11 @@ class SiteWaterAnalysis(WaterAnalysis):
         TYPE
             Description
         """
+        if start_frame is None:
+            start_frame = self.start_frame
+        if num_frames is None:
+            num_frames = self.num_frames
+
         if len(site_indices) == 0:
             site_indices = [int(i) for i in self.hsa_data[:, 0]]
         else:
@@ -721,9 +738,10 @@ class SiteWaterAnalysis(WaterAnalysis):
             shells.append((shell_radii[i - 1], shell_radii[i]))
         shells.append((shell_radii[-1], 100.0))
         longranged_data = np.zeros((n_sites, 2 * len(shells)))
-        pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA(
-        )], maxval=self.start_frame + self.num_frames).start()
-        for frame_i in range(self.start_frame, self.start_frame + self.num_frames):
+        site_waters_copy = list(self.site_waters)
+
+        print_progress_bar(start_frame, start_frame + num_frames)
+        for frame_i in range(start_frame, start_frame + num_frames):
             frame = md.load_frame(self.trajectory, frame_i, top=self.topology)
             pos = md.utils.in_units_of(frame.xyz, "nanometers", "angstroms")
             pbc = md.utils.in_units_of(
@@ -731,16 +749,16 @@ class SiteWaterAnalysis(WaterAnalysis):
             oxygen_pos = pos[0, self.wat_oxygen_atom_ids, :]
             cluster_search_space = NeighborSearch(oxygen_pos, 1.0)
             water_search_space = NeighborSearch(oxygen_pos, 3.5)
-            for index, site_i in enumerate(site_indices):
+            for site_i in range(len(site_indices)):
                 wat_O = None
-                if self.site_waters is not None:
-                    if len(self.site_waters[site_i]) != 0:
-                        if self.site_waters[site_i][0][0] == frame_i:
-                            wat_O = self.site_waters[site_i].pop(0)[1]
+                if self.is_site_waters_populated:
+                    if len(site_waters_copy[site_i]) != 0:
+                        if site_waters_copy[site_i][0][0] == frame_i:
+                            wat_O = site_waters_copy[site_i].pop(0)[1]
                             self.hsa_data[site_i, 4] += 1
                 else:
                     cluster_center_coords = (self.hsa_data[site_i, 1], self.hsa_data[
-                                             site_i, 2], self.hsa_data[site_i, 3])
+                                                site_i, 2], self.hsa_data[site_i, 3])
                     nbr_indices = cluster_search_space.query_nbrs_single_point(
                         cluster_center_coords)
                     cluster_wat_oxygens = [self.wat_oxygen_atom_ids[
@@ -748,6 +766,9 @@ class SiteWaterAnalysis(WaterAnalysis):
                     if len(cluster_wat_oxygens) != 0:
                         wat_O = cluster_wat_oxygens[0]
                         self.hsa_data[site_i, 4] += 1
+                        self.site_waters.append((frame_i, wat_O))
+                        self.hsa_dict[site_i][-1].append((frame_i, wat_O))
+
                 if wat_O is not None:
                     distance_matrix = np.zeros(
                         (self.water_sites, self.all_atom_ids.shape[0]), np.float_)
@@ -758,13 +779,11 @@ class SiteWaterAnalysis(WaterAnalysis):
                     for shell_index, shell in enumerate(shells):
                         wat_nbrs = self.wat_oxygen_atom_ids[np.where((distance_matrix[0, :][self.wat_oxygen_atom_ids] <= shell[
                                                                      1]) & (distance_matrix[0, :][self.wat_oxygen_atom_ids] > shell[0]))]
-                        longranged_data[index, 2 *
-                                        shell_index] += wat_nbrs.shape[0]
+                        longranged_data[site_i, 2 * shell_index] += wat_nbrs.shape[0]
                         for i in range(self.water_sites):
                             longranged_data[
-                                index, (2 * shell_index) + 1] += np.sum(energy_elec[:, wat_nbrs + i])
-            pbar.update(frame_i)
-        pbar.finish()
+                                site_i, (2 * shell_index) + 1] += np.sum(energy_elec[:, wat_nbrs + i])
+            print_progress_bar(frame_i, num_frames)
         # normalize site quantities
         for index, site_i in enumerate(site_indices):
             n_wat = self.hsa_data[site_i, 4]
@@ -865,6 +884,5 @@ class SiteWaterAnalysis(WaterAnalysis):
                     with open(data_file_name, "w") as data_file:
                         data_file.writelines("%s\n" % item for item in self.hsa_dict[
                                              site_i][quantity_i])
-        os.chdir("../")
 
     
