@@ -1,5 +1,7 @@
 sstmap/tests/new_gist_tests
 test_build.sh
+local_build.sh
+
 #python object files
 *.pyc
 
@@ -58,6 +60,9 @@ lib
 build/
 
 #test outputs during local testing
+<<<<<<< HEAD
+=======
 sstmap/tests/*.txt
 sstmap/tests/*.log
 sstmap/tests/*_data
+>>>>>>> master

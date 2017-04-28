@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+pass
+=======
 from site_water_analysis import SiteWaterAnalysis
 test_1 = True
 
@@ -31,3 +34,4 @@ hsa = SiteWaterAnalysis(top, traj, start_frame=0, num_frames=10000, ligand_file=
 #hsa.write_summary()
 #hsa.write_data()
     
+>>>>>>> master
