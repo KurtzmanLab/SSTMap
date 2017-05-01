@@ -8,6 +8,7 @@ local_build.sh
 # python packages files
 *.egg
 *.egg-info
+test_build
 dist
 build
 eggs
