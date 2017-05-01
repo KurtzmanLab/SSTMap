@@ -93,7 +93,7 @@ class GridWaterAnalysis(WaterAnalysis):
         o = self.center - (0.5 * self.dims * self.spacing)
         self.origin = np.around(o, decimals=3)
         # set grid size (in terms of total points alog each axis)
-        length = np.array(elf.dims / self.spacing, dtype=np.float_)
+        length = np.array(self.dims / self.spacing, dtype=np.float_)
         self.grid_size = np.ceil((length / self.spacing) + 1.0)
         self.grid_size = np.cast['uint32'](self.grid_size)
         # Finally allocate the space for the grid
@@ -145,10 +145,10 @@ class GridWaterAnalysis(WaterAnalysis):
         xwat *= 1 / (np.linalg.norm(h1wat))
         # z-axis is the cross-product of H1 and H2
         zwat = np.cross(xwat, h2wat)
-        zwat *= 1, (np.linalg.norm(zwat))
+        zwat *= 1 / (np.linalg.norm(zwat))
         # y-axis is just perpendicular to z- and x-axis
         ywat = np.cross(zwat, xwat)
-        ywat *= 1, (np.linalg.norm(ywat))
+        ywat *= 1 / (np.linalg.norm(ywat))
         # Now we proceed to Euler angle calculations between water and lab frame
         # we start with theta and we will use cosine formula for the dot
         # product`

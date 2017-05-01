@@ -9,7 +9,7 @@ extensions.append(Extension('_sstmap_ext',
 					include_dirs=[numpy.get_include()]))
 
 setup(name='sstmap',
-      version='0.1',
+      version='1.0',
       description='Library for analysis of water molecules in MD trajectories',
       url='https://github.com/KurtzmanLab/SSTMap',
       author='Kamran Haider',
