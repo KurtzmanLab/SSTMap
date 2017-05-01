@@ -1,8 +1,3 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-"""Summary
-"""
 ##############################################################################
 # SSTMap: A Python library for the calculation of water structure and
 #         thermodynamics on solute surfaces from molecular dynamics
@@ -34,9 +29,6 @@ MD trajectories.
 # Imports
 ##############################################################################
 
-from builtins import str
-from builtins import range
-from past.utils import old_div
 import sys
 import os
 import subprocess
@@ -45,8 +37,8 @@ import shutil
 import numpy as np
 from scipy import spatial
 import mdtraj as md
-from utils import *
-from water_analysis import WaterAnalysis
+from sstmap.utils import *
+from sstmap.water_analysis import WaterAnalysis
 import _sstmap_ext as calc
 
 ##############################################################################
@@ -421,7 +413,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                     # TODO: 5.25 should be replaced with a variable
                     # 5.25 comes from TIP3P water model, define dictionary
                     # based on water residue names
-                    f_enc =  1.0 - (old_div(wat_nbrs.shape[0], 5.25))
+                    f_enc =  1.0 - (wat_nbrs.shape[0] / 5.25)
                     if f_enc < 0.0:
                         f_enc = 0.0
                     self.hsa_dict[site_i][22].append(f_enc)
@@ -459,7 +451,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                         e_nbr = 0
                         for nbr_i in wat_nbrs:
                             e_nbr_i = 0.0
-                            e_nbr_i += energy_lj[self.wat_oxygen_atom_ids[0]                                                 :][old_div((nbr_i - self.wat_oxygen_atom_ids[0]), 3)]
+                            e_nbr_i += energy_lj[self.wat_oxygen_atom_ids[0]:][(nbr_i - self.wat_oxygen_atom_ids[0]) / 3]
                             for i in range(self.water_sites):
                                 e_nbr_i += np.sum(energy_elec[:, nbr_i + i])
                             self.hsa_dict[site_i][13].append(e_nbr_i)
@@ -490,7 +482,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                         self.hsa_dict[site_i][28].extend(don_sw_ids)
                         if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
                             self.hsa_dict[site_i][28].append(
-                                old_div(wat_nbrs.shape[0], hb_ww.shape[0]))
+                                wat_nbrs.shape[0] / hb_ww.shape[0])
             print_progress_bar(frame_i, num_frames)
         
         if entropy:
@@ -585,29 +577,28 @@ class SiteWaterAnalysis(WaterAnalysis):
     def normalize_site_quantities(self, num_frames):
         """
         """
-        sphere_volume = (old_div(4, 3)) * np.pi
+        sphere_volume = (4 / 3) * np.pi
         bulk_water_per_site = self.rho_bulk * sphere_volume * num_frames
         skip_normalization = ["index", "x", "y", "z", "nwat", "occupancy", "gO",
                               "TSsw", "TSww", "TStot", "solute_acceptors", "solute_donors"]
         for site_i in range(self.hsa_data.shape[0]):
             n_wat = self.hsa_data[site_i, 4]
             if n_wat != 0:
-                self.hsa_data[site_i, 5] = old_div(n_wat, \
-                    (self.start_frame + self.num_frames))
+                self.hsa_data[site_i, 5] = n_wat / (self.start_frame + self.num_frames)
                 for quantity_i in range(len(self.data_titles)):
                     if self.data_titles[quantity_i] not in skip_normalization:
                         if self.data_titles[quantity_i] in ["Esw", "EswLJ", "EswElec", "Eww", "EwwLJ", "EwwElec", "Etot"]:
                             self.hsa_data[site_i, quantity_i] = (
-                                old_div(np.sum(self.hsa_dict[site_i][quantity_i]), n_wat)) * 0.5
+                                np.sum(self.hsa_dict[site_i][quantity_i]) / n_wat) * 0.5
                         #elif self.data_titles[quantity_i] in ["Ewwnbr"]:
                         #    self.hsa_data[site_i, quantity_i] = (old_div(np.sum(self.hsa_dict[site_i][
                         #                                         quantity_i]), len(self.hsa_dict[site_i][quantity_i]))) * 0.5
                         elif self.data_titles[quantity_i] in ["Ewwnbr"]:
-                            self.hsa_data[site_i, quantity_i] = (old_div(np.sum(self.hsa_dict[site_i][
-                                                                 quantity_i]), len(self.hsa_dict[site_i][quantity_i]))) * 0.5
+                            self.hsa_data[site_i, quantity_i] = (np.sum(self.hsa_dict[site_i][
+                                                                 quantity_i]) / len(self.hsa_dict[site_i][quantity_i])) * 0.5
                         else:
-                            self.hsa_data[site_i, quantity_i] = old_div(np.sum(
-                                self.hsa_dict[site_i][quantity_i]), n_wat)
+                            self.hsa_data[site_i, quantity_i] = np.sum(
+                                self.hsa_dict[site_i][quantity_i]) / n_wat
                     if self.data_titles[quantity_i] in ["solute_acceptors", "solute_donors"]:
                         self.hsa_dict[site_i][quantity_i] = np.unique(
                             self.hsa_dict[site_i][quantity_i])
@@ -689,7 +680,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                     for angle_index in range(0, angles.shape[1], 4):
                         hb_angle = np.min(
                             angles[0, angle_index:angle_index + 4])
-                        nbr_index = old_div(angle_index, 4)
+                        nbr_index = angle_index / 4
                         r_theta_data[site_i].append(
                             (hb_angle, distance_matrix[0, wat_nbrs[nbr_index]]))
             print_progress_bar(frame_i, num_frames)

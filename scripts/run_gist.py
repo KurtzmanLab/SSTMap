@@ -10,15 +10,8 @@ def parse_args():
     args : argparse.Namespace
         The namespace containing the arguments
     """
-<<<<<<< HEAD:scripts/run_gist.py
-    parser = ArgumentParser(
-        description='''Run GIST calculations through command-line.''')
+    parser = ArgumentParser(description='''Run GIST calculations through command-line.''')
     required = parser.add_argument_group('required arguments')
-
-=======
-    parser = ArgumentParser(description='''Run grid-based SSTMap calculations through command-line.''')
-    required = parser.add_argument_group('required arguments')    
->>>>>>> master:sstmap/scripts/run_gist.py
     required.add_argument('-i', '--input_parm', required=True, type=str,
                           help='''Input toplogy File.''')
     required.add_argument('-t', '--input_traj', required=True, type=str,
@@ -30,17 +23,10 @@ def parse_args():
     parser._action_groups.append(parser._action_groups.pop(1))
     parser.add_argument('-f', '--num_frames', type=int,
                           help='''Total number of frames to process.''')
-<<<<<<< HEAD:scripts/run_gist.py
-    parser.add_argument('-s', '--start_frame', required=False, type=int,
-                        help='''Starting frame.''')
-    parser.add_argument('-o', '--output_prefix', required=False, type=str,
-                        help='''Prefix for all the results files.''')
-=======
     parser.add_argument('-s', '--start_frame', type=int,
                           help='''Starting frame.''')
     parser.add_argument('-o', '--output_prefix', type=str,
                           help='''Prefix for all the results files.''')
->>>>>>> master:sstmap/scripts/run_gist.py
     args = parser.parse_args()
     return args
 

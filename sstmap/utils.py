@@ -22,10 +22,6 @@
 # License along with SSTMap. If not, see <http://www.gnu.org/licenses/>.
 ##############################################################################
 
-from __future__ import print_function
-from __future__ import division
-from builtins import range
-from past.utils import old_div
 import sys
 import os
 import time
@@ -140,7 +136,7 @@ def plot_enbr_distribution(data_dir, site_indices=None, nbr_norm=False, ref_data
         enbr[site_i] = np.loadtxt(data_dir + "/" + file)
         if nbr_norm:
             nbrs = np.loadtxt(data_dir + "/" + nbr_files[index])
-            nbr_values.append(old_div(np.sum(nbrs),nbrs.shape[0]))
+            nbr_values.append(np.sum(nbrs) /nbrs.shape[0])
     if ref_data is not None:
         ref_enbr = np.loadtxt(ref_data)
         if nbr_norm:
@@ -261,14 +257,14 @@ def plot_rtheta_distribution(data_dir, site_indices=None):
             d = Y[0, i]
             # get shell_vol
             d_low = d - 0.1
-            vol = (old_div(4.0,3.0))*np.pi*(d**3)
-            vol_low = (old_div(4.0,3.0))*np.pi*(d_low**3)
+            vol = (4.0 / 3.0) * np.pi * (d**3)
+            vol_low = (4.0 / 3.0) * np.pi * (d_low**3)
             shell_vol = vol - vol_low
 
             counts_bulk = 0.0329*shell_vol
             sum_counts_kernel += np.sum(Z[:, i])
             #Z[:,i] /= counts_bulk
-            Z[:, i] = old_div(Z[:, i],counts_bulk)
+            Z[:, i] = Z[:, i],counts_bulk
 
         print(sum_counts_kernel)
         legend_label = "%03d_" % site_i
@@ -446,7 +442,7 @@ class NeighborSearch(object):
 
         self.min_ = np.min(xyz, axis=0)
         self.cell_size = np.array([dist, dist, dist], np.float)
-        cell = np.array(old_div((xyz - self.min_), self.cell_size))  # , dtype=np.int)
+        cell = np.array((xyz - self.min_) / self.cell_size)  # , dtype=np.int)
         # create a dictionary with keys corresponding to integer representation
         # of transformed XYZ's
         self.cells = {}
@@ -484,7 +480,7 @@ class NeighborSearch(object):
         Given a coordinate point, return all point indexes (0-indexed) that
         are within the threshold distance from it.
         """
-        cell0 = np.array(old_div((point - self.min_), self.cell_size), dtype=np.int)
+        cell0 = np.array((point - self.min_) / self.cell_size, dtype=np.int)
         tuple0 = tuple(cell0)
         near = []
         for index_array in tuple0 + self.neighbor_array:
@@ -505,7 +501,7 @@ class NeighborSearch(object):
         Given a coordinate point, return all point indexes (0-indexed) and 
         corresponding distances that are within the threshold distance from it.
         """
-        cell0 = np.array(old_div((point - self.min_), self.cell_size), dtype=np.int)
+        cell0 = np.array((point - self.min_) / self.cell_size, dtype=np.int)
         tuple0 = tuple(cell0)
         near = []
         for index_array in tuple0 + self.neighbor_array:
@@ -530,8 +526,7 @@ class NeighborSearch(object):
         near = []
         for point in points:
             cell0 = np.array(
-                old_div((point - self.min_), self.cell_size),
-                dtype=np.int)
+                (point - self.min_) / self.cell_size, dtype=np.int)
             tuple0 = tuple(cell0)
 
             for index_array in tuple0 + self.neighbor_array:
