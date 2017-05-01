@@ -1,3 +1,4 @@
+*.zip
 sstmap/tests/new_gist_tests
 test_build.sh
 local_build.sh

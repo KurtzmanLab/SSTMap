@@ -17,8 +17,10 @@ def parse_args():
                         help='''Input toplogy File.''')
     parser.add_argument('-t', '--input_traj', required=True, type=str,
                         help='''Input trajectory file.''')
-    parser.add_argument('-c', '--clusters', required=True, type=str,
+    parser.add_argument('-c', '--clusters', required=False, type=str,
                         help='''PDB file containing cluster centers.''')
+    parser.add_argument('-l', '--ligand', required=True, type=str,
+                          help='''Input ligand PDB file.''')
     parser.add_argument('-f', '--num_frames', required=False, type=int,
                         help='''Total number of frames to process.''')
     parser.add_argument('-s', '--start_frame', required=False, type=int,
@@ -34,10 +36,11 @@ def main():
     args = parse_args()
     h = SiteWaterAnalysis(args.input_parm, args.input_traj,
                           start_frame=args.start_frame, num_frames=args.num_frames,
-                          cluster_center_file=args.clusters, prefix=args.output_prefix)
+                          ligand_file=args.ligand,
+                          clustercenter_file=args.clusters, prefix=args.output_prefix)
     h.initialize_hydration_sites()
     h.print_system_summary()
-    h.calculate_site_quantities()
+    h.calculate_site_quantities(entropy=False)
     h.write_calculation_summary()
     h.write_data()
 
