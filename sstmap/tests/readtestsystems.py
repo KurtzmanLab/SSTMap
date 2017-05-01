@@ -1,13 +1,12 @@
-from __future__ import absolute_import
 import sys
 import os
-sys.path.append("../")
+#sys.path.append("/Users/kamranhaider/Dropbox/SSTMap/sstmap")
 
-from grid_water_analysis import GridWaterAnalysis
-from site_water_analysis import SiteWaterAnalysis
+from sstmap.grid_water_analysis import GridWaterAnalysis
+from sstmap.site_water_analysis import SiteWaterAnalysis
 
 testsystem_dir = os.path.abspath("testsystems") + "/"
-
+#testsystem_dir = "/Users/kamranhaider/sstmap_testcases/"
 def read_tip3p():
     """Can sstmap read a pure water tip3p system?
     """
@@ -54,8 +53,9 @@ def read_arg_amber_hsa(clusters=None):
     """Read Arg amber test system
     """
     top = testsystem_dir + "arg_amber/arg.prmtop"
-    #traj = testsystem_dir + "arg_amber/md1ns.nc"
-    traj = "/Users/kamranhaider/sstmap_testcases/arg_amber/md10ns.nc"
+    traj = testsystem_dir + "arg_amber/md1ns.nc"
+    #traj = "/Users/kamranhaider/sstmap_testcases/arg_amber/md10ns.nc"
+
     ligand = testsystem_dir + "arg_amber/ligand.pdb"
     hsa = SiteWaterAnalysis(top, traj, start_frame=0, num_frames=10000, 
                             clustercenter_file=clusters, ligand_file=ligand,
@@ -66,7 +66,6 @@ def read_arg_amber_gist():
     """Read Arg amber test system
     """
     top = testsystem_dir + "arg_amber/arg.prmtop"
-    #traj = testsystem_dir + "arg_amber/md1ns.nc"
     traj = testsystem_dir + "arg_amber/md1ns.nc"
     ligand = testsystem_dir + "arg_amber/ligand.pdb"
     gist = GridWaterAnalysis(top, traj, start_frame=0, num_frames=1000, 

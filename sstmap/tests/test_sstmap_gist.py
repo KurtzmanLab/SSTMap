@@ -1,11 +1,8 @@
-from __future__ import absolute_import
 import sys
 import os
-#sys.path.append("../")
 
 from sstmap.grid_water_analysis import GridWaterAnalysis
-
-#from readtestsystems import *
+from readtestsystems import *
 
 def main():
     # run a test arg calculation

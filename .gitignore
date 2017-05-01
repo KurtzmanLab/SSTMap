@@ -1,7 +1,7 @@
 sstmap/tests/new_gist_tests
 test_build.sh
 local_build.sh
-
+*.nc
 #python object files
 *.pyc
 
