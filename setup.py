@@ -7,6 +7,14 @@ extensions = []
 extensions.append(Extension('_sstmap_ext', 
 					sources=['sstmap/_sstmap_ext.c'], 
 					include_dirs=[numpy.get_include()]))
+extensions.append(Extension('_sstmap_entropy', 
+                              sources=['sstmap/scripts/_sstmap_entropy.cpp', 'sstmap/scripts/kdhsa102.cpp'],
+                              language="c++")) 
+
+extensions.append(Extension('_sstmap_probableconfig', 
+                              sources=['sstmap/scripts/_sstmap_probableconfig.cpp', 'sstmap/scripts/6dimprobable.cpp'],
+                              language="c++")) 
+
 
 setup(name='sstmap',
       version='1.0',
@@ -23,5 +31,5 @@ setup(name='sstmap',
       ['run_hsa = sstmap.scripts.run_hsa:entry_point',
       'run_gist = sstmap.scripts.run_gist:entry_point',
       'desmond_extract_nbparams = sstmap.scripts.desmond_extract_nbparams:entry_point',
-      'dtr_to_netcdf = sstmap.scripts.dtr_to_netcdf:entry_point',]},
-      )
+      'dtr_to_netcdf = sstmap.scripts.dtr_to_netcdf:entry_point',]},)
+

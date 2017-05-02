@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-import sys
-sys.path.append("../")
 
 import mdtraj as md
-from site_water_analysis import SiteWaterAnalysis
-from test_readtestsystems import *
-from utils import *
+from sstmap.site_water_analysis import SiteWaterAnalysis
+from readtestsystems import *
+from sstmap.utils import *
 
 def test_write_wat_pdb(hsa):
     """
@@ -33,7 +30,7 @@ def test_write_wat_pdb(hsa):
 
 def main():
     print("Test 1")
-    hsa_arg = read_arg_amber_with_clusters()   
+    hsa_arg = read_arg_amber_hsa(clusters="arg_amber/ref_clustercenterfile.pdb")   
     test_write_wat_pdb(hsa_arg)
     
 if __name__ == '__main__':
