@@ -40,6 +40,8 @@ import mdtraj as md
 from sstmap.utils import *
 from sstmap.water_analysis import WaterAnalysis
 import _sstmap_ext as calc
+import _sstmap_entropy as ext1
+import _sstmap_probableconfig as ext2
 
 ##############################################################################
 # SiteWaterAnalysis class definition
@@ -287,7 +289,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                         near_flag += 1
             if near_flag == 0:
                 cluster_iter += 1
-                print("\tCluster iteration: ", cluster_iter)
+                print("Cluster iteration: ", cluster_iter)
                 cluster_list.append(water_id_frame_list[max_index])
 
         #write_watpdb_from_list(trj_short,
@@ -542,7 +544,8 @@ class SiteWaterAnalysis(WaterAnalysis):
         input_w_arg = os.path.abspath("within5Aofligand.pdb")
         os.chdir(curr_dir + "/" + output_dir)
         try:
-            subprocess.check_call("bruteclust  -c " + input_c_arg + " -w " + input_w_arg, shell=True)
+            #subprocess.check_call("bruteclust  -c " + input_c_arg + " -w " + input_w_arg, shell=True)
+            ext1.run_bruteclust(input_c_arg, input_w_arg)
         except Exception as e:
             print(e)
         
@@ -553,9 +556,11 @@ class SiteWaterAnalysis(WaterAnalysis):
             input_i_arg = os.path.abspath(cluster_filename)
             input_e_arg = os.path.abspath(output_dir + "/" + cluster_filename)
             try:
-                subprocess.check_call("kdhsa102" +  " -i " + input_i_arg + " -e " + input_e_arg, shell=True)
-                #FIXME: Modify 6dimprobable so that resulting pdb_format has atom numbering        
-                subprocess.check_call("6dimprobable" +  " -i " + input_i_arg, shell=True)
+                ext1.run_kdhsa102(input_i_arg, input_e_arg)
+                ext2.run_6dimprob(input_i_arg)
+                #subprocess.check_call("kdhsa102" +  " -i " + input_i_arg + " -e " + input_e_arg, shell=True)
+                #FIXME: Modify 6dimprobable so that resulting pdb_format has atom numbering
+                #subprocess.check_call("6dimprobable" +  " -i " + input_i_arg, shell=True)
                 subprocess.check_call("mv temp.dat " +  "site_{0:03d}_probconfig.pdb".format(site_i + 1), shell=True)
             except Exception as e:
                 print(e)
@@ -568,8 +573,8 @@ class SiteWaterAnalysis(WaterAnalysis):
                 self.hsa_data[:, 15] += orient_ent
                 self.hsa_data[:, 16] += trans_ent + orient_ent
     
-        shutil.rmtree(output_dir)
-        os.remove(input_w_arg)
+        #shutil.rmtree(output_dir)
+        #os.remove(input_w_arg)
         
         
 

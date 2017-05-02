@@ -323,6 +323,33 @@ PyObject *_sstmap_ext_getNNTrEntropy(PyObject *self, PyObject *args)
     return Py_BuildValue("f", voxel_dTStr);
 }
 
+static PyObject * _sstmap_ext_writepdb(PyObject * self, PyObject * args)
+{
+    PyObject *data, *l;
+    int i, n;
+
+    if (!PyArg_ParseTuple(args, "iO",
+        &n,
+        &PyList_Type, &data))
+        {
+            return NULL; /* raise argument parsing exception*/
+        }
+
+    FILE *fp = fopen("within5Aofligand.pdb", "ab");
+    if (fp != NULL)
+    {
+        for (i = 0; i < n; i++)
+            {
+                l = PyList_GetItem(data, i);
+                fputs(l, fp);
+            }
+    }
+    fclose(fp);
+    
+    return Py_BuildValue("i", 1);
+
+}
+
 PyObject *_sstmap_ext_get_dist_matrix(PyObject *self, PyObject *args)
 {
     int nwtot, n, l;
@@ -397,7 +424,14 @@ static PyMethodDef _sstmap_ext_methods[] = {
         (PyCFunction)_sstmap_ext_get_dist_matrix,
         METH_VARARGS,
         "get voxel entropy"
-    },    
+    },
+    {
+        "write_pdb",
+        (PyCFunction)_sstmap_ext_writepdb,
+        METH_VARARGS,
+        "Write function for large data"
+
+    },
     {NULL, NULL, 0, NULL}
 };
 

@@ -7,7 +7,7 @@ source:
 requirements:
   build:
     - python
-    - numpy
+    - numpy x.x
     - scipy
     - setuptools
     - mdtraj
