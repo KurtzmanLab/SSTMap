@@ -7,11 +7,8 @@ source:
 requirements:
   build:
     - python
-    - numpy x.x
-    - scipy
+    - numpy
     - setuptools
-    - mdtraj
-    - parmed
 
   run:
     - python
@@ -19,6 +16,7 @@ requirements:
     - scipy
     - mdtraj
     - parmed
+    - matplotlib
 
 about:
   home: https://github.com/kamran-haider
