@@ -2,9 +2,6 @@
 layout: post
 title: Getting Started with SSTMap
 ---
-
-## Installing `SSTMap`
-
 The main requirement for installation of `SSTMap` is the anaconda python distribution. If you are not familiar with Anaconda, please have a look at [continuum.io/why-anaconda](https://www.continuum.io/why-anaconda).
 
 <!--more-->
@@ -24,6 +21,6 @@ The anaconda python distribution comes with `conda` package manager, which can t
 
 ```
 conda config --add channels omnia
-conda config --add channels solvation tools
+conda config --add channels solvationtools
 conda install sstmap
 ```
