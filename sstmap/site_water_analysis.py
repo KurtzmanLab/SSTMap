@@ -102,6 +102,9 @@ class SiteWaterAnalysis(WaterAnalysis):
         if clustercenter_file is None and ligand_file is None:
             sys.exit("Please provide either a ligand file for clustering or\
                         a cluster center file to generate hydration sites.")
+        if self.num_frames == 0:
+            sys.exit("Number of frames = %d, no calculations will be performed" % self.num_frames)
+
         self.ligand = ligand_file
         self.clustercenter_file = clustercenter_file
         self.hsa_data = None
@@ -195,22 +198,35 @@ class SiteWaterAnalysis(WaterAnalysis):
         binding_site_atom_indices = list(range(ligand_coords.shape[0]))
         # Obtain water molecules solvating the binding site
         print("Reading trajectory for clustering.")
-        trj = md.load(self.trajectory, top=self.topology)[self.start_frame:self.start_frame + self.num_frames]
-        assert (trj.n_frames >= self.start_frame + self.num_frames), "The trajectory must contain at least %d frames.\
-            The number of frames in current trajectory are %d." % (self.num_frames + self.start_frame, trj.n_frames)
-        if self.num_frames > clustering_max_frames:
+
+        read_trj = md.load(self.trajectory, top=self.topology)
+        n_frames_original = read_trj.n_frames
+        print(n_frames_original, self.start_frame + self.num_frames)
+        # sanity checks on frame numbers
+        assert (n_frames_original >= self.start_frame + self.num_frames), """The trajectory must contain at least %d frames.\n
+        The number of frames in current trajectory are %d.""" % (self.num_frames + self.start_frame, n_frames_original)
+        trj = read_trj[self.start_frame:self.start_frame + self.num_frames]
+        # restrict frames for clustering to max=10000
+        if trj.n_frames > clustering_max_frames:
             print("Warning: For clustering, only %d frames, starting from frame number %d, will be used for clustering." % (10000, self.start_frame))
-            trj = trj[self.start_frame:clustering_max_frames]
+            trj = trj[0:clustering_max_frames]
+        # restruct frames for clustering to a multiple of 100
         else:
-            trj = trj[self.start_frame:self.start_frame + self.num_frames]
+            adjusted_frames = int(np.floor(trj.n_frames/100.0)*100)
+            trj = trj[0:adjusted_frames]
+            self.num_frames = trj.n_frames
+        print("Clustering will be performed over a total of %d frames." % trj.n_frames)
+        # This is a workaround to use MDTraj compute_neighbor function 
+        # xyz coordinates of the trajectory are modified such that first
+        # n atoms coordinates are switched to n atoms of ligand coordinates.
+        # For this to work, the number of solute atoms must be greater than
+        # the number of ligand atoms
         for i_frame in range(trj.n_frames):
             for pseudo_index in range(ligand_coords.shape[0]):
-                trj.xyz[i_frame, pseudo_index,
-                        :] = ligand_coords[pseudo_index, :]
-        trj_short = trj[
-            self.start_frame:self.start_frame + trj.n_frames:stride]
-        print(
-            "Obtaining a superconfiguration of all water molecules found in the binding site throught the trajectory.")
+                trj.xyz[i_frame, pseudo_index,:] = ligand_coords[pseudo_index, :]
+        trj_short = trj[0:trj.n_frames:stride]
+        print("First an initial clustering run is performed over %d frames." % trj_short.n_frames)
+        print("Obtaining a superconfiguration of all water molecules found in the binding site throught the trajectory.")
         binding_site_waters = md.compute_neighbors(
             trj_short, 0.50, binding_site_atom_indices,
             haystack_indices=self.wat_oxygen_atom_ids)
@@ -218,7 +234,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         water_id_frame_list = [(i, nbr) for i in range(
             len(binding_site_waters)) for nbr in binding_site_waters[i]]
         # Set up clustering loop
-        print("Performing clustering on the superconfiguration.")
+        #print("Performing clustering on the superconfiguration.")
         cutoff = trj_short.n_frames * 2 * 0.1401
         if np.ceil(cutoff) - cutoff <= 0.5:
             cutoff = np.ceil(cutoff)
@@ -289,7 +305,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                         near_flag += 1
             if near_flag == 0:
                 cluster_iter += 1
-                print("Cluster iteration: ", cluster_iter)
+                print("Cluster iteration: %d" % cluster_iter)
                 cluster_list.append(water_id_frame_list[max_index])
 
         #write_watpdb_from_list(trj_short,
@@ -327,8 +343,9 @@ class SiteWaterAnalysis(WaterAnalysis):
             cluster_water_coords = water_coordinates[cluster]
             if len(cluster) > cutoff:
                 cluster_name = '{0:06d}'.format(cluster_index)
-                waters = [(water_id_frame_list[wat][0] + self.start_frame, water_id_frame_list[wat][1]) for wat in cluster]
-                site_waters.append(waters)
+                waters_offset = [(water_id_frame_list[wat][0] + self.start_frame, water_id_frame_list[wat][1]) for wat in cluster]
+                waters = [(water_id_frame_list[wat][0], water_id_frame_list[wat][1]) for wat in cluster]
+                site_waters.append(waters_offset)
                 write_watpdb_from_list(trj, "cluster." + cluster_name,
                                 water_id_list=waters, full_water_res=True)
                 com = np.zeros(3)
@@ -364,12 +381,22 @@ class SiteWaterAnalysis(WaterAnalysis):
         '''
         if start_frame is None:
             start_frame = self.start_frame
+        else:
+            if self.is_site_waters_populated:
+                start_frame = self.start_frame
+
         if num_frames is None:
             num_frames = self.num_frames
+        else:
+            if num_frames > self.num_frames:
+                num_frames = self.num_frames
+
         if energy is True:
             self.generate_nonbonded_params()
         if hbonds is True:
             self.assign_hb_types()
+
+
         site_waters_copy = list(self.site_waters)
         print_progress_bar(start_frame, start_frame + num_frames)
         for frame_i in range(start_frame, start_frame + num_frames):
