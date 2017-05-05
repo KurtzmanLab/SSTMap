@@ -46,7 +46,7 @@ class GridWaterAnalysis(WaterAnalysis):
                  grid_center=None, grid_dimensions=[5.0, 5.0, 5.0],
                  grid_resolution=[0.5, 0.5, 0.5]):
         super(GridWaterAnalysis, self).__init__(topology_file, trajectory, start_frame, num_frames, supporting_file)
-        """
+        
         self.resolution = grid_resolution[0]
         self.prefix = prefix
         if ligand_file is None and grid_center is None:
@@ -70,7 +70,7 @@ class GridWaterAnalysis(WaterAnalysis):
         #print "Reading in trajectory ..."        
         #self.trj = md.load(self.trajectory, top=self.paramname)[self.start_frame: self.start_frame + self.num_frames]
         #print "Done!"
-        """
+        
 
 
     def initialize_grid(self, center, resolution, dimensions):
@@ -255,6 +255,7 @@ class GridWaterAnalysis(WaterAnalysis):
                 break
             else:
                 pos = trj.xyz * 10.0
+                
                 periodic_box = trj.unitcell_lengths * 10.0
                 frame_data = [[] for i in range(trj.n_frames)]
                 calc.assign_voxels(pos, self.dims, self.gridmax, self.origin, frame_data, self.wat_oxygen_atom_ids)

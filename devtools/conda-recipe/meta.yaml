@@ -8,6 +8,7 @@ requirements:
   build:
     - python
     - numpy
+    - scipy
     - setuptools
 
   run:

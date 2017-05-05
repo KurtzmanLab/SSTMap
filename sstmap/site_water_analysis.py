@@ -573,8 +573,6 @@ class SiteWaterAnalysis(WaterAnalysis):
 
         input_c_arg = os.path.abspath(self.clustercenter_file)
         input_w_arg = os.path.abspath("within5Aofligand.pdb")
-        if os.path.isfile(input_w_arg):
-            os.remove(input_w_arg)
 
         os.chdir(curr_dir + "/" + output_dir)
         try:
@@ -592,8 +590,6 @@ class SiteWaterAnalysis(WaterAnalysis):
             cluster_filename = "cluster.{0:06d}.pdb".format(site_i + 1)
             input_i_arg = os.path.abspath(cluster_filename)
             input_e_arg = os.path.abspath(output_dir + "/" + cluster_filename)
-            if os.path.isfile(input_e_arg):
-                os.remove(input_e_arg)
             try:
                 ext1.run_kdhsa102(input_i_arg, input_e_arg)
                 ext2.run_6dimprob(input_i_arg)
