@@ -60,8 +60,8 @@ class SiteWaterAnalysis(WaterAnalysis):
     """
     @function_timer
     def __init__(self, topology_file, trajectory, start_frame=0, num_frames=0,
-                 ligand_file=None, clustercenter_file=None,
-                 desmond_helper_file=None, prefix="hsa"):
+                supporting_file=None, ligand_file=None, clustercenter_file=None, 
+                desmond_helper_file=None, prefix="hsa"):
         """Initialize a SiteWaterAnalysis object for site-based solvation structure
         and thermodynamic calculations.
         
@@ -93,10 +93,10 @@ class SiteWaterAnalysis(WaterAnalysis):
             A prefix for all results and intermediate files generated during
             calculations.
         """
-        print("Initializing...")
-        super(SiteWaterAnalysis, self).__init__(
-            topology_file, trajectory,
-            start_frame, num_frames, desmond_helper_file)
+        super(SiteWaterAnalysis, self).__init__(topology_file, trajectory,
+            start_frame, num_frames, supporting_file)
+
+        
         self.prefix = prefix
         self.site_waters = None
         if clustercenter_file is None and ligand_file is None:
@@ -111,7 +111,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         self.hsa_dict = None
         self.is_bs_watpdb_written = False
         self.is_site_waters_populated = False
-    
+            
     def initialize_hydration_sites(self):
         """
         Generates hydration sites and initialize data structures for storing hydration site
@@ -192,6 +192,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         """
         stride = 10
         clustering_max_frames = 10000
+        clustering_max_init = 100
         # Obtain binding site solute atoms using ligand atom coordinates
         ligand = md.load_pdb(ligand_file)
         ligand_coords = ligand.xyz[0, :, :]
@@ -201,7 +202,6 @@ class SiteWaterAnalysis(WaterAnalysis):
 
         read_trj = md.load(self.trajectory, top=self.topology)
         n_frames_original = read_trj.n_frames
-        print(n_frames_original, self.start_frame + self.num_frames)
         # sanity checks on frame numbers
         assert (n_frames_original >= self.start_frame + self.num_frames), """The trajectory must contain at least %d frames.\n
         The number of frames in current trajectory are %d.""" % (self.num_frames + self.start_frame, n_frames_original)
@@ -307,6 +307,10 @@ class SiteWaterAnalysis(WaterAnalysis):
                 cluster_iter += 1
                 print("Cluster iteration: %d" % cluster_iter)
                 cluster_list.append(water_id_frame_list[max_index])
+            if cluster_iter >= clustering_max_init:
+                "Terminating initial clustering after max."
+                break
+
 
         #write_watpdb_from_list(trj_short,
         #                   self.prefix + "_initial_clustercenterfile",
@@ -359,7 +363,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         
         write_watpdb_from_coords(trj, "clustercenterfile",
                            wat_coords=final_cluster_coords)
-        print("Final number of clusters: ", len(final_cluster_coords))
+        print("Final number of clusters: %d" % len(final_cluster_coords))
         self.is_bs_watpdb_written = True
         self.clustercenter_file = "clustercenterfile.pdb"
 
@@ -391,9 +395,9 @@ class SiteWaterAnalysis(WaterAnalysis):
             if num_frames > self.num_frames:
                 num_frames = self.num_frames
 
-        if energy is True:
+        if energy:
             self.generate_nonbonded_params()
-        if hbonds is True:
+        if hbonds:
             self.assign_hb_types()
 
 
@@ -480,7 +484,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                         e_nbr = 0
                         for nbr_i in wat_nbrs:
                             e_nbr_i = 0.0
-                            e_nbr_i += energy_lj[self.wat_oxygen_atom_ids[0]:][(nbr_i - self.wat_oxygen_atom_ids[0]) / 3]
+                            e_nbr_i += energy_lj[self.wat_oxygen_atom_ids[0]:][(nbr_i - self.wat_oxygen_atom_ids[0]) / self.water_sites]
                             for i in range(self.water_sites):
                                 e_nbr_i += np.sum(energy_elec[:, nbr_i + i])
                             self.hsa_dict[site_i][13].append(e_nbr_i)
@@ -569,39 +573,45 @@ class SiteWaterAnalysis(WaterAnalysis):
 
         input_c_arg = os.path.abspath(self.clustercenter_file)
         input_w_arg = os.path.abspath("within5Aofligand.pdb")
+        if os.path.isfile(input_w_arg):
+            os.remove(input_w_arg)
+
         os.chdir(curr_dir + "/" + output_dir)
         try:
             #subprocess.check_call("bruteclust  -c " + input_c_arg + " -w " + input_w_arg, shell=True)
             ext1.run_bruteclust(input_c_arg, input_w_arg)
         except Exception as e:
             print(e)
-        
         os.chdir(curr_dir)
+        trans_dat, orient_dat = os.path.abspath("trans.dat"), os.path.abspath("orient.dat")
+        if os.path.isfile(trans_dat) or os.path.isfile(orient_dat):
+            os.remove(trans_dat)
+            os.remove(orient_dat)
         # run entropy code
         for site_i in range(self.hsa_data.shape[0]):
             cluster_filename = "cluster.{0:06d}.pdb".format(site_i + 1)
             input_i_arg = os.path.abspath(cluster_filename)
             input_e_arg = os.path.abspath(output_dir + "/" + cluster_filename)
+            if os.path.isfile(input_e_arg):
+                os.remove(input_e_arg)
             try:
                 ext1.run_kdhsa102(input_i_arg, input_e_arg)
                 ext2.run_6dimprob(input_i_arg)
                 #subprocess.check_call("kdhsa102" +  " -i " + input_i_arg + " -e " + input_e_arg, shell=True)
                 #FIXME: Modify 6dimprobable so that resulting pdb_format has atom numbering
                 #subprocess.check_call("6dimprobable" +  " -i " + input_i_arg, shell=True)
-                subprocess.check_call("mv temp.dat " +  "site_{0:03d}_probconfig.pdb".format(site_i + 1), shell=True)
+                subprocess.check_call("mv temp.dat " +  self.prefix + "_{0:03d}_prob.pdb".format(site_i + 1), shell=True)
             except Exception as e:
                 print(e)
-        trans_dat, orient_dat = output_dir + "/" + "trans.dat", output_dir +  "/" + "orient.dat"
         #os.remove(input_i_arg)
-        if os.path.exists(trans_dat) and os.path.exists(orient_dat):
+        if os.path.isfile(trans_dat) and os.path.isfile(orient_dat):
             trans_ent, orient_ent = np.loadtxt(trans_dat), np.loadtxt(orient_dat)
             if trans_ent.shape[0] == self.hsa_data.shape[0] and orient_ent.shape[0] == self.hsa_data.shape[0]:
                 self.hsa_data[:, 14] += trans_ent
                 self.hsa_data[:, 15] += orient_ent
                 self.hsa_data[:, 16] += trans_ent + orient_ent
-    
-        #shutil.rmtree(output_dir)
-        #os.remove(input_w_arg)
+        shutil.rmtree(output_dir)
+        os.remove(input_w_arg)
         
         
 
