@@ -13,7 +13,7 @@ bash Anaconda2-4.3.1-Linux-x86_64.sh
 ```
 For MacOSX
 ```bash
-wget https://repo.continuum.io/archive/Anaconda2-4.3.1-MacOSX-x86_64.sh
+curl -O https://repo.continuum.io/archive/Anaconda2-4.3.1-MacOSX-x86_64.sh
 bash Anaconda2-4.3.1-MacOSX-x86_64.sh
 ```
 
