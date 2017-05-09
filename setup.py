@@ -17,19 +17,18 @@ extensions.append(Extension('_sstmap_probableconfig',
 
 
 setup(name='sstmap',
-      version='1.0',
-      description='Library for analysis of water molecules in MD trajectories',
-      url='https://github.com/KurtzmanLab/SSTMap',
       author='Kamran Haider',
       author_email='kamranhaider.mb@gmail.com',
-      license='None',
+      description='SSTMap: A computational tool for studying structure and thermodynamics of water molecules on solute surfaces',
+      version='1.0',
+      license='LGPLv2.1+',
+      url='https://github.com/KurtzmanLab/SSTMap',
+      platforms=['Linux', 'Mac OS-X', 'Unix', 'Windows'],
+      packages=find_packages(),
       ext_modules=extensions,
       zip_safe=False,
-      packages=find_packages(),
       entry_points={
       'console_scripts':
       ['run_hsa = sstmap.scripts.run_hsa:entry_point',
-      'run_gist = sstmap.scripts.run_gist:entry_point',
-      'desmond_extract_nbparams = sstmap.scripts.desmond_extract_nbparams:entry_point',
-      'dtr_to_netcdf = sstmap.scripts.dtr_to_netcdf:entry_point',]},)
+      'run_gist = sstmap.scripts.run_gist:entry_point']},)
 

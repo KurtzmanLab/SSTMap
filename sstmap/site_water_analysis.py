@@ -59,7 +59,7 @@ class SiteWaterAnalysis(WaterAnalysis):
 
     """
     @function_timer
-    def __init__(self, topology_file, trajectory, start_frame=0, num_frames=0,
+    def __init__(self, topology_file, trajectory, start_frame=0, num_frames=None,
                 supporting_file=None, ligand_file=None, clustercenter_file=None, 
                 desmond_helper_file=None, prefix="hsa"):
         """Initialize a SiteWaterAnalysis object for site-based solvation structure
@@ -93,6 +93,9 @@ class SiteWaterAnalysis(WaterAnalysis):
             A prefix for all results and intermediate files generated during
             calculations.
         """
+        if num_frames is None:
+            print("Number of frames not specified, setting to default, N=10000")
+            num_frames = 10000
         super(SiteWaterAnalysis, self).__init__(topology_file, trajectory,
             start_frame, num_frames, supporting_file)
 
@@ -383,6 +386,8 @@ class SiteWaterAnalysis(WaterAnalysis):
         entropy : bool, optional
             Description
         '''
+        # if clustering was performed, start and total frames
+        # are set to the frames for which clustering was done.
         if start_frame is None:
             start_frame = self.start_frame
         else:
@@ -404,124 +409,140 @@ class SiteWaterAnalysis(WaterAnalysis):
         site_waters_copy = list(self.site_waters)
         print_progress_bar(start_frame, start_frame + num_frames)
         for frame_i in range(start_frame, start_frame + num_frames):
-            frame = md.load_frame(self.trajectory, frame_i, top=self.topology)
-            pos = md.utils.in_units_of(frame.xyz, "nanometers", "angstroms")
-            pbc = md.utils.in_units_of(
-                frame.unitcell_lengths, "nanometers", "angstroms")
-            oxygen_pos = pos[0, self.wat_oxygen_atom_ids, :]
-            cluster_search_space = NeighborSearch(oxygen_pos, 1.0)
-            water_search_space = NeighborSearch(oxygen_pos, 3.5)
-            for site_i in range(self.hsa_data.shape[0]):
-                wat_O = None
-                if self.is_site_waters_populated:
-                    if len(site_waters_copy[site_i]) != 0:
-                        if site_waters_copy[site_i][0][0] == frame_i:
-                            wat_O = site_waters_copy[site_i].pop(0)[1]
-                            self.hsa_data[site_i, 4] += 1
+            try:
+                frame = md.load_frame(self.trajectory, frame_i, top=self.topology)
+            except Exception as e:
+                num_frames = frame_i - start_frame
+                print(e)
+                print("Couldn't read frame %d, Ending clculation at this point.\n" 
+                     % (frame_i))
+                break
+            else:
+                if frame.n_frames != 0:
+                    pos = md.utils.in_units_of(frame.xyz, "nanometers", "angstroms")
+                    pbc = md.utils.in_units_of(
+                        frame.unitcell_lengths, "nanometers", "angstroms")
+                    oxygen_pos = pos[0, self.wat_oxygen_atom_ids, :]
+                    cluster_search_space = NeighborSearch(oxygen_pos, 1.0)
+                    water_search_space = NeighborSearch(oxygen_pos, 3.5)
+                    for site_i in range(self.hsa_data.shape[0]):
+                        wat_O = None
+                        if self.is_site_waters_populated:
+                            if len(site_waters_copy[site_i]) != 0:
+                                if site_waters_copy[site_i][0][0] == frame_i:
+                                    wat_O = site_waters_copy[site_i].pop(0)[1]
+                                    self.hsa_data[site_i, 4] += 1
+                        else:
+                            cluster_center_coords = (self.hsa_data[site_i, 1], self.hsa_data[
+                                                        site_i, 2], self.hsa_data[site_i, 3])
+                            nbr_indices = cluster_search_space.query_nbrs_single_point(
+                                cluster_center_coords)
+                            cluster_wat_oxygens = [self.wat_oxygen_atom_ids[
+                                nbr_index] for nbr_index in nbr_indices]
+                            if len(cluster_wat_oxygens) != 0:
+                                wat_O = cluster_wat_oxygens[0]
+                                self.hsa_data[site_i, 4] += 1
+                                self.site_waters.append((frame_i, wat_O))
+                                self.hsa_dict[site_i][-1].append((frame_i, wat_O))
+
+                        if wat_O is not None and (energy or hbonds):
+                            distance_matrix = np.zeros(
+                                (self.water_sites, self.all_atom_ids.shape[0]), np.float_)
+                            calc.get_pairwise_distances(np.asarray(
+                                [site_i, wat_O]), self.all_atom_ids, pos, pbc, distance_matrix)
+                            wat_nbrs = self.wat_oxygen_atom_ids[np.where((distance_matrix[0, :][
+                                                                         self.wat_oxygen_atom_ids] <= 3.5) & (distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
+                            prot_nbrs = self.non_water_atom_ids[
+                                np.where(distance_matrix[0, :][self.non_water_atom_ids] <= 3.5)]
+                            prot_nbrs = np.asarray([prot_nbr for prot_nbr in prot_nbrs if self.topology.atom(
+                                prot_nbr).name[0] not in ["C", "H"]])
+                            self.hsa_dict[site_i][17].append(wat_nbrs.shape[0])
+                            # TODO: 5.25 should be replaced with a variable
+                            # 5.25 comes from TIP3P water model, define dictionary
+                            # based on water residue names
+                            f_enc =  1.0 - (wat_nbrs.shape[0] / 5.25)
+                            if f_enc < 0.0:
+                                f_enc = 0.0
+                            self.hsa_dict[site_i][22].append(f_enc)
+
+                            if energy:
+                                energy_lj, energy_elec = self.calculate_energy(
+                                    distance_matrix)
+                                e_lj_sw = np.sum(
+                                    energy_lj[:self.wat_oxygen_atom_ids[0]:])
+                                e_elec_sw = np.sum(
+                                    energy_elec[:, self.non_water_atom_ids])
+                                e_lj_ww = np.nansum(
+                                    energy_lj[self.wat_oxygen_atom_ids[0]:])
+                                e_elec_ww = np.sum(energy_elec[:, self.wat_atom_ids[
+                                                   0]:wat_O]) + np.sum(energy_elec[:, wat_O + self.water_sites:])
+                                self.hsa_dict[site_i][7].append(e_lj_sw)
+                                self.hsa_dict[site_i][8].append(e_elec_sw)
+                                self.hsa_dict[site_i][10].append(e_lj_ww)
+                                self.hsa_dict[site_i][11].append(e_elec_ww)
+                                self.hsa_dict[site_i][6].append(e_lj_sw + e_elec_sw)
+                                self.hsa_dict[site_i][9].append(e_lj_ww + e_elec_ww)
+                                self.hsa_dict[site_i][12].append(
+                                    e_lj_sw + e_elec_sw + e_lj_ww + e_elec_ww)
+                                #print(e_lj_sw/2.0)
+                                #print(e_elec_sw/2.0)
+                                #print((e_lj_sw + e_elec_sw)/2.0)
+                                #print(e_lj_ww/2.0)
+                                #print(e_elec_ww/2.0)
+                                #print((e_lj_ww + e_elec_ww)/2.0)
+                                # print "Solute-water LJ Energy of this water: ", e_lj_sw
+                                # print "Solute-water Elec Energy of this water: ", e_elec_sw
+                                # print "Water-water LJ Energy of this water: ", e_lj_ww
+                                # print "Water-water Elec Energy of this water: ", e_elec_ww
+                                # calc Enbr and other water structure metrics here
+                                e_nbr = 0
+                                for nbr_i in wat_nbrs:
+                                    e_nbr_i = 0.0
+                                    e_nbr_i += energy_lj[self.wat_oxygen_atom_ids[0]:][(nbr_i - self.wat_oxygen_atom_ids[0]) / self.water_sites]
+                                    for i in range(self.water_sites):
+                                        e_nbr_i += np.sum(energy_elec[:, nbr_i + i])
+                                    self.hsa_dict[site_i][13].append(e_nbr_i)
+
+                            if hbonds:
+                                hb_ww, hb_sw = self.calculate_hydrogen_bonds(
+                                    frame, wat_O, wat_nbrs, prot_nbrs)
+                                acc_ww = hb_ww[:, 0][
+                                    np.where(hb_ww[:, 0] == wat_O)].shape[0]
+                                don_ww = hb_ww.shape[0] - acc_ww
+                                acc_sw = hb_sw[:, 0][
+                                    np.where(hb_sw[:, 0] == wat_O)].shape[0]
+                                don_sw = hb_sw.shape[0] - acc_sw
+                                # FIXME: Spurious atom names showing up in summary
+                                don_sw_ids = hb_sw[:, 1][
+                                    np.where(hb_sw[:, 0] == wat_O)]
+                                acc_sw_ids = hb_sw[:, 0][
+                                    np.where(hb_sw[:, 0] != wat_O)]
+                                self.hsa_dict[site_i][18].append(hb_ww.shape[0])
+                                self.hsa_dict[site_i][19].append(hb_sw.shape[0])
+                                self.hsa_dict[site_i][20].append(
+                                    hb_ww.shape[0] + hb_sw.shape[0])
+                                self.hsa_dict[site_i][23].append(acc_ww)
+                                self.hsa_dict[site_i][24].append(don_ww)
+                                self.hsa_dict[site_i][25].append(acc_sw)
+                                self.hsa_dict[site_i][26].append(don_sw)
+                                self.hsa_dict[site_i][27].extend(acc_sw_ids)
+                                self.hsa_dict[site_i][28].extend(don_sw_ids)
+                                if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
+                                    self.hsa_dict[site_i][21].append(
+                                        hb_ww.shape[0] / wat_nbrs.shape[0])
+                
                 else:
-                    cluster_center_coords = (self.hsa_data[site_i, 1], self.hsa_data[
-                                                site_i, 2], self.hsa_data[site_i, 3])
-                    nbr_indices = cluster_search_space.query_nbrs_single_point(
-                        cluster_center_coords)
-                    cluster_wat_oxygens = [self.wat_oxygen_atom_ids[
-                        nbr_index] for nbr_index in nbr_indices]
-                    if len(cluster_wat_oxygens) != 0:
-                        wat_O = cluster_wat_oxygens[0]
-                        self.hsa_data[site_i, 4] += 1
-                        self.site_waters.append((frame_i, wat_O))
-                        self.hsa_dict[site_i][-1].append((frame_i, wat_O))
-
-                if wat_O is not None and (energy or hbonds):
-                    distance_matrix = np.zeros(
-                        (self.water_sites, self.all_atom_ids.shape[0]), np.float_)
-                    calc.get_pairwise_distances(np.asarray(
-                        [site_i, wat_O]), self.all_atom_ids, pos, pbc, distance_matrix)
-                    wat_nbrs = self.wat_oxygen_atom_ids[np.where((distance_matrix[0, :][
-                                                                 self.wat_oxygen_atom_ids] <= 3.5) & (distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
-                    prot_nbrs = self.non_water_atom_ids[
-                        np.where(distance_matrix[0, :][self.non_water_atom_ids] <= 3.5)]
-                    prot_nbrs = np.asarray([prot_nbr for prot_nbr in prot_nbrs if self.topology.atom(
-                        prot_nbr).name[0] not in ["C", "H"]])
-                    self.hsa_dict[site_i][17].append(wat_nbrs.shape[0])
-                    # TODO: 5.25 should be replaced with a variable
-                    # 5.25 comes from TIP3P water model, define dictionary
-                    # based on water residue names
-                    f_enc =  1.0 - (wat_nbrs.shape[0] / 5.25)
-                    if f_enc < 0.0:
-                        f_enc = 0.0
-                    self.hsa_dict[site_i][22].append(f_enc)
-
-                    if energy:
-                        energy_lj, energy_elec = self.calculate_energy(
-                            distance_matrix)
-                        e_lj_sw = np.sum(
-                            energy_lj[:self.wat_oxygen_atom_ids[0]:])
-                        e_elec_sw = np.sum(
-                            energy_elec[:, self.non_water_atom_ids])
-                        e_lj_ww = np.nansum(
-                            energy_lj[self.wat_oxygen_atom_ids[0]:])
-                        e_elec_ww = np.sum(energy_elec[:, self.wat_atom_ids[
-                                           0]:wat_O]) + np.sum(energy_elec[:, wat_O + self.water_sites:])
-                        self.hsa_dict[site_i][7].append(e_lj_sw)
-                        self.hsa_dict[site_i][8].append(e_elec_sw)
-                        self.hsa_dict[site_i][10].append(e_lj_ww)
-                        self.hsa_dict[site_i][11].append(e_elec_ww)
-                        self.hsa_dict[site_i][6].append(e_lj_sw + e_elec_sw)
-                        self.hsa_dict[site_i][9].append(e_lj_ww + e_elec_ww)
-                        self.hsa_dict[site_i][12].append(
-                            e_lj_sw + e_elec_sw + e_lj_ww + e_elec_ww)
-                        #print(e_lj_sw/2.0)
-                        #print(e_elec_sw/2.0)
-                        #print((e_lj_sw + e_elec_sw)/2.0)
-                        #print(e_lj_ww/2.0)
-                        #print(e_elec_ww/2.0)
-                        #print((e_lj_ww + e_elec_ww)/2.0)
-                        # print "Solute-water LJ Energy of this water: ", e_lj_sw
-                        # print "Solute-water Elec Energy of this water: ", e_elec_sw
-                        # print "Water-water LJ Energy of this water: ", e_lj_ww
-                        # print "Water-water Elec Energy of this water: ", e_elec_ww
-                        # calc Enbr and other water structure metrics here
-                        e_nbr = 0
-                        for nbr_i in wat_nbrs:
-                            e_nbr_i = 0.0
-                            e_nbr_i += energy_lj[self.wat_oxygen_atom_ids[0]:][(nbr_i - self.wat_oxygen_atom_ids[0]) / self.water_sites]
-                            for i in range(self.water_sites):
-                                e_nbr_i += np.sum(energy_elec[:, nbr_i + i])
-                            self.hsa_dict[site_i][13].append(e_nbr_i)
-
-                    if hbonds:
-                        hb_ww, hb_sw = self.calculate_hydrogen_bonds(
-                            frame, wat_O, wat_nbrs, prot_nbrs)
-                        acc_ww = hb_ww[:, 0][
-                            np.where(hb_ww[:, 0] == wat_O)].shape[0]
-                        don_ww = hb_ww.shape[0] - acc_ww
-                        acc_sw = hb_sw[:, 0][
-                            np.where(hb_sw[:, 0] == wat_O)].shape[0]
-                        don_sw = hb_sw.shape[0] - acc_sw
-                        # FIXME: Spurious atom names showing up in summary
-                        don_sw_ids = hb_sw[:, 1][
-                            np.where(hb_sw[:, 0] == wat_O)]
-                        acc_sw_ids = hb_sw[:, 0][
-                            np.where(hb_sw[:, 0] != wat_O)]
-                        self.hsa_dict[site_i][18].append(hb_ww.shape[0])
-                        self.hsa_dict[site_i][19].append(hb_sw.shape[0])
-                        self.hsa_dict[site_i][20].append(
-                            hb_ww.shape[0] + hb_sw.shape[0])
-                        self.hsa_dict[site_i][23].append(acc_ww)
-                        self.hsa_dict[site_i][24].append(don_ww)
-                        self.hsa_dict[site_i][25].append(acc_sw)
-                        self.hsa_dict[site_i][26].append(don_sw)
-                        self.hsa_dict[site_i][27].extend(acc_sw_ids)
-                        self.hsa_dict[site_i][28].extend(don_sw_ids)
-                        if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
-                            self.hsa_dict[site_i][28].append(
-                                wat_nbrs.shape[0] / hb_ww.shape[0])
-            print_progress_bar(frame_i, num_frames)
-        
+                    num_frames = frame_i - start_frame
+                    print("Calculations done for %d frames.\n" % (num_frames))
+                    break
+            print_progress_bar((frame_i + 1) - start_frame, num_frames)
+            
         if entropy:
             self.generate_data_for_entropycalcs(start_frame, num_frames)
             self.run_entropy_scripts()
+
         self.normalize_site_quantities(num_frames)
+        print("Number of frames processed: %d" % num_frames)
 
     @function_timer
     def generate_data_for_entropycalcs(self, start_frame, num_frames):
