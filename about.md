@@ -4,10 +4,9 @@ title: About
 ---
 
 <p class="message">
-  `SSTMap` is a computational tool to study structural and thermodynamic properties of water molecules on solute surfaces. It combines calculation of solvation thermodynamics, as described by inhomogeneous solvation theory, with measures of water structure to produce mapping of solvation structure and thermodynamics in protein binding sites and on the surfaces of other molecules of interest, such as small-molecules or host-guest systems. SSTMap offers capabilities beyond those of existing software packages for the analysis of surface water. Most notably, it combines thermodynamic analysis with structural analysis that can aid in understanding and evaluating the displacement of active-sitewatermolecules. It provides both site-based and grid-based calculations in one package, with support for multiple MD packages and can be integrated into Python’s scientific computing environment for advanced applications.</p>
+  SSTMap is a computational tool to study structural and thermodynamic properties of water molecules on solute surfaces. It combines calculation of solvation thermodynamics, as described by inhomogeneous solvation theory, with measures of water structure to produce mapping of solvation structure and thermodynamics in protein binding sites and on the surfaces of other molecules of interest, such as small-molecules or host-guest systems. SSTMap offers capabilities beyond those of existing software packages for the analysis of surface water. Most notably, it combines thermodynamic analysis with structural analysis that can aid in understanding and evaluating the displacement of active-sitewatermolecules. It provides both site-based and grid-based calculations in one package, with support for multiple MD packages and can be integrated into Python’s scientific computing environment for advanced applications.</p>
 
-![overview](https://github.com/KurtzmanLab/SSTMap/blob/gh-pages/assets/overview.png)
-
+![overview](https://kurtzmanlab.github.io/SSTMap/assets/overview.png)
 
 ### Shoutout to Lanyon
 
