@@ -48,7 +48,7 @@ def parse_args():
         if not os.path.isfile(args.clusters):
             sys.exit("%s not found. Please make sure it exits or give the correct path." % args.clusters)
     if args.param_file is not None:
-        if not os.path.isfile(args.param_file):
+        if not os.path.exists(args.param_file):# or not os.path.isdir(args.param_file):
             sys.exit("%s not found. Please make sure it exits or give the correct path." % args.param_file)
 
 

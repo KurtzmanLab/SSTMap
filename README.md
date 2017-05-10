@@ -1,18 +1,37 @@
+Welcome to SSTMap Release version 1.0.0
+
+Thank You for using SSTMap, we've gone through a great deal of work trying to ensure compatibility with various operating systems and MD packages though we have not covered all the possible combinations.  If you run into a bug, please report it on the issues and we will work to quickly resolve it.
+
+Thank You,
+
+Kamran Haider and the Development Team.
+
 
 SSTMap
 ======
 
-SSTMap is a tool to study structural and thermodynamic properties of water molecules on solute surfaces. It combines grid inhomogeneous solvation theory (IST) with measures of water structure to produce mapping of solvation structure and thermodynamics in protein binding sites and on the surfaces of other molecules of interest, such as small-molecules or host-guest systems. The spatial decomposition of IST integrals allow determination of contribution of speicific regions towards solvation enthalpy and entropy. Alongside thermodynamic information, SSTMap calculates structural properties of water molecules that can aid in developing an understanding of water behvior on the surface and evaluating its displacement.
-
+SSTMap is a tool to study structural and thermodynamic properties of water molecules on solute surfaces. It combines grid inhomogeneous solvation theory (IST) with measures of water structure to produce mapping of solvation structure and thermodynamics in protein binding sites and on the surfaces of other molecules of interest, such as small-molecules or host-guest systems. It provides both site-based and grid-based calculations in one package, with support for multiple MD packages and can be integrated into Python’s scientific computing environment for advanced applications.
 
 Installation
 ------------
-__The software is in final stages of release, once released, the following installation commands would work__
-The easiest way to install the `SSTMap` release is via [conda](http://conda.pydata.org):
-```bash
-conda install -c kurtzman_lab sstmap
+### Conda Installation
+The anaconda python distribution comes with `conda` package manager, which can then be used to install `SSTMap` with the following commands.
+
 ```
-The development version of SSTMap can be download directly from the Github repository and installed as follows:
+conda config --add channels omnia
+conda config --add channels solvationtools
+conda install sstmap
+```
+
+### GitHub Source Code
+You can install the latest development version from the GitHub repository by executing
+
+```
+pip install git+git://github.com/kurtzmanlab/sstmap.git#egg=sstmap
+```
+
+You can also download the package manually from GitHub, unzip it, navigate into the package, and execute the command:
+
 ```bash
 git clone git@github.com:KurtzmanLab/SSTMap.git
 cd SSTMap
@@ -21,14 +40,15 @@ python setup.py install
 Usage
 -----
 
-SSTMap usage involves either unning command-line tools or importing the `sstmap` module. Below are some examples. Stay tuned for tutorials and examples.
+SSTMap provides command-line tools for hydration site analysis (HSA) and Grid Inhomogeneous Solvation Theory (GIST), `run_hsa` and `run_gist`, respectively. The functionality of SSTMap is also available through its Python API, available as the `sstmap` module. For more details, please visit [sstmap.org](sstmap.org).
+
+An example of running a quick HSA and GIST calculation on a test system available in [sstmap_test_suite](https://github.com/KurtzmanLab/sstmap_test_suite). You can download the full test suite from [here](https://www.dropbox.com/sh/hrijgk8n5z12bgi/AABSigcBf9PN_7-Z26VCCPePa?dl=0) (since Github repository doesn't contain trajectory files). For a given platform, `cd` to its sub-directory and run the commands as shown below. 
 ```bash
-run_hsa -i topology.top -t trajectory.traj -l casp3_ligand.pdb -f 10000 -s 0 -o casp3
-run_gist -i topology.top -t trajectory.traj -l casp3_ligand.pdb -d 40 40 40 -f  10000 -s 0 -o casp3
-# Replace topology.top and trajectory.traj with files corresponding 
-# to the MD package used for simulation, e.g.,
-# casp3.prmtop & casp3.netcdf or casp3.gro & casp3.xtc.
+cd sstmap_test_suite/platforms/amber
+$ run_hsa -i testcase.prmtop -t md100ps.nc -l ligand.pdb -s 0 -f 100 -o testcase
+$ run_gist -i testcase.prmtop -t md100ps.nc -l ligand.pdb -g 20 20 20 -s 0 -f 100 -o testcase
 ```
+For examples using MD simulations generated from other packages, such as [Amber](http://ambermd.org/), [Charmm](https://www.charmm.org), [Gromacs](http://www.gromacs.org/), [NAMD](http://www.ks.uiuc.edu/Research/namd/), [OpenMM](http://openmm.org/) and [Desmond](https://www.deshawresearch.com/resources_desmond.html), please follow [this tutorial](http://sstmap.org/2017/05/03/simple-examples/) on [sstmap.org](sstmap.org).  
 
 ```python
 import sstmap as sm
@@ -64,9 +84,12 @@ Co-Developers
 References
 ----------
 
-[1] Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson, J. Chem. Phys. 137, 044101 (2012)
+[1] Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson. Grid inhomogeneous solvation theory: hydration structure and thermodynamics of the miniature receptor cucurbit[7]uril. J. Chem. Phys. 137, 044101 (2012)
 
-[2] Haider K, Wickstrom L, Ramsey S, Gilson MK and Kurtzman T. Enthalpic Breakdown of Water Structure on Protein Active Site Surfaces. J Phys Chem B. 120:8743-8756, 2016. http://dx.doi.org/10.1021/acs.jpcb.6b01094.
+[2] Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson. Structure and Thermodynamics of Molecular Hydration via Grid Inhomogeneous Solvation Theory. eprint arXiv:1108.4876.
+
+[3] Haider K, Wickstrom L, Ramsey S, Gilson MK and Kurtzman T. Enthalpic Breakdown of Water Structure on Protein Active Site Surfaces. J Phys Chem B. 120:8743-8756, 2016. http://dx.doi.org/10.1021/acs.jpcb.6b01094.
+
 
 License
 -------
@@ -78,5 +101,3 @@ Thanks
 ------
 Thanks to Prof. Tom Kurtzman and Prof. Michael Gilson for their guidance in the development of this package.
 
-Notes
------
