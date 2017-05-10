@@ -160,7 +160,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                             "nwat", "occupancy",
                             "Esw", "EswLJ", "EswElec",
                             "Eww", "EwwLJ", "EwwElec", "Etot", "Ewwnbr",
-                            "TSsw", "TSww", "TStot",
+                            "TSsw_trans", "TSsw_orient", "TStot",
                             "Nnbrs", "Nhbww", "Nhbsw", "Nhbtot",
                             "f_hb_ww", "f_enc",
                             "Acc_ww", "Don_ww", "Acc_sw", "Don_sw",
@@ -639,7 +639,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         sphere_volume = (4 / 3) * np.pi
         bulk_water_per_site = self.rho_bulk * sphere_volume * num_frames
         skip_normalization = ["index", "x", "y", "z", "nwat", "occupancy", "gO",
-                              "TSsw", "TSww", "TStot", "solute_acceptors", "solute_donors"]
+                              "TSsw_trans", "TSsw_orient", "TStot", "solute_acceptors", "solute_donors"]
         for site_i in range(self.hsa_data.shape[0]):
             n_wat = self.hsa_data[site_i, 4]
             if n_wat != 0:
@@ -918,7 +918,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         TODO: output energy quantities in half
         """
         skip_write_data = ["x", "y", "z", "nwat", "occupancy", "gO",
-                           "TSsw", "TSww", "TStot", "solute_acceptors", "solute_donors"]
+                           "TSsw_trans", "TSsw_orient", "TStot", "solute_acceptors", "solute_donors"]
         # create directory to store detailed data for individual columns in HSA
         directory = self.prefix + "_hsa_data"
         if not os.path.exists(directory):
