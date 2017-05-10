@@ -2,4 +2,13 @@
 layout: page
 title: About
 ---
-`SSTMap` is a tool to study structural and thermodynamic properties of water molecules on solute surfaces. It combines [grid inhomogeneous solvation theory](http://scitation.aip.org/content/aip/journal/jcp/137/4/10.1063/1.4733951) with measures of water structure to produce mapping of solvation structure and thermodynamics in protein binding sites and on the surfaces of other molecules of interest, such as small-molecules or host-guest systems. The spatial decomposition of IST integrals allow determination of contribution of speicific regions towards solvation enthalpy and entropy. Alongside thermodynamic information, `SSTMap` calculates structural properties of water molecules that can aid in developing an understanding of water behvior on the surface and evaluating its displacement.
+
+<p class="message">
+  `SSTMap` is a computational tool to study structural and thermodynamic properties of water molecules on solute surfaces. It combines calculation of solvation thermodynamics, as described by inhomogeneous solvation theory, with measures of water structure to produce mapping of solvation structure and thermodynamics in protein binding sites and on the surfaces of other molecules of interest, such as small-molecules or host-guest systems. SSTMap offers capabilities beyond those of existing software packages for the analysis of surface water. Most notably, it combines thermodynamic analysis with structural analysis that can aid in understanding and evaluating the displacement of active-sitewatermolecules. It provides both site-based and grid-based calculations in one package, with support for multiple MD packages and can be integrated into Python’s scientific computing environment for advanced applications.</p>
+
+![overview](https://github.com/KurtzmanLab/SSTMap/blob/gh-pages/assets/overview.png)
+
+
+### Shoutout to Lanyon
+
+This website is based on [Lanyon](https://github.com/poole/lanyon) - a simple yet powerfull [Jekyll](http://jekyllrb.com) theme using a dominant content pane and a nice navigation sidebar. It's based on [Poole](http://getpoole.com), the Jekyll butler.
