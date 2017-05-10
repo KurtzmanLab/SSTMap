@@ -1,0 +1,13 @@
+# Derived from from klogw.org and https://blog.sorryapp.com/blogging-with-jekyll/2014/02/06/adding-authors-to-your-jekyll-site.html
+kamran-haider:
+    name: Kamran Haider
+    email: kamranhaider.mb@gmail.com
+steven-ramsey:
+    name: Steven Ramsey
+    email: vpsramsey@gmail.com
+anthony-cruz:
+    name: Anthony Cruz
+    email: anthonycruzpr@gmail.com
+thomas-kurtzman:
+    name: Thomas Kurtzman
+    email: simpleliquid@gmail.com
