@@ -85,7 +85,7 @@ $ run_gist -i testcase.prmtop -t md100ps.nc -l ligand.pdb -g 20 20 20 -s 0 -f 10
 
 Since amber prmtop file contains both non-bonded parameters and topology information for the system, therefore, you can leave out the `-p` flag, which is used to specify additional parameter files.
 ### Charmm
-The `-p` flag is mandatory for (Charmm, NAMD, Gromacs). For these package, in order to obtain non-bonded parameters for energy calculation, additional files are required by the underlying Parmed parsers. When not sure, what additional files to provide, just run the run_hsa or run_gist, without `-p` flag and the help message will let you know what files to provide, e.g.,
+The `-p` flag is mandatory for (Charmm, NAMD, Gromacs). For these package, in order to obtain non-bonded parameters for energy calculation, additional files are required by the underlying `Parmed` parsers. When not sure of what additional files to provide, just run the `run_hsa` or `run_gist` on your system, without the `-p` flag and the help message will let you know what files to provide, e.g.,
 
 ```
 $ run_hsa -i testcase.psf -t md100ps.dcd -l ligand.pdb -s 0 -f 100 -o testcase
@@ -93,7 +93,7 @@ $ run_hsa -i testcase.psf -t md100ps.dcd -l ligand.pdb -s 0 -f 100 -o testcase
     More specifically, Please provide a folder named toppar that contains charmm parameter/topology files.
 ```   
 
-The correct commands would, therefore, be:
+The correct command would, therefore, be:
 ```
 run_hsa -i testcase.psf -t md100ps.dcd -l ligand.pdb -p toppar/ -s 0 -f 100 -o testcase
 $ run_gist -i testcase.psf -t md100ps.dcd -l ligand.pdb -g 10 10 10 -p toppar/ -s 0 -f 100 -o testcase
@@ -114,7 +114,7 @@ The desmond `cms` file format, which contains forcefield and topology informatio
 
 * <strong>Step 1</strong>: Convert `cms` file into `pdb` file. This can be done in Schrodinger's Maestro or VMD.
 
-* <strong>Step 2</strong>: Convert dtr file into a netcdf file. Although MFTraj allows reading dtr file format but the cross-platform trajectory loaders of mdtraj do not support dtr file format. Only a specific loader mdtraj.load_dtr() is available for this purposes. In SSTMap, trajectory reading is only done through MDTraj's cross-platform loaders. As a result, to process Desmond simulation through SSTMap it is necessary to convert them into netcdf format (although alternative format, dcd, xtc, H5 etc could also be used but netcdf is recommended).Th dtr to netcdf conversion can be be done in VMD using a Tcl script or using a Python script that uses MDTraj's dtr loader. An example Tcl script for this purpose `dtr_to_netcdf.tcl` is shown below:
+* <strong>Step 2</strong>: Convert dtr file into a netcdf file. Although MFTraj allows reading dtr file format but the cross-platform trajectory loaders of mdtraj (e.g., `mdtraj.load()` or `mdtraj.load_frame()`) do not accept dtr file format. Only a specific loader `mdtraj.load_dtr()` is available for this purpose. In SSTMap code, the trajectory reading is only done through MDTraj's cross-platform loaders. As a result, to process Desmond simulation through SSTMap it is necessary to convert them into netcdf format (although alternative format, dcd, xtc, H5 etc could also be used but netcdf is recommended).Th dtr to netcdf conversion can be be done in VMD using a Tcl script or using a Python script that uses MDTraj's dtr loader. An example Tcl script for this purpose `dtr_to_netcdf.tcl` is shown below:
 
 ```tcl
 mol new input.cms type mae first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all
