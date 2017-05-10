@@ -6,11 +6,11 @@ date: 2017-05-03
 published: true
 ---
 
-`SSTMap` provides two main approaches for mapping water structure and thermodynamics on to solute surfaces, such as protein binding sites, namely hydration site analysis (HSA) and Grid Inhomogeneous Solvation Theory (GIST). The theory behind these approaches are described in several publications (see References). Here we provide selected examples of running HSA and GIST calculations, through `run_hsa` and `run_gist`, respectively, which are the main command-line tools available in `SSTMap`.
+`SSTMap` provides two main approaches for mapping water structure and thermodynamics on to solute surfaces, such as protein binding sites, the hydration site analysis (HSA) and Grid Inhomogeneous Solvation Theory (GIST). The theory behind these approaches are described in several publications (see References). Here we provide selected examples and discuss some practical aspects of running HSA and GIST calculations, through `run_hsa` and `run_gist`, respectively, which are the main command-line tools in `SSTMap`. This tutorial only shows examples of preparing and running the calculations. For a detailed description of the outputs genrated by these programs, see this [post](http://sstmap.org/2017/05/09/undestanding-output/).
 <!--more-->
 ## MD Trajectory Requirements for `SSTMap`
 
-SSTMap calculations require an explicit solvent molecular dynamics trajectory with restrained solute. While the SSTMap code is written to be agnostic of the water model used, however, it has been tested only for `TIP3P`, `TIP4P`, `TIP4P-Ewald`, `TIP5P` and `OPC` models. This list will be updated as we test more water models. Also note that currently only simulation run in orthorhombic preiodic boundary conditions are supported. We intend to provide support for non-orthorhombic periodic boundary conditions in future. The simulations can be generated in one of the following packages: [Amber](http://ambermd.org/), [Charmm](https://www.charmm.org), [Gromacs](http://www.gromacs.org/), [NAMD](http://www.ks.uiuc.edu/Research/namd/), [OpenMM](http://openmm.org/) and [Desmond](https://www.deshawresearch.com/resources_desmond.html). This list is based on simulation packages that are supported by [MDTraj](https://mdtraj.org) and [ParmEd](http://parmed.github.io/ParmEd/html/index.html), both of which are dependecnies of SSTMap. It's however, possible to expand the applicability of SSTMap calculations even beyond these packages, as long as the trajectory and toplogy formats can be converted to those currently supported (See Desmond as an example below).
+SSTMap calculations require an explicit solvent molecular dynamics trajectory with restrained solute. While `SSTMap` is  agnostic of the water model used, however, it has been tested only for `TIP3P`, `TIP4P`, `TIP4P-Ewald`, `TIP5P` and `OPC` models. This list will be updated as we test more water models. Also note that currently only simulation run in orthorhombic preiodic boundary conditions are supported. We intend to provide support for non-orthorhombic periodic boundary conditions in future. The simulations can be generated in one of the following packages: [Amber](http://ambermd.org/), [Charmm](https://www.charmm.org), [Gromacs](http://www.gromacs.org/), [NAMD](http://www.ks.uiuc.edu/Research/namd/), [OpenMM](http://openmm.org/) and [Desmond](https://www.deshawresearch.com/resources_desmond.html). This list is based on simulation packages that are supported by [MDTraj](https://mdtraj.org) and [ParmEd](http://parmed.github.io/ParmEd/html/index.html), both of which are dependecnies of SSTMap. It's however, possible to expand the applicability of SSTMap calculations even beyond these packages, as long as the trajectory and toplogy formats can be converted to those currently supported (See the Desmond example for this apporach).
 
 ## Command-line arguments
 
@@ -74,7 +74,7 @@ optional arguments:
                         Prefix for all the results files.
 ```
 
-The arguments supplied for `-i`, `-t` and `-p` flags will vary depending on the MD packages used for simulation. For demonstrative purposes, we use input topology and trajectories from a repository of test cases, which is available on [Github](https://github.com/KurtzmanLab/sstmap_test_suite). You can download the full test suite from [here](https://www.dropbox.com/sh/hrijgk8n5z12bgi/AABSigcBf9PN_7-Z26VCCPePa?dl=0) (since Github repository doesn't contain trajectory files). For a given platform, `cd` to its sub-directory and run the commands as shown below.
+The arguments supplied for `-i`, `-t` and `-p` flags vary depending on the MD packages used for simulation. For demonstrative purposes, we use input topology and trajectories from a repository of test cases, which is available on [Github](https://github.com/KurtzmanLab/sstmap_test_suite). You can download the full test suite from [here](https://www.dropbox.com/sh/hrijgk8n5z12bgi/AABSigcBf9PN_7-Z26VCCPePa?dl=0) (since Github repository doesn't contain trajectory files). For a given platform, `cd` to its sub-directory and run the commands as shown below.
  
 ### Amber
 ```bash
@@ -104,13 +104,13 @@ $ run_hsa -i testcase.gro -t md100ps.xtc -l ligand.pdb -p params.top -s 0 -f 100
 $ run_gist -i testcase.gro -t md100ps.xtc -l ligand.pdb -p params.top -g 20 20 20 -s 0 -f 100 -o testcase
 ```
 ### NAMD
-NAMD uses the same forcefileds as Charmm, hence the same commands, shown for as Charmm are valid.
+NAMD uses the same forcefileds as Charmm. Hence the same commands, as shown for as Charmm, are valid for NAMD.
 ### OpenMM
-OpenMM is an MD toolkit that allows running simulations using Amber99SB forcefield or custom forcefields (written as xml file formats as described [here](http://docs.openmm.org/7.1.0/userguide/application.html#creating-force-fields)). Indeed, systems can also be build from coordinates and topology files for Charmm and Gromacs. Depending on which of three forcefield is used in OpenMM simulation, the `run_hsa` and `run_gist` commands corresponding to those packages will also be valid for OpenMM.
+OpenMM is an MD toolkit that allows running simulations using Amber99SB forcefield or custom forcefields (written as xml file formats as described [here](http://docs.openmm.org/7.1.0/userguide/application.html#creating-force-fields)). Indeed, systems can also be build from coordinates and topology files for Charmm and Gromacs. Depending on which of the three forcefields was used to build the system for the OpenMM simulation, the correspnding `run_hsa` and `run_gist` commands for the packages will be valid.
 
 ### Desmond
 
-The desmond `cms` file format, which contains forcefield and topology information. However, with three additional steps, it is possible to use Desmond simulations for SSTMap calculations.
+The desmond `cms` file format, which contains forcefield and topology information for simulations run in Desmond, is not supported by `ParmEd`, the underlying parameter and topology parser program. However, with three additional steps, it is possible to use Desmond simulations for SSTMap calculations.
 
 * <strong>Step 1</strong>: Convert `cms` file into `pdb` file. This can be done in Schrodinger's Maestro or VMD.
 
@@ -138,7 +138,7 @@ traj.save_netcdf("converted.nc")
 ```bash
 $SCHRODINGER/run desmond_extract_nbparams.py input.cms
 ```
-will generate a text file called `inputcms_nb_parms.txt`. This text file is a $$N x 3$$ matrix of non-bonded prameters, where N is the number of atoms and three columns correspond to sigma, epsilon and charge parameters for each atom in the system.
+will generate a text file called `inputcms_nb_parms.txt`. This text file is a $N \times 3$ matrix of non-bonded prameters, where N is the number of atoms and three columns correspond to sigma, epsilon and charge parameters for each atom in the system.
 
 Once the convetred pdb file, netcdf file and parameters text file is available, run_hsa ad run_gist can be run as:  
 ```
@@ -148,7 +148,7 @@ run_gist -i testcase.pdb -t md100ps.nc -l ligand.pdb -p params.txt -g 20 20 20 -
 ```
 
 
-This approach is in princile applicable to any MD package that's not supported. SSTMap calculations are feasibale as long as you can convert your topology and trajectory files to suitable format and extract non-bonded paramters for every atom of your system into a text file with the same format as given above. 
+This approach is applicable to any MD package that's not supported. SSTMap calculations are feasibale as long as you can convert your topology and trajectory files to suitable format and extract non-bonded paramters for every atom of your system into a text file with the same format as given above. 
 
 
 <!--more-->
