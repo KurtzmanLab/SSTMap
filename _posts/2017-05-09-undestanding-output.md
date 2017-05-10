@@ -89,10 +89,10 @@ The `run_gist` programs generated the followig files after completion of a susse
 </style>
 <table class="tableizer-table">
 <thead><tr class="tableizer-firstrow"><th>Column</th><th>Quantity</th><th>Description</th></tr></thead><tbody>
- <tr><td>0</td><td>$$index$$</td><td>Index (can be used as a selection handle in VMD)</td></tr>
- <tr><td>1</td><td>$$x$$</td><td>x-coordinate of hydration site center</td></tr>
- <tr><td>2</td><td>$$y$$</td><td>y-coordinate of hydration site center</td></tr>
- <tr><td>3</td><td>$$z$$</td><td>z-coordinate of hydration site center</td></tr>
+ <tr><td>0</td><td>$$index$$</td><td>Voxel index</td></tr>
+ <tr><td>1</td><td>$$x$$</td><td>x-coordinate of the voxel</td></tr>
+ <tr><td>2</td><td>$$y$$</td><td>y-coordinate of the voxel</td></tr>
+ <tr><td>3</td><td>$$z$$</td><td>z-coordinate of the voxel</td></tr>
  <tr><td>4</td><td>$$N_{wat}$$</td><td>Total number of waters in the site</td></tr>
  <tr><td>5</td><td>$$g_O$$</td><td>Number density of water oxygen atoms</td></tr>
  <tr><td>6</td><td>$$g_H$$</td><td>Number density of water hydrogen atoms</td></tr>
