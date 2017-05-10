@@ -138,7 +138,7 @@ traj.save_netcdf("converted.nc")
 ```bash
 $SCHRODINGER/run desmond_extract_nbparams.py input.cms
 ```
-will generate a text file called `inputcms_nb_parms.txt`. This text file is a $N \times 3$ matrix of non-bonded prameters, where N is the number of atoms and three columns correspond to sigma, epsilon and charge parameters for each atom in the system.
+will generate a text file called `inputcms_nb_parms.txt`. This text file is a $$N \times 3$$ matrix of non-bonded prameters, where N is the number of atoms and three columns correspond to sigma, epsilon and charge parameters for each atom in the system.
 
 Once the convetred pdb file, netcdf file and parameters text file is available, run_hsa ad run_gist can be run as:  
 ```
