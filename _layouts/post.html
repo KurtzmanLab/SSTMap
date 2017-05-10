@@ -2,8 +2,30 @@
 layout: default
 ---
 
+
 <div class="post">
   <h1 class="post-title">{{ page.title }}</h1>
+  <!-- Output author details if some exist. -->  
+  <span class="post-authors">
+    {% assign authorCount = page.author | size %}
+    {% if authorCount == 0 %}
+      <a href="sstmap.org" target="_blank">SSTMap</a>
+    {% elsif authorCount == 1 %}
+      {% assign the_author = site.data.authors[page.author] %}
+        Written by <a href="{{ the_author.web }}" target="_blank">{{ the_author.name }}</a>    
+    {% else %}
+      {% for nth_author in page.author %}
+        {% assign the_author = site.data.authors[nth_author]%}
+        {% if forloop.first %}        
+          Written by <a href="{{ the_author.web }}" target="_blank">{{ the_author.name }}</a>
+        {% elsif forloop.last %}
+          and <a href="{{ the_author.web }}" target="_blank">{{ the_author.name }}</a>
+        {% else %}
+            , <a href="{{ the_author.web }}" target="_blank">{{ the_author.name }}</a>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  </span>
   <span class="post-date">{{ page.date | date_to_string }}</span>
   {{ content }}
 </div>
@@ -14,7 +36,7 @@ layout: default
     {% for post in site.related_posts limit:3 %}
       <li>
         <h3>
-          <a href="{{ site.baseurl }}{{ post.url }}">
+          <a href="{{ post.url }}">
             {{ post.title }}
             <small>{{ post.date | date_to_string }}</small>
           </a>
