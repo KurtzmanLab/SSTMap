@@ -12,6 +12,28 @@ title: Home
       </a>
     </h1>
 
+    <!-- Look up authors. -->
+    {% assign authorCount = post.author | size %}
+    <span class="post-authors">    
+    {% if authorCount == 0 %}
+      <a href="sstmap.org" target="_blank">SSTMap</a>
+    {% elsif authorCount == 1 %}
+      {% assign the_author = site.data.authors[post.author] %}
+        Written by <a href="{{ the_author.web }}" target="_blank">{{ the_author.name }}</a>    
+    {% else %}
+      {% for nth_author in post.author %}
+        {% assign the_author = site.data.authors[nth_author]%}
+        {% if forloop.first %}        
+          Written by <a href="{{ the_author.web }}" target="_blank">{{ the_author.name }}</a>
+        {% elsif forloop.last %}
+          and <a href="{{ the_author.web }}" target="_blank">{{ the_author.name }}</a>
+        {% else %}
+            , <a href="{{ the_author.web }}" target="_blank">{{ the_author.name }}</a>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  </span>
+
     <span class="post-date">{{ post.date | date_to_string }}</span>
 
     {{ post.excerpt }}  
