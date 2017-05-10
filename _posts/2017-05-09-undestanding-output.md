@@ -3,7 +3,6 @@ layout: post
 author: kamran-haider
 title: Understanding SSTMap Output
 date: 2017-05-09
-published: true
 ---
 Both `run_hsa` and `run_gist` output several files. Most of these files are named after the prefix specfied under `-o` flag. In this post, we will describe these outputs. 
 <!--more-->
