@@ -663,7 +663,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                             self.hsa_dict[site_i][quantity_i])
 
     @function_timer
-    def calculate_angular_structure(self, site_indices=[], dist_cutoff=6.0, start_frame=None, num_frames=None):
+    def calculate_angular_structure(self, site_indices=None, dist_cutoff=6.0, start_frame=None, num_frames=None):
         '''
         Returns energetic quantities for each hydration site
         
@@ -682,7 +682,7 @@ class SiteWaterAnalysis(WaterAnalysis):
 
 
 
-        if len(site_indices) == 0:
+        if site_indices is None:
             site_indices = [int(i) for i in self.hsa_data[:, 0]]
         else:
             for index in site_indices:
@@ -753,7 +753,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                     f.write(line)
 
     @function_timer
-    def calculate_lonranged_ww_energy(self, site_indices=[], shell_radii=[3.5, 5.5, 8.5], start_frame=None, num_frames=None):
+    def calculate_lonranged_ww_energy(self, site_indices=None, shell_radii=[3.5, 5.5, 8.5], start_frame=None, num_frames=None):
         """Summary
         
         Parameters
@@ -773,7 +773,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         if num_frames is None:
             num_frames = self.num_frames
 
-        if len(site_indices) == 0:
+        if site_indices is None:
             site_indices = [int(i) for i in self.hsa_data[:, 0]]
         else:
             for index in site_indices:

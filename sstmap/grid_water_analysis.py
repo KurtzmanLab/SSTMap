@@ -437,8 +437,8 @@ class GridWaterAnalysis(WaterAnalysis):
             if k[4] > 1.0:
                 nwat_grid += k[4] / (num_frames * self.voxel_vol)
                 #print k[11]
-                Ewwtot += k[11]
-                Eswtot += k[13]
+                Eswtot += k[11]
+                Ewwtot += k[13]
                 dTStr_tot += k[7]
                 dTSor_tot += k[9]
 
