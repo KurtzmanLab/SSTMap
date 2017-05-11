@@ -10,9 +10,11 @@ requirements:
     - numpy
     - scipy
     - setuptools
+    - gcc
 
   run:
     - python
+    - libgcc
     - numpy
     - scipy
     - mdtraj
