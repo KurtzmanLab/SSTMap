@@ -1,10 +1,10 @@
 Welcome to SSTMap Release version 1.0.0
 
-Thank You for using SSTMap, we've gone through a great deal of work trying to ensure compatibility with various operating systems and MD packages though we have not covered all the possible combinations.  If you run into a bug, please report it on the issues and we will work to quickly resolve it.
+Thank you for using SSTMap, we've gone through a great deal of work trying to ensure compatibility with various operating systems and MD packages though we have not covered all the possible combinations.  If you run into a bug, please report it on the issues and we will work to quickly resolve it.
 
 Thank You,
 
-Kamran Haider and the Development Team.
+Kamran and the Development Team.
 
 
 SSTMap
@@ -78,17 +78,25 @@ Principal Developer(s)
 
 Co-Developers
 -------------
-* Steven Ramsey <vpsramsery@gmail.com>
+* Steven Ramsey <vpsramsey@gmail.com>
 * Anthony Cruz Balberdi <anthonycruzpr@gmail.com>
+
+Principal Investigators
+---------------------
+* Tom Kurtzman
+* Michael Gilson
 
 References
 ----------
+Please cite the following when you use this software.  
 
-[1] Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson. Grid inhomogeneous solvation theory: hydration structure and thermodynamics of the miniature receptor cucurbit[7]uril. J. Chem. Phys. 137, 044101 (2012)
+[1] Crystal N. Nguyen, Michael K. Gilson, Tom Young. Structure and Thermodynamics of Molecular Hydration via Grid Inhomogeneous Solvation Theory. eprint arXiv:1108.4876, (2011).
 
-[2] Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson. Structure and Thermodynamics of Molecular Hydration via Grid Inhomogeneous Solvation Theory. eprint arXiv:1108.4876.
+[2] Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson. Grid inhomogeneous solvation theory: hydration structure and thermodynamics of the miniature receptor cucurbit[7]uril. J. Chem. Phys. 137, 044101 (2012)
 
-[3] Haider K, Wickstrom L, Ramsey S, Gilson MK and Kurtzman T. Enthalpic Breakdown of Water Structure on Protein Active Site Surfaces. J Phys Chem B. 120:8743-8756, 2016. http://dx.doi.org/10.1021/acs.jpcb.6b01094.
+[3] Haider K, Wickstrom L, Ramsey S, Gilson MK and Kurtzman T. Enthalpic Breakdown of Water Structure on Protein Active Site Surfaces. J Phys Chem B. 120:8743-8756, (2016). http://dx.doi.org/10.1021/acs.jpcb.6b01094.
+
+[4] Themis Lazaridis. Inhomogeneous Fluid Approach to Solvation Thermodynamics. 1. Theory. The Journal of Physical Chemistry B 102 (18), 3531-3541, (1998). DOI: 10.1021/jp9723574
 
 
 License
@@ -97,7 +105,7 @@ License
 `SSTMap` is free software and is licensed under the LGPLv2 license.
 
 
-Thanks
-------
-Thanks to Prof. Tom Kurtzman and Prof. Michael Gilson for their guidance in the development of this package.
+Acknowledgements
+--------
+This project is funded through the NIH Grant: R01-GM100946 
 
