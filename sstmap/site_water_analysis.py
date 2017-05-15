@@ -460,8 +460,10 @@ class SiteWaterAnalysis(WaterAnalysis):
                         if wat_O is not None and (energy or hbonds):
                             distance_matrix = np.zeros(
                                 (self.water_sites, self.all_atom_ids.shape[0]), np.float_)
+                            #distance_matrix = np.power(distance_matrix, 0.5)
                             calc.get_pairwise_distances(np.asarray(
                                 [site_i, wat_O]), self.all_atom_ids, pos, pbc, distance_matrix)
+                            
                             wat_nbrs = self.wat_oxygen_atom_ids[np.where((distance_matrix[0, :][
                                                                          self.wat_oxygen_atom_ids] <= 3.5) & (distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
                             prot_nbrs = self.non_water_atom_ids[
@@ -478,24 +480,19 @@ class SiteWaterAnalysis(WaterAnalysis):
                             self.hsa_dict[site_i][22].append(f_enc)
 
                             if energy:
-                                energy_lj, energy_elec = self.calculate_energy(
-                                    distance_matrix)
-                                e_lj_sw = np.sum(
-                                    energy_lj[:self.wat_oxygen_atom_ids[0]:])
-                                e_elec_sw = np.sum(
-                                    energy_elec[:, self.non_water_atom_ids])
-                                e_lj_ww = np.nansum(
-                                    energy_lj[self.wat_oxygen_atom_ids[0]:])
-                                e_elec_ww = np.sum(energy_elec[:, self.wat_atom_ids[
-                                                   0]:wat_O]) + np.sum(energy_elec[:, wat_O + self.water_sites:])
+                                energy_lj, energy_elec = self.calculate_energy(distance_matrix)
+                                e_lj_sw = np.sum(energy_lj[:self.wat_oxygen_atom_ids[0]:])
+                                e_elec_sw = np.sum(energy_elec[:, self.non_water_atom_ids])
+                                e_lj_ww = np.nansum(energy_lj[self.wat_oxygen_atom_ids[0]:])
+                                e_elec_ww = np.sum(energy_elec[:, self.wat_atom_ids[0]:wat_O]) + np.sum(energy_elec[:, wat_O + self.water_sites:])
+                                
                                 self.hsa_dict[site_i][7].append(e_lj_sw)
                                 self.hsa_dict[site_i][8].append(e_elec_sw)
                                 self.hsa_dict[site_i][10].append(e_lj_ww)
                                 self.hsa_dict[site_i][11].append(e_elec_ww)
                                 self.hsa_dict[site_i][6].append(e_lj_sw + e_elec_sw)
                                 self.hsa_dict[site_i][9].append(e_lj_ww + e_elec_ww)
-                                self.hsa_dict[site_i][12].append(
-                                    e_lj_sw + e_elec_sw + e_lj_ww + e_elec_ww)
+                                self.hsa_dict[site_i][12].append(e_lj_sw + e_elec_sw + e_lj_ww + e_elec_ww)
                                 #print(e_lj_sw/2.0)
                                 #print(e_elec_sw/2.0)
                                 #print((e_lj_sw + e_elec_sw)/2.0)
