@@ -286,7 +286,7 @@ class GridWaterAnalysis(WaterAnalysis):
                                 #print "Solute-water LJ Energy of this water: ", np.sum(energy_lj[:self.wat_oxygen_atom_ids[0]:])
                                 #print "Solute-water Elec Energy of this water: ", np.sum(energy_elec[:, self.non_water_atom_ids])
                                 # calc Enbr and other water structure metrics here
-                                self.voxeldata[wat[0], 15] += np.sum(energy_lj[self.wat_oxygen_atom_ids[0]:][(wat_nbrs - self.wat_oxygen_atom_ids[0]) / 3])
+                                self.voxeldata[wat[0], 15] += np.sum(energy_lj[self.wat_oxygen_atom_ids[0]:][(wat_nbrs - self.wat_oxygen_atom_ids[0]) / self.water_sites])
                                 for i in range(self.water_sites):
                                     #print energy_elec[:, wat_nbrs + i].shape
                                     self.voxeldata[wat[0], 15] += np.sum(energy_elec[:, wat_nbrs + i])
@@ -437,8 +437,8 @@ class GridWaterAnalysis(WaterAnalysis):
             if k[4] > 1.0:
                 nwat_grid += k[4] / (num_frames * self.voxel_vol)
                 #print k[11]
-                Ewwtot += k[11]
-                Eswtot += k[13]
+                Eswtot += k[11]
+                Ewwtot += k[13]
                 dTStr_tot += k[7]
                 dTSor_tot += k[9]
 

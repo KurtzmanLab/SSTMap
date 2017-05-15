@@ -55,6 +55,27 @@ double dist_mic(double x1, double x2, double x3, double y1, double y2, double y3
     return sqrt(pow(dx, 2) + pow(dy, 2) + pow(dz, 2));
     }
     
+double dist_mic_squared(double x1, double x2, double x3, double y1, double y2, double y3, double b1, double b2, double b3) {
+    /* Method for obtaining inter atom distance using minimum image convention
+     */
+    //printf("x1: %f, x2: %f, x3: %f\n", x1, x2, x3);
+    //printf("y1: %f, y2: %f, y3: %f\n", y1, y2, y3);
+    double dx, dy, dz;
+    dx = x1-y1;
+    dy = x2-y2;
+    dz = x3-y3;
+    //printf("dx: %f, dy: %f, dz: %f\n", dx, dy, dz);
+    //printf("bx: %f, by: %f, bz: %f\n", b1/2.0, b2/2.0, b3/2.0);
+    if (dx > b1/2.0) dx -= b1; 
+    else if (dx < -b1/2.0) dx += b1; 
+    if (dy > b2/2.0) dy -= b2;
+    else if (dy < -b2/2.0) dy += b2;
+    if (dz > b3/2.0) dz -= b3; 
+    else if (dz < -b3/2.0) dz += b3;
+    //printf("dist = %f", sqrt(pow(dx, 2) + pow(dy, 2) + pow(dz, 2)));
+    return pow(dx, 2) + pow(dy, 2) + pow(dz, 2);
+    }
+
 double dist(double x1, double x2, double x3, double y1, double y2, double y3) {
     /* Method for Euclidean distance between two points
      */
@@ -218,7 +239,7 @@ PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
             //printf("Iterator: %d, atom id: %d\n", target_at, target_at_id);
             //printf("Water atom coords %f %f %f\n", *wat_x, *wat_y, *wat_z);
             //printf("Target atom coords %f %f %f\n", *target_at_x, *target_at_y, *target_at_z);
-            d = dist_mic(*wat_x, *wat_y, *wat_z, *target_at_x, *target_at_y, *target_at_z, *b_x, *b_y, *b_z);
+            d = dist_mic_squared(*wat_x, *wat_y, *wat_z, *target_at_x, *target_at_y, *target_at_z, *b_x, *b_y, *b_z);
             //printf("Distance between %d and %d = %3.2f\n", wat_atom_id, target_at_id, d);
             *(double *)PyArray_GETPTR2(dist_array, wat_atom, target_at) += d;
         }

@@ -178,7 +178,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         return site_array, site_dict
 
     @function_timer
-    def generate_clusters(self, ligand_file):
+    def generate_clusters(self, ligand_file, clustering_stride=10):
         """Generate hydration sites from water molecules found in the binding site
         during the simulation.
         
@@ -193,21 +193,27 @@ class SiteWaterAnalysis(WaterAnalysis):
         TYPE
             Description
         """
-        stride = 10
-        clustering_max_frames = 10000
-        clustering_max_init = 100
-        # Obtain binding site solute atoms using ligand atom coordinates
-        ligand = md.load_pdb(ligand_file)
-        ligand_coords = ligand.xyz[0, :, :]
-        binding_site_atom_indices = list(range(ligand_coords.shape[0]))
-        # Obtain water molecules solvating the binding site
         print("Reading trajectory for clustering.")
-
+        chunk_size = 1000
+        if chunk_size > self.num_frames:
+            chunk_size = self.num_frames
+        trj = md.load_frame(self.trajectory, self.start_frame, top=self.topology)
+        traj_chunks = []
+        frames_read = 0
+        for chunk in md.iterload(self.trajectory, chunk=chunk_size, top=self.topology):
+            frames_read += chunk.n_frames
+            traj_chunks.append(chunk)
+            if frames_read >= self.num_frames:
+                break
+        #discard overlapping first frame from first chunk
+        trj = trj.join(traj_chunks)[1:]
+        """
+        #DEPRECATED: scheme for adjusting frames when greater than 10000 frames supplied
         read_trj = md.load(self.trajectory, top=self.topology)
         n_frames_original = read_trj.n_frames
         # sanity checks on frame numbers
-        assert (n_frames_original >= self.start_frame + self.num_frames), """The trajectory must contain at least %d frames.\n
-        The number of frames in current trajectory are %d.""" % (self.num_frames + self.start_frame, n_frames_original)
+        #assert (n_frames_original >= self.start_frame + self.num_frames), "The trajectory must contain at least %d frames.\n
+        #The number of frames in current trajectory are %d." % (self.num_frames + self.start_frame, n_frames_original)
         trj = read_trj[self.start_frame:self.start_frame + self.num_frames]
         # restrict frames for clustering to max=10000
         if trj.n_frames > clustering_max_frames:
@@ -219,6 +225,12 @@ class SiteWaterAnalysis(WaterAnalysis):
             trj = trj[0:adjusted_frames]
             self.num_frames = trj.n_frames
         print("Clustering will be performed over a total of %d frames." % trj.n_frames)
+        """
+        # Obtain binding site solute atoms using ligand atom coordinates
+        ligand = md.load_pdb(ligand_file)
+        ligand_coords = ligand.xyz[0, :, :]
+        binding_site_atom_indices = list(range(ligand_coords.shape[0]))
+        # Obtain water molecules solvating the binding site
         # This is a workaround to use MDTraj compute_neighbor function 
         # xyz coordinates of the trajectory are modified such that first
         # n atoms coordinates are switched to n atoms of ligand coordinates.
@@ -227,7 +239,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         for i_frame in range(trj.n_frames):
             for pseudo_index in range(ligand_coords.shape[0]):
                 trj.xyz[i_frame, pseudo_index,:] = ligand_coords[pseudo_index, :]
-        trj_short = trj[0:trj.n_frames:stride]
+        trj_short = trj[0:trj.n_frames:clustering_stride]
         print("First an initial clustering run is performed over %d frames." % trj_short.n_frames)
         print("Obtaining a superconfiguration of all water molecules found in the binding site throught the trajectory.")
         binding_site_waters = md.compute_neighbors(
@@ -310,9 +322,9 @@ class SiteWaterAnalysis(WaterAnalysis):
                 cluster_iter += 1
                 print("Cluster iteration: %d" % cluster_iter)
                 cluster_list.append(water_id_frame_list[max_index])
-            if cluster_iter >= clustering_max_init:
-                "Terminating initial clustering after max."
-                break
+            #if cluster_iter >= clustering_init_max:
+            #    "Terminating initial clustering after max."
+            #    break
 
 
         #write_watpdb_from_list(trj_short,
@@ -371,7 +383,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         self.clustercenter_file = "clustercenterfile.pdb"
 
         return np.asarray(final_cluster_coords), site_waters
-
+        
     @function_timer
     def calculate_site_quantities(self, energy=True, hbonds=True, entropy=True, start_frame=None, num_frames=None):
         '''
@@ -663,7 +675,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                             self.hsa_dict[site_i][quantity_i])
 
     @function_timer
-    def calculate_angular_structure(self, site_indices=[], dist_cutoff=6.0, start_frame=None, num_frames=None):
+    def calculate_angular_structure(self, site_indices=None, dist_cutoff=6.0, start_frame=None, num_frames=None):
         '''
         Returns energetic quantities for each hydration site
         
@@ -682,7 +694,7 @@ class SiteWaterAnalysis(WaterAnalysis):
 
 
 
-        if len(site_indices) == 0:
+        if site_indices is None:
             site_indices = [int(i) for i in self.hsa_data[:, 0]]
         else:
             for index in site_indices:
@@ -753,7 +765,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                     f.write(line)
 
     @function_timer
-    def calculate_lonranged_ww_energy(self, site_indices=[], shell_radii=[3.5, 5.5, 8.5], start_frame=None, num_frames=None):
+    def calculate_lonranged_ww_energy(self, site_indices=None, shell_radii=[3.5, 5.5, 8.5], start_frame=None, num_frames=None):
         """Summary
         
         Parameters
@@ -773,7 +785,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         if num_frames is None:
             num_frames = self.num_frames
 
-        if len(site_indices) == 0:
+        if site_indices is None:
             site_indices = [int(i) for i in self.hsa_data[:, 0]]
         else:
             for index in site_indices:

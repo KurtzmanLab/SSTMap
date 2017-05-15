@@ -295,8 +295,8 @@ def read_hsa_summary(hsa_data_file):
     
     Returns
     -------
-
     '''
+
     f = open(hsa_data_file, 'r')
     data = f.readlines()
     hsa_header = data[0]
@@ -307,6 +307,32 @@ def read_hsa_summary(hsa_data_file):
         hsa_data[int(l.strip("\n").split()[0])] = float_converted_data
     f.close()
     return hsa_data
+
+def read_gist_summary(gist_data_file):
+    '''
+    Returns a dictionary with hydration site index as keys and a list of various attributes as values.
+    Parameters
+    ----------
+    hsa_data_file : string
+        Text file containing 
+    
+    Returns
+    -------
+    '''
+
+    f = open(hsa_data_file, 'r')
+    data = f.readlines()
+    hsa_header = data[0]
+    data_keys = hsa_header.strip("\n").split()
+    hsa_data = {}
+    for l in data[1:]:
+        float_converted_data = [float(x) for x in l.strip("\n").split()[1:27]]
+        hsa_data[int(l.strip("\n").split()[0])] = float_converted_data
+    f.close()
+    return hsa_data
+
+
+
 @function_timer
 def write_watpdb_from_list(traj, filename, water_id_list, full_water_res=False):
     """Summary
