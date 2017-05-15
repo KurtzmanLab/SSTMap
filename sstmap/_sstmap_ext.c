@@ -239,7 +239,7 @@ PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
             //printf("Iterator: %d, atom id: %d\n", target_at, target_at_id);
             //printf("Water atom coords %f %f %f\n", *wat_x, *wat_y, *wat_z);
             //printf("Target atom coords %f %f %f\n", *target_at_x, *target_at_y, *target_at_z);
-            d = dist_mic_squared(*wat_x, *wat_y, *wat_z, *target_at_x, *target_at_y, *target_at_z, *b_x, *b_y, *b_z);
+            d = dist_mic(*wat_x, *wat_y, *wat_z, *target_at_x, *target_at_y, *target_at_z, *b_x, *b_y, *b_z);
             //printf("Distance between %d and %d = %3.2f\n", wat_atom_id, target_at_id, d);
             *(double *)PyArray_GETPTR2(dist_array, wat_atom, target_at) += d;
         }
