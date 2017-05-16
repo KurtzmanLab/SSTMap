@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/KurtzmanLab/SSTMap.svg?branch=master)](https://travis-ci.org/KurtzmanLab/SSTMap)
+[![Anaconda-Server Badge](https://anaconda.org/solvationtools/sstmap/badges/installer/conda.svg)](https://conda.anaconda.org/solvationtools)
+[![Anaconda-Server Badge](https://anaconda.org/solvationtools/sstmap/badges/downloads.svg)](https://anaconda.org/solvationtools/sstmap)
 Welcome to SSTMap Release version 1.0.0
 
 Thank you for using SSTMap, we've gone through a great deal of work trying to ensure compatibility with various operating systems and MD packages though we have not covered all the possible combinations.  If you run into a bug, please report it on the issues and we will work to quickly resolve it.
