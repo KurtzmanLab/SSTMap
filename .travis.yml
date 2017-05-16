@@ -1,0 +1,34 @@
+language: c
+sudo: false
+
+# Setup anaconda
+before_install:
+  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=$HOME/miniconda2/bin:$PATH
+  - conda update --yes -q conda
+  - conda config --set always_yes true
+  - conda config --set anaconda_upload no
+
+install:
+  - conda install -q python=$TRAVIS_PYTHON_VERSION pip requests conda-build jinja2 anaconda-client 
+  # install additional packages with conda and pip
+  - conda build conda-recipe # this assumes that the conda recipe folder is called conda-recipe and is at the current workind dir
+  - conda install --use-local $PACKAGENAME
+
+# add test scripts here
+# also add conda install of dependencies i.e., conda config --add channels omnia
+#script:
+
+after_success:
+# Change permissions for Anaconda deployment script
+  - chmod +x ./deploy_anaconda.sh
+
+os:
+  - osx
+  - linux
+
+env:
+  - CONDA_PY=2.7
+
