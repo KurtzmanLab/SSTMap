@@ -15,7 +15,7 @@ install:
   - conda install -q python=$TRAVIS_PYTHON_VERSION pip requests conda-build jinja2 anaconda-client 
   # install additional packages with conda and pip
   - conda build conda-recipe # this assumes that the conda recipe folder is called conda-recipe and is at the current workind dir
-  - conda install --yes --use-local $PACKAGENAME
+  - conda install --yes --use-local ${PACKAGENAME}$
 # add test scripts here
 # also add conda install of dependencies i.e., conda config --add channels omnia
 #script:
