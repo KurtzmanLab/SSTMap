@@ -1,6 +1,6 @@
 package:
   name: sstmap
-  version: v1.1
+  version: v1.0
 source:
   path: ../../
 

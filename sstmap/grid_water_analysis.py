@@ -272,8 +272,10 @@ class GridWaterAnalysis(WaterAnalysis):
                         if energy or hbonds:
                             distance_matrix = np.zeros((self.water_sites, self.all_atom_ids.shape[0]), np.float_)
                             calc.get_pairwise_distances(wat, self.all_atom_ids, pos, pbc, distance_matrix)
-                            wat_nbrs = self.wat_oxygen_atom_ids[np.where((distance_matrix[0, :][self.wat_oxygen_atom_ids] <= 3.5) &(distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
-                            prot_nbrs = self.non_water_atom_ids[np.where(distance_matrix[0, :][self.non_water_atom_ids] <= 3.5)]
+                            wat_nbrs = self.wat_oxygen_atom_ids[np.where((distance_matrix[0, :][self.wat_oxygen_atom_ids] <= 3.5) & (distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
+                            prot_nbrs_all = self.non_water_atom_ids[np.where(distance_matrix[0, :][self.non_water_atom_ids] <= 3.5)]
+                            prot_nbrs_hb = prot_nbrs_all[np.where(self.prot_hb_types[prot_nbrs_all] != 0)]
+                            #prot_nbrs = self.non_water_atom_ids[(np.where(distance_matrix[0, :][self.non_water_atom_ids]) <= 3.5) & (self.prot_hb_types[:][self.non_water_atom_ids] != 0)]
                             self.voxeldata[wat[0], 17] += wat_nbrs.shape[0]
                             if energy:
                                 energy_lj, energy_elec = self.calculate_energy(distance_matrix)
@@ -293,17 +295,18 @@ class GridWaterAnalysis(WaterAnalysis):
                             # H-bond calcuations
                             #TODO: document the algorithm
                             if hbonds:
-                                hb_ww, hb_sw = self.calculate_hydrogen_bonds(trj, wat[1], wat_nbrs, prot_nbrs)
-                                acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat[1])].shape[0]
-                                don_ww = hb_ww.shape[0] - acc_ww
-                                acc_sw = hb_sw[:, 0][np.where(hb_sw[:, 0] == wat[1])].shape[0]
-                                don_sw = hb_sw.shape[0] - acc_sw                        
-                                self.voxeldata[wat[0], 23] += hb_sw.shape[0]
-                                self.voxeldata[wat[0], 25] += hb_ww.shape[0]
-                                self.voxeldata[wat[0], 27] += don_sw
-                                self.voxeldata[wat[0], 29] += acc_sw
-                                self.voxeldata[wat[0], 31] += don_ww
-                                self.voxeldata[wat[0], 33] += acc_ww
+                                if wat_nbrs.shape[0] != 0 and prot_nbrs_hb.shape[0] != 0:
+                                    hb_ww, hb_sw = self.calculate_hydrogen_bonds(trj, wat[1], wat_nbrs, prot_nbrs_hb)
+                                    acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat[1])].shape[0]
+                                    don_ww = hb_ww.shape[0] - acc_ww
+                                    acc_sw = hb_sw[:, 0][np.where(hb_sw[:, 0] == wat[1])].shape[0]
+                                    don_sw = hb_sw.shape[0] - acc_sw                        
+                                    self.voxeldata[wat[0], 23] += hb_sw.shape[0]
+                                    self.voxeldata[wat[0], 25] += hb_ww.shape[0]
+                                    self.voxeldata[wat[0], 27] += don_sw
+                                    self.voxeldata[wat[0], 29] += acc_sw
+                                    self.voxeldata[wat[0], 31] += don_ww
+                                    self.voxeldata[wat[0], 33] += acc_ww
                                 if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
                                     self.voxeldata[wat[0], 19] += wat_nbrs.shape[0] / hb_ww.shape[0]
                                 f_enc =  1.0 - (wat_nbrs.shape[0] / 5.25)
@@ -334,7 +337,6 @@ class GridWaterAnalysis(WaterAnalysis):
         if entropy:
             self.calculate_entropy(num_frames=num_frames)
         
-        self.print_calcs_summary(num_frames=num_frames)
 
     @function_timer
     def write_data(self, prefix=None):
