@@ -458,18 +458,13 @@ class SiteWaterAnalysis(WaterAnalysis):
                                 self.hsa_dict[site_i][-1].append((frame_i, wat_O))
 
                         if wat_O is not None and (energy or hbonds):
-                            distance_matrix = np.zeros(
-                                (self.water_sites, self.all_atom_ids.shape[0]), np.float_)
+                            distance_matrix = np.zeros((self.water_sites, self.all_atom_ids.shape[0]), np.float_)
                             #distance_matrix = np.power(distance_matrix, 0.5)
-                            calc.get_pairwise_distances(np.asarray(
-                                [site_i, wat_O]), self.all_atom_ids, pos, pbc, distance_matrix)
+                            calc.get_pairwise_distances(np.asarray([site_i, wat_O]), self.all_atom_ids, pos, pbc, distance_matrix)
                             
-                            wat_nbrs = self.wat_oxygen_atom_ids[np.where((distance_matrix[0, :][
-                                                                         self.wat_oxygen_atom_ids] <= 3.5) & (distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
-                            prot_nbrs = self.non_water_atom_ids[
-                                np.where(distance_matrix[0, :][self.non_water_atom_ids] <= 3.5)]
-                            prot_nbrs = np.asarray([prot_nbr for prot_nbr in prot_nbrs if self.topology.atom(
-                                prot_nbr).name[0] not in ["C", "H"]])
+                            wat_nbrs = self.wat_oxygen_atom_ids[np.where((distance_matrix[0, :][self.wat_oxygen_atom_ids] <= 3.5) & (distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
+                            prot_nbrs_all = self.non_water_atom_ids[np.where(distance_matrix[0, :][self.non_water_atom_ids] <= 3.5)]
+                            prot_nbrs_hb = prot_nbrs_all[np.where(self.prot_hb_types[prot_nbrs_all] != 0)]
                             self.hsa_dict[site_i][17].append(wat_nbrs.shape[0])
                             # TODO: 5.25 should be replaced with a variable
                             # 5.25 comes from TIP3P water model, define dictionary
@@ -511,31 +506,25 @@ class SiteWaterAnalysis(WaterAnalysis):
                                     for i in range(self.water_sites):
                                         e_nbr_i += np.sum(energy_elec[:, nbr_i + i])
                                     self.hsa_dict[site_i][13].append(e_nbr_i)
-
                             if hbonds:
-                                hb_ww, hb_sw = self.calculate_hydrogen_bonds(
-                                    frame, wat_O, wat_nbrs, prot_nbrs)
-                                acc_ww = hb_ww[:, 0][
-                                    np.where(hb_ww[:, 0] == wat_O)].shape[0]
-                                don_ww = hb_ww.shape[0] - acc_ww
-                                acc_sw = hb_sw[:, 0][
-                                    np.where(hb_sw[:, 0] == wat_O)].shape[0]
-                                don_sw = hb_sw.shape[0] - acc_sw
-                                # FIXME: Spurious atom names showing up in summary
-                                don_sw_ids = hb_sw[:, 1][
-                                    np.where(hb_sw[:, 0] == wat_O)]
-                                acc_sw_ids = hb_sw[:, 0][
-                                    np.where(hb_sw[:, 0] != wat_O)]
-                                self.hsa_dict[site_i][18].append(hb_ww.shape[0])
-                                self.hsa_dict[site_i][19].append(hb_sw.shape[0])
-                                self.hsa_dict[site_i][20].append(
-                                    hb_ww.shape[0] + hb_sw.shape[0])
-                                self.hsa_dict[site_i][23].append(acc_ww)
-                                self.hsa_dict[site_i][24].append(don_ww)
-                                self.hsa_dict[site_i][25].append(acc_sw)
-                                self.hsa_dict[site_i][26].append(don_sw)
-                                self.hsa_dict[site_i][27].extend(acc_sw_ids)
-                                self.hsa_dict[site_i][28].extend(don_sw_ids)
+                                if wat_nbrs.shape[0] != 0 and prot_nbrs_hb.shape[0] != 0:
+                                    hb_ww, hb_sw = self.calculate_hydrogen_bonds(frame, wat_O, wat_nbrs, prot_nbrs)
+                                    acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat_O)].shape[0]
+                                    don_ww = hb_ww.shape[0] - acc_ww
+                                    acc_sw = hb_sw[:, 0][np.where(hb_sw[:, 0] == wat_O)].shape[0]
+                                    don_sw = hb_sw.shape[0] - acc_sw
+                                    # FIXME: Spurious atom names showing up in summary
+                                    don_sw_ids = hb_sw[:, 1][np.where(hb_sw[:, 0] == wat_O)]
+                                    acc_sw_ids = hb_sw[:, 0][np.where(hb_sw[:, 0] != wat_O)]
+                                    self.hsa_dict[site_i][18].append(hb_ww.shape[0])
+                                    self.hsa_dict[site_i][19].append(hb_sw.shape[0])
+                                    self.hsa_dict[site_i][20].append(hb_ww.shape[0] + hb_sw.shape[0])
+                                    self.hsa_dict[site_i][23].append(acc_ww)
+                                    self.hsa_dict[site_i][24].append(don_ww)
+                                    self.hsa_dict[site_i][25].append(acc_sw)
+                                    self.hsa_dict[site_i][26].append(don_sw)
+                                    self.hsa_dict[site_i][27].extend(acc_sw_ids)
+                                    self.hsa_dict[site_i][28].extend(don_sw_ids)
                                 if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
                                     self.hsa_dict[site_i][21].append(
                                         hb_ww.shape[0] / wat_nbrs.shape[0])
