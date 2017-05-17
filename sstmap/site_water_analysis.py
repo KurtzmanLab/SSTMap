@@ -507,8 +507,8 @@ class SiteWaterAnalysis(WaterAnalysis):
                                         e_nbr_i += np.sum(energy_elec[:, nbr_i + i])
                                     self.hsa_dict[site_i][13].append(e_nbr_i)
                             if hbonds:
-                                if wat_nbrs.shape[0] != 0 and prot_nbrs_hb.shape[0] != 0:
-                                    hb_ww, hb_sw = self.calculate_hydrogen_bonds(frame, wat_O, wat_nbrs, prot_nbrs)
+                                if wat_nbrs.shape[0] + prot_nbrs_hb.shape[0] > 0:
+                                    hb_ww, hb_sw = self.calculate_hydrogen_bonds(frame, wat_O, wat_nbrs, prot_nbrs_hb)
                                     acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat_O)].shape[0]
                                     don_ww = hb_ww.shape[0] - acc_ww
                                     acc_sw = hb_sw[:, 0][np.where(hb_sw[:, 0] == wat_O)].shape[0]

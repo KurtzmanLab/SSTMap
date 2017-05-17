@@ -65,7 +65,7 @@ def main():
                             clustercenter_file=args.clusters, prefix=args.output_prefix)
     h.initialize_hydration_sites()
     h.print_system_summary()
-    h.calculate_site_quantities(entropy=False)
+    h.calculate_site_quantities()
     h.write_calculation_summary()
     h.write_data()
 
