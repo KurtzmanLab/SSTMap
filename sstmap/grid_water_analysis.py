@@ -295,7 +295,7 @@ class GridWaterAnalysis(WaterAnalysis):
                             # H-bond calcuations
                             #TODO: document the algorithm
                             if hbonds:
-                                if wat_nbrs.shape[0] != 0 and prot_nbrs_hb.shape[0] != 0:
+                                if wat_nbrs.shape[0] + prot_nbrs_hb.shape[0] > 0:
                                     hb_ww, hb_sw = self.calculate_hydrogen_bonds(trj, wat[1], wat_nbrs, prot_nbrs_hb)
                                     acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat[1])].shape[0]
                                     don_ww = hb_ww.shape[0] - acc_ww
