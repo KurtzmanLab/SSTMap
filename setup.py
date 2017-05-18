@@ -8,11 +8,11 @@ extensions.append(Extension('_sstmap_ext',
 					sources=['sstmap/_sstmap_ext.c'], 
 					include_dirs=[numpy.get_include()]))
 extensions.append(Extension('_sstmap_entropy', 
-                              sources=['sstmap/scripts/_sstmap_entropy.cpp', 'sstmap/scripts/kdhsa102.cpp'],
+                              sources=['sstmap/_sstmap_entropy.cpp', 'sstmap/kdhsa102.cpp'],
                               language="c++")) 
 
 extensions.append(Extension('_sstmap_probableconfig', 
-                              sources=['sstmap/scripts/_sstmap_probableconfig.cpp', 'sstmap/scripts/6dimprobable.cpp'],
+                              sources=['sstmap/_sstmap_probableconfig.cpp', 'sstmap/6dimprobable.cpp'],
                               language="c++")) 
 
 
