@@ -1,5 +1,0 @@
-parm arg.prmtop
-trajin arg_100ps.nc 1 100
-gist gridcntr 19.221 20.882 19.147 griddim 40 40 40 gridspacn 0.50 out gist-all.out
-go
-quit
