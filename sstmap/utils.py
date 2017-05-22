@@ -78,12 +78,12 @@ def print_progress_bar (count, total):
     filled_len = int(round(bar_len * count / float(total)))
 
     percents = round(100.0 * count / float(total), 1)
-    bar = u"\u2588" * filled_len + '-' * (bar_len - filled_len)
+    bar = "=" * filled_len + ' ' * (bar_len - filled_len)
 
     sys.stdout.write('Progress |%s| %s%s Done\r' % (bar, percents, '%'))
     sys.stdout.flush()
     if count == total: 
-        print()
+        print
 
 
 
@@ -331,9 +331,6 @@ def read_gist_summary(gist_data_file):
     f.close()
     return hsa_data
 
-
-
-@function_timer
 def write_watpdb_from_list(traj, filename, water_id_list, full_water_res=False):
     """Summary
     

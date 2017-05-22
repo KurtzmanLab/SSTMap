@@ -15,7 +15,6 @@ import sys
 import numpy as np
 import numpy.testing as npt
 
-
 class TestGistOutput():
     
     def __init__(self, test_data, ref_data):
@@ -73,11 +72,29 @@ def read_gist_cpptraj(cpptraj_gist_summary):
     #cpptraj_data = cpptraj_data[np.where(cpptraj_data[:, 4] != 1.0)]
     return cpptraj_data
 
-if __name__ == '__main__':
-    
-    # Prepare data for testing
+def parse_args():
+    """Parse the command line arguments and perform some validation on the
+    arguments
+    Returns
+    -------
+    args : argparse.Namespace
+        The namespace containing the arguments
+    """
+    parser = ArgumentParser(
+        description='''Run tests of GIST calculations against validated output.''')
+
+    parser.add_argument('-t', '--test_gist_summary', required=True, type=str,
+                        help='''Summary file of GIST calculation to be tested.''')
+    parser.add_argument('-r', '--ref_gist_summary', required=True, type=str,
+                        help='''A refeeence summary file of GIST calculation''')
+    args = parser.parse_args()
+    return args
+
+def run_all_gist_tests(test_data_file, ref_data_file):
+
     test_result = {1: "Passed", 0: "Failed"}
-    test_data, ref_data = read_gist_sstmap(sys.argv[1]), read_gist_cpptraj(sys.argv[2])
+    test_data = read_gist_sstmap(test_data_file)
+    ref_data = read_gist_cpptraj(ref_data_file)
     diff_nwat = []
     for row in xrange(test_data.shape[0]):
         if test_data[row, 4] <= 1:
@@ -103,5 +120,12 @@ if __name__ == '__main__':
         print "Test %d ... %s" % (test_num, test_result[bool(result)])
         test_num += 1
 
+def main():
+    args = parse_args()
+    run_all_gist_tests(args.test_gist_summary, args.ref_gist_summary)
+
+if __name__ == '__main__':
+    main()
+    
 
         

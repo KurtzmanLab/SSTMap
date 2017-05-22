@@ -105,7 +105,7 @@ void bruteclust(string cfile, string wfile) {
     int j = 0;
     for (int i = 0; i < numclust; i++) {
         val = i+1;
-        cout << val << endl;
+        //cout << val << endl;
         if (i < 9) {
             sprintf(fileName, "cluster.00000%i.pdb", val);
             //ss << "cluster.00000" << val << ".pdb";
