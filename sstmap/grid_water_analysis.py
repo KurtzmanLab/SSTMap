@@ -248,7 +248,6 @@ class GridWaterAnalysis(WaterAnalysis):
         if hbonds is True:
             self.assign_hb_types()
 
-        print_progress_bar(start_frame, start_frame + num_frames)
         for frame in range(start_frame, start_frame + num_frames):
             try:
                 trj = md.load_frame(self.trajectory, frame, top=self.topology_file)
@@ -295,7 +294,7 @@ class GridWaterAnalysis(WaterAnalysis):
                             # H-bond calcuations
                             #TODO: document the algorithm
                             if hbonds:
-                                if wat_nbrs.shape[0] + prot_nbrs_hb.shape[0] > 0:
+                                if wat_nbrs.shape[0] != 0 and prot_nbrs_hb.shape[0] != 0:
                                     hb_ww, hb_sw = self.calculate_hydrogen_bonds(trj, wat[1], wat_nbrs, prot_nbrs_hb)
                                     acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat[1])].shape[0]
                                     don_ww = hb_ww.shape[0] - acc_ww
@@ -307,8 +306,8 @@ class GridWaterAnalysis(WaterAnalysis):
                                     self.voxeldata[wat[0], 29] += acc_sw
                                     self.voxeldata[wat[0], 31] += don_ww
                                     self.voxeldata[wat[0], 33] += acc_ww
-                                if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
-                                    self.voxeldata[wat[0], 19] += wat_nbrs.shape[0] / hb_ww.shape[0]
+                                    if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
+                                        self.voxeldata[wat[0], 19] += wat_nbrs.shape[0] / hb_ww.shape[0]
                                 f_enc =  1.0 - (wat_nbrs.shape[0] / 5.25)
                                 if f_enc < 0.0:
                                     f_enc = 0.0

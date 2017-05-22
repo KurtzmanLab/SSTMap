@@ -240,7 +240,6 @@ class SiteWaterAnalysis(WaterAnalysis):
             for pseudo_index in range(ligand_coords.shape[0]):
                 trj.xyz[i_frame, pseudo_index,:] = ligand_coords[pseudo_index, :]
         trj_short = trj[0:trj.n_frames:clustering_stride]
-        print("First an initial clustering run is performed over %d frames." % trj_short.n_frames)
         print("Obtaining a superconfiguration of all water molecules found in the binding site throught the trajectory.")
         binding_site_waters = md.compute_neighbors(
             trj_short, 0.50, binding_site_atom_indices,
@@ -267,6 +266,8 @@ class SiteWaterAnalysis(WaterAnalysis):
         nbr_list = tree.query_ball_point(water_coordinates, sphere_radius)
         nbr_count_list = np.ma.array([len(nbrs)
                                       for nbrs in nbr_list], mask=False)
+        
+        print("Performing an initial clustering over %d frames." % trj_short.n_frames)
         # Clustering loop
         while n_wat > cutoff:
             # get water with max nbrs and retrieve its nbrs, which are marked
@@ -320,7 +321,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                         near_flag += 1
             if near_flag == 0:
                 cluster_iter += 1
-                print("Cluster iteration: %d" % cluster_iter)
+                #print("Cluster iteration: %d" % cluster_iter)
                 cluster_list.append(water_id_frame_list[max_index])
             #if cluster_iter >= clustering_init_max:
             #    "Terminating initial clustering after max."
@@ -419,7 +420,6 @@ class SiteWaterAnalysis(WaterAnalysis):
 
 
         site_waters_copy = list(self.site_waters)
-        print_progress_bar(start_frame, start_frame + num_frames)
         for frame_i in range(start_frame, start_frame + num_frames):
             try:
                 frame = md.load_frame(self.trajectory, frame_i, top=self.topology)
@@ -525,9 +525,9 @@ class SiteWaterAnalysis(WaterAnalysis):
                                     self.hsa_dict[site_i][26].append(don_sw)
                                     self.hsa_dict[site_i][27].extend(acc_sw_ids)
                                     self.hsa_dict[site_i][28].extend(don_sw_ids)
-                                if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
-                                    self.hsa_dict[site_i][21].append(
-                                        hb_ww.shape[0] / wat_nbrs.shape[0])
+                                    if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
+                                        self.hsa_dict[site_i][21].append(
+                                            hb_ww.shape[0] / wat_nbrs.shape[0])
                 
                 else:
                     num_frames = frame_i - start_frame
