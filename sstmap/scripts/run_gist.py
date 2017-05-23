@@ -27,13 +27,17 @@ def parse_args():
                           help='''Input ligand PDB file.''')
     required.add_argument('-g', '--grid_dim', required=True, nargs=3, type=float, default=[20.0, 20.0, 20.0],
                           help='''grid dimensions e.g., 10 10 10''')
+    required.add_argument('-f', '--num_frames', required=False, type=int, default=10000,
+                          help='''Total number of frames to process.''')
     parser._action_groups.append(parser._action_groups.pop(1))
     parser.add_argument('-p', '--param_file', required=False, type=str, default=None,
                           help='''Additional parameter files, specific for MD package''')
     parser.add_argument('-s', '--start_frame', required=False, type=int, default=0,
                           help='''Starting frame.''')
-    parser.add_argument('-f', '--num_frames', required=False, type=int, default=10000,
-                          help='''Total number of frames to process.''')
+    parser.add_argument('-d', '--bulk_density', required=False, type=float, default=0.0334,
+                        help='''Bulk density of the water model.''')
+    parser.add_argument('-b', '--calc_hbonds', required=False, type=bool, default=False,
+                        help='''True or False for whether to calculate h-bonds during calculations.''')
     parser.add_argument('-o', '--output_prefix', required=False, type=str,
                           help='''Prefix for all the results files.''', default="gist")
     if len(sys.argv[1:]) == 0:
@@ -57,9 +61,9 @@ def main():
                           start_frame=args.start_frame, num_frames=args.num_frames,
                           ligand_file=args.ligand, supporting_file=args.param_file,
                           grid_dimensions=args.grid_dim,
-                          prefix=args.output_prefix)
+                          rho_bulk=args.bulk_density, prefix=args.output_prefix)
     g.print_system_summary()
-    g.calculate_grid_quantities()
+    g.calculate_grid_quantities(hbonds=args.calc_hbonds)
     g.print_calcs_summary()
     g.write_data()
     g.generate_dx_files()
