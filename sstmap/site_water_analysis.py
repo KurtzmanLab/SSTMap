@@ -61,7 +61,7 @@ class SiteWaterAnalysis(WaterAnalysis):
     @function_timer
     def __init__(self, topology_file, trajectory, start_frame=0, num_frames=None,
                 supporting_file=None, ligand_file=None, clustercenter_file=None, 
-                desmond_helper_file=None, prefix="hsa"):
+                rho_bulk=None, prefix="hsa"):
         """Initialize a SiteWaterAnalysis object for site-based solvation structure
         and thermodynamic calculations.
         
@@ -97,7 +97,7 @@ class SiteWaterAnalysis(WaterAnalysis):
             print("Number of frames not specified, setting to default, N=10000")
             num_frames = 10000
         super(SiteWaterAnalysis, self).__init__(topology_file, trajectory,
-            start_frame, num_frames, supporting_file)
+            start_frame, num_frames, supporting_file, rho_bulk)
 
         
         self.prefix = prefix
@@ -386,7 +386,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         return np.asarray(final_cluster_coords), site_waters
         
     @function_timer
-    def calculate_site_quantities(self, energy=True, hbonds=True, entropy=True, start_frame=None, num_frames=None):
+    def calculate_site_quantities(self, energy=True, entropy=True, hbonds=False, start_frame=None, num_frames=None):
         '''
         TODO: replace TIP3P nbr count constant with variable that depends on water model
         
@@ -445,12 +445,9 @@ class SiteWaterAnalysis(WaterAnalysis):
                                     wat_O = site_waters_copy[site_i].pop(0)[1]
                                     self.hsa_data[site_i, 4] += 1
                         else:
-                            cluster_center_coords = (self.hsa_data[site_i, 1], self.hsa_data[
-                                                        site_i, 2], self.hsa_data[site_i, 3])
-                            nbr_indices = cluster_search_space.query_nbrs_single_point(
-                                cluster_center_coords)
-                            cluster_wat_oxygens = [self.wat_oxygen_atom_ids[
-                                nbr_index] for nbr_index in nbr_indices]
+                            cluster_center_coords = (self.hsa_data[site_i, 1], self.hsa_data[site_i, 2], self.hsa_data[site_i, 3])
+                            nbr_indices = cluster_search_space.query_nbrs_single_point(cluster_center_coords)
+                            cluster_wat_oxygens = [self.wat_oxygen_atom_ids[nbr_index] for nbr_index in nbr_indices]
                             if len(cluster_wat_oxygens) != 0:
                                 wat_O = cluster_wat_oxygens[0]
                                 self.hsa_data[site_i, 4] += 1
@@ -461,10 +458,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                             distance_matrix = np.zeros((self.water_sites, self.all_atom_ids.shape[0]), np.float_)
                             #distance_matrix = np.power(distance_matrix, 0.5)
                             calc.get_pairwise_distances(np.asarray([site_i, wat_O]), self.all_atom_ids, pos, pbc, distance_matrix)
-                            
                             wat_nbrs = self.wat_oxygen_atom_ids[np.where((distance_matrix[0, :][self.wat_oxygen_atom_ids] <= 3.5) & (distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
-                            prot_nbrs_all = self.non_water_atom_ids[np.where(distance_matrix[0, :][self.non_water_atom_ids] <= 3.5)]
-                            prot_nbrs_hb = prot_nbrs_all[np.where(self.prot_hb_types[prot_nbrs_all] != 0)]
                             self.hsa_dict[site_i][17].append(wat_nbrs.shape[0])
                             # TODO: 5.25 should be replaced with a variable
                             # 5.25 comes from TIP3P water model, define dictionary
@@ -507,6 +501,8 @@ class SiteWaterAnalysis(WaterAnalysis):
                                         e_nbr_i += np.sum(energy_elec[:, nbr_i + i])
                                     self.hsa_dict[site_i][13].append(e_nbr_i)
                             if hbonds:
+                                prot_nbrs_all = self.non_water_atom_ids[np.where(distance_matrix[0, :][self.non_water_atom_ids] <= 3.5)]
+                                prot_nbrs_hb = prot_nbrs_all[np.where(self.prot_hb_types[prot_nbrs_all] != 0)]
                                 if wat_nbrs.shape[0] + prot_nbrs_hb.shape[0] > 0:
                                     hb_ww, hb_sw = self.calculate_hydrogen_bonds(frame, wat_O, wat_nbrs, prot_nbrs_hb)
                                     acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat_O)].shape[0]

@@ -14,7 +14,10 @@ Test quantities: divide into three groups
 import sys
 import numpy as np
 import numpy.testing as npt
-
+quantities = ["voxel", "xcoord", "ycoord", "zcoord",
+                "n_wat", "g_O", "dTStrans-dens", "dTStrans-norm", "dTSorient-dens", 
+                "dTSorient-norm", "Esw-dens", "Esw-norm", "Eww-dens", "Eww-norm-unref", 
+                "neighbor-dens", "neighbor-norm"]
 class TestGistOutput():
     
     def __init__(self, test_data, ref_data):
@@ -115,10 +118,11 @@ def run_all_gist_tests(test_data_file, ref_data_file):
     print "Coverage for remaining tests.", 100*float(test_data.shape[0] - len(diff_nwat))/test_data.shape[0]
     print "Checking quantities ..."
     test_num = 0
+    
     for quantity_index in xrange(4, test_data.shape[1]):
         result = testcase.test_quantity(quantity_index)
-        print "Test %d ... %s" % (test_num, test_result[bool(result)])
-        test_num += 1
+        print "Testing %s ... %s" % (quantities[quantity_index], test_result[bool(result)])
+        
 
 def main():
     args = parse_args()
