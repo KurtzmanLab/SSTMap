@@ -6,19 +6,14 @@ date: 2017-05-03
 published: true
 ---
 
-`SSTMap` provides two main approaches for mapping water structure and thermodynamics on to solute surfaces, such as protein binding sites, the hydration site analysis (HSA) and Grid Inhomogeneous Solvation Theory (GIST). The theory behind these approaches are described in several publications (see References). Here we provide selected examples and discuss some practical aspects of running HSA and GIST calculations, through `run_hsa` and `run_gist`, respectively, which are the main command-line tools in `SSTMap`. This tutorial only shows examples of preparing and running the calculations. For a detailed description of the outputs genrated by these programs, see this [post](http://sstmap.org/2017/05/09/undestanding-output/).
+`SSTMap` provides two main approaches for mapping water structure and thermodynamics on to solute surfaces, such as protein binding sites, the hydration site analysis (HSA) and Grid Inhomogeneous Solvation Theory (GIST). The theory behind these approaches are described in several publications (see References). Here we provide selected examples and discuss some practical aspects of running HSA and GIST calculations, through `run_hsa` and `run_gist`, respectively, which are the main command-line tools in `SSTMap`. For a detail list of command-line arguments to these programs and the MD trajectory requirements, see the bottom of this page. This tutorial focuses the commands for running calculations. For a detailed description of the outputs genrated by these programs, see this [post](http://sstmap.org/2017/05/09/undestanding-output/). 
 <!--more-->
-## MD Trajectory Requirements for `SSTMap`
-
-SSTMap calculations require an explicit solvent molecular dynamics trajectory with restrained solute. While `SSTMap` is  agnostic of the water model used, however, it has been tested only for `TIP3P`, `TIP4P`, `TIP4P-Ewald`, `TIP5P` and `OPC` models. This list will be updated as we test more water models. Also note that currently only simulation run in orthorhombic periodic boundary conditions are supported. We intend to provide support for non-orthorhombic periodic boundary conditions in future. The simulations can be generated in one of the following packages: [Amber](http://ambermd.org/), [Charmm](https://www.charmm.org), [Gromacs](http://www.gromacs.org/), [NAMD](http://www.ks.uiuc.edu/Research/namd/), [OpenMM](http://openmm.org/) and [Desmond](https://www.deshawresearch.com/resources_desmond.html). This list is based on simulation packages that are supported by [MDTraj](https://mdtraj.org) and [ParmEd](http://parmed.github.io/ParmEd/html/index.html), both of which are dependecnies of SSTMap. It's however, possible to expand the applicability of SSTMap calculations even beyond these packages, as long as the trajectory and toplogy formats can be converted to those currently supported (See the Desmond example for this apporach). In the following, we provides example of `SSTMap` commands for different MD packages. For a detail list of command-line arguments to `run_hsa` and `run_gist`, see the bottom of this page.
- 
 ### Amber
 ```bash
 $ run_hsa -i testcase.prmtop -t md100ps.nc -l ligand.pdb -s 0 -f 100 -o testcase
 
 $ run_gist -i testcase.prmtop -t md100ps.nc -l ligand.pdb -g 20 20 20 -s 0 -f 100 -o testcase
 ```
-
 Since amber prmtop file contains both non-bonded parameters and topology information for the system, therefore, you can leave out the `-p` flag, which is used to specify additional parameter files.
 ### Charmm/NAMD
 The `-p` flag is mandatory for (Charmm, NAMD, Gromacs). For these package, in order to obtain non-bonded parameters for energy calculation, additional files are required by the underlying `Parmed` parsers. For example, the commands for a Charmm simulation would be as follows: 
@@ -84,13 +79,17 @@ run_gist -i testcase.pdb -t md100ps.nc -l ligand.pdb -p params.txt -g 20 20 20 -
 ```
 This approach is applicable to any MD package that's not supported. SSTMap calculations are feasibale as long as you can convert your topology and trajectory files to suitable format and extract non-bonded paramters for every atom of your system into a text file with the same format as given above. 
 
+## MD Trajectory Requirements for `SSTMap`
+SSTMap calculations require an explicit solvent molecular dynamics trajectory with restrained solute. While `SSTMap` is  agnostic of the water model used, however, it has been tested only for `TIP3P`, `TIP4P`, `TIP4P-Ewald`, `TIP5P` and `OPC` models. This list will be updated as we test more water models. Also note that currently only simulation run in orthorhombic periodic boundary conditions are supported. We intend to provide support for non-orthorhombic periodic boundary conditions in future. The simulations can be generated in one of the following packages: [Amber](http://ambermd.org/), [Charmm](https://www.charmm.org), [Gromacs](http://www.gromacs.org/), [NAMD](http://www.ks.uiuc.edu/Research/namd/), [OpenMM](http://openmm.org/) and [Desmond](https://www.deshawresearch.com/resources_desmond.html). This list is based on simulation packages that are supported by [MDTraj](https://mdtraj.org) and [ParmEd](http://parmed.github.io/ParmEd/html/index.html), both of which are dependecnies of SSTMap. It's however, possible to expand the applicability of SSTMap calculations even beyond these packages, as long as the trajectory and toplogy formats can be converted to those currently supported (See the Desmond example for this apporach). 
+ 
 ## Command-line arguments
 
 A list of command-line arguments for `run_hsa` and `run_gist` (with brief explanations) can be obtained at the terminal by running these commands without any argument or with `-h` flag. 
 ```
-usage: run_hsa [-h] -i INPUT_TOP -t INPUT_TRAJ -l LIGAND [-c CLUSTERS]
-               [-p PARAM_FILE] [-s START_FRAME] [-n NUM_FRAMES]
-               [-o OUTPUT_PREFIX]
+$ run_hsa -h
+usage: run_hsa [-h] -i INPUT_TOP -t INPUT_TRAJ -l LIGAND [-f NUM_FRAMES]
+               [-c CLUSTERS] [-p PARAM_FILE] [-s START_FRAME]
+               [-d BULK_DENSITY] [-b CALC_HBONDS] [-o OUTPUT_PREFIX]
 
 Run SSTMap site-based calculations (Hydration Site Analysis) through command-
 line.
@@ -102,6 +101,8 @@ required arguments:
                         Input trajectory file.
   -l LIGAND, --ligand LIGAND
                         Input ligand PDB file.
+  -f NUM_FRAMES, --num_frames NUM_FRAMES
+                        Total number of frames to process.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -111,16 +112,20 @@ optional arguments:
                         Additional parameter files, specific for MD package
   -s START_FRAME, --start_frame START_FRAME
                         Starting frame.
-  -f NUM_FRAMES, --num_frames NUM_FRAMES
-                        Total number of frames to process.
+  -d BULK_DENSITY, --bulk_density BULK_DENSITY
+                        Bulk density of the water model.
+  -b CALC_HBONDS, --calc_hbonds CALC_HBONDS
+                        True or False for whether to calculate h-bonds during
+                        calculations.
   -o OUTPUT_PREFIX, --output_prefix OUTPUT_PREFIX
                         Prefix for all the results files.
 ```
 
 ```
+$ run_gist -h
 usage: run_gist [-h] -i INPUT_TOP -t INPUT_TRAJ -l LIGAND -g GRID_DIM GRID_DIM
-                GRID_DIM [-p PARAM_FILE] [-s START_FRAME] [-n NUM_FRAMES]
-                [-o OUTPUT_PREFIX]
+                GRID_DIM [-f NUM_FRAMES] [-p PARAM_FILE] [-s START_FRAME]
+                [-d BULK_DENSITY] [-b CALC_HBONDS] [-o OUTPUT_PREFIX]
 
 Run SSTMap grid-based (GIST) calculations through command-line.
 
@@ -133,6 +138,8 @@ required arguments:
                         Input ligand PDB file.
   -g GRID_DIM GRID_DIM GRID_DIM, --grid_dim GRID_DIM GRID_DIM GRID_DIM
                         grid dimensions e.g., 10 10 10
+  -f NUM_FRAMES, --num_frames NUM_FRAMES
+                        Total number of frames to process.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -140,11 +147,13 @@ optional arguments:
                         Additional parameter files, specific for MD package
   -s START_FRAME, --start_frame START_FRAME
                         Starting frame.
-  -f NUM_FRAMES, --num_frames NUM_FRAMES
-                        Total number of frames to process.
+  -d BULK_DENSITY, --bulk_density BULK_DENSITY
+                        Bulk density of the water model.
+  -b CALC_HBONDS, --calc_hbonds CALC_HBONDS
+                        True or False for whether to calculate h-bonds during
+                        calculations.
   -o OUTPUT_PREFIX, --output_prefix OUTPUT_PREFIX
-                        Prefix for all the results files.
-```
+                        Prefix for all the results files.```
 
 The arguments supplied for `-i`, `-t` and `-p` flags vary depending on the MD packages used for simulation. For demonstrative purposes, we use input topology and trajectories from a repository of test cases, which is available on [Github](https://github.com/KurtzmanLab/sstmap_test_suite). You can download the full test suite from [here](https://www.dropbox.com/sh/hrijgk8n5z12bgi/AABSigcBf9PN_7-Z26VCCPePa?dl=0) (since Github repository doesn't contain trajectory files). For a given platform, `cd` to its sub-directory and run the commands as shown below.
 <!--more-->
