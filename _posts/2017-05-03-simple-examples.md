@@ -153,7 +153,8 @@ optional arguments:
                         True or False for whether to calculate h-bonds during
                         calculations.
   -o OUTPUT_PREFIX, --output_prefix OUTPUT_PREFIX
-                        Prefix for all the results files.```
+                        Prefix for all the results files.
+```
 
 The arguments supplied for `-i`, `-t` and `-p` flags vary depending on the MD packages used for simulation. For demonstrative purposes, we use input topology and trajectories from a repository of test cases, which is available on [Github](https://github.com/KurtzmanLab/sstmap_test_suite). You can download the full test suite from [here](https://www.dropbox.com/sh/hrijgk8n5z12bgi/AABSigcBf9PN_7-Z26VCCPePa?dl=0) (since Github repository doesn't contain trajectory files). For a given platform, `cd` to its sub-directory and run the commands as shown below.
 <!--more-->
