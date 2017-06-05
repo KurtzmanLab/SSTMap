@@ -25,10 +25,11 @@
 ##############################################################################
 
 */
+#define _USE_MATH_DEFINES
+#include <math.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "Python.h"
 #include "numpy/arrayobject.h"
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -97,6 +98,18 @@ PyObject *_sstmap_ext_assign_voxels(PyObject *self, PyObject *args)
     int n_frames, i_frame, n_wat, i_wat;
     PyArrayObject *coords, *grid_dim, *grid_max, *grid_orig, *wat_oxygen_ids;
     PyObject *frame_data;
+    // declare local variables
+    double grid_max_x, grid_max_y, grid_max_z;
+    double grid_orig_x, grid_orig_y, grid_orig_z;
+    int grid_dim_x, grid_dim_y, grid_dim_z;
+    int grid_index_x, grid_index_y, grid_index_z;    
+    double wat_translated_x, wat_translated_y, wat_translated_z;
+    int wat_id; // id of current water
+    float *wat_x, *wat_y, *wat_z; // coordinates
+    int dims[1];
+    PyArrayObject *wat_data;
+    PyObject *curr_voxel;
+    int voxel_id;
 
     if (!PyArg_ParseTuple(args, "O!O!O!O!O!O!",
         &PyArray_Type, &coords,
@@ -115,13 +128,6 @@ PyObject *_sstmap_ext_assign_voxels(PyObject *self, PyObject *args)
     //printf("The number of frames passed = %i\n", n_frames);
     //printf("The number of waters passed = %i\n", n_wat);
 
-    // declare local variables
-    double grid_max_x, grid_max_y, grid_max_z;
-    double grid_orig_x, grid_orig_y, grid_orig_z;
-    int grid_dim_x, grid_dim_y, grid_dim_z;
-    int grid_index_x, grid_index_y, grid_index_z;
-    
-    double wat_translated_x, wat_translated_y, wat_translated_z;
 
 
     grid_max_x = *(double *)PyArray_GETPTR1(grid_max, 0);
@@ -139,12 +145,7 @@ PyObject *_sstmap_ext_assign_voxels(PyObject *self, PyObject *args)
         //printf("Iterating over frame: %i\n", i_frame);
         for (i_wat = 0; i_wat < n_wat; i_wat++)
         {
-            int wat_id; // id of current water
-            float *wat_x, *wat_y, *wat_z; // coordinates
-            int dims[1];
             dims[0] = 2;
-            PyArrayObject *wat_data;
-            PyObject *curr_voxel;
             // get water ID to and use it to get x, y, z coordinates and vdw params
             wat_id = *(int *) PyArray_GETPTR1(wat_oxygen_ids, i_wat); // obtain atom index for this atom
             wat_x = (float *) PyArray_GETPTR3(coords, i_frame, wat_id, 0);
@@ -169,7 +170,6 @@ PyObject *_sstmap_ext_assign_voxels(PyObject *self, PyObject *args)
                     // check if water coords (in grid dimensions) are less than grid dimensions in each direction
                     if (grid_index_x < grid_dim_x && grid_index_y < grid_dim_y && grid_index_z < grid_dim_z)
                     {
-                        int voxel_id;
                         // obtain the voxel ID for this water
                         voxel_id = (grid_index_x*grid_dim_y + grid_index_y)*grid_dim_z + grid_index_z;
                         //voxel_ = (gridindex[0]*griddim_[1] + gridindex[1])*griddim_[2] + gridindex[2];
@@ -193,6 +193,13 @@ PyObject *_sstmap_ext_assign_voxels(PyObject *self, PyObject *args)
 PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
 {
     PyArrayObject *wat, *target_at_ids, *coords, *periodic_box, *dist_array;
+    float *b_x, *b_y, *b_z;
+    int wat_sites, wat_atom, wat_atom_id;
+    int num_target_at, target_at, target_at_id;
+    int frame = 0;
+    double d;
+    float *wat_x, *wat_y, *wat_z;
+    float *target_at_x, *target_at_y, *target_at_z;
 
     if (!PyArg_ParseTuple(args, "O!O!O!O!O!",
         &PyArray_Type, &wat,
@@ -206,24 +213,18 @@ PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
     }
     // do distance calc here
         // retrieve unit cell lengths for this frame
-    float *b_x, *b_y, *b_z;
     b_x = (float *) PyArray_GETPTR2(periodic_box, 0, 0);
     b_y = (float *) PyArray_GETPTR2(periodic_box, 0, 1);
     b_z = (float *) PyArray_GETPTR2(periodic_box, 0, 2);
     //printf("Unit cell dimensions: %f %f %f\n", *b_x, *b_y, *b_z);
 
-    int wat_sites, wat_atom, wat_atom_id;
     wat_sites = PyArray_DIM(dist_array, 0);
 
-    int num_target_at, target_at, target_at_id;
     num_target_at = PyArray_DIM(target_at_ids, 0);
 
-    int frame = 0;
-    double d;
 
     for (wat_atom = 0; wat_atom < wat_sites; wat_atom++)
     {
-        float *wat_x, *wat_y, *wat_z;
         wat_atom_id = *(int *) PyArray_GETPTR1(wat, 1) + wat_atom;
         wat_x = (float *) PyArray_GETPTR3(coords, frame, wat_atom_id, 0);
         wat_y = (float *) PyArray_GETPTR3(coords, frame, wat_atom_id, 1); 
@@ -231,7 +232,6 @@ PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
 
         for (target_at = 0; target_at < num_target_at; target_at++)
         {
-            float *target_at_x, *target_at_y, *target_at_z;
             target_at_id = *(int *) PyArray_GETPTR1(target_at_ids, target_at);
             target_at_x = (float *) PyArray_GETPTR3(coords, frame, target_at_id, 0);
             target_at_y = (float *) PyArray_GETPTR3(coords, frame, target_at_id, 1); 
@@ -256,6 +256,7 @@ PyObject *_sstmap_ext_getNNOrEntropy(PyObject *self, PyObject *args)
     double rx, ry, rz;
     PyArrayObject *voxel_wat_Eulers; 
     double twopi = 2*M_PI;
+
     // Argument parsing to reterive everything sent from Python correctly    
     if (!PyArg_ParseTuple(args, "iO!",
                             &nwtot,
@@ -349,14 +350,14 @@ static PyObject * _sstmap_ext_writepdb(PyObject * self, PyObject * args)
     PyObject *data, *l;
     int i, n;
 
+    FILE *fp = fopen("within5Aofligand.pdb", "ab");
+
     if (!PyArg_ParseTuple(args, "iO",
         &n,
         &PyList_Type, &data))
         {
             return NULL; /* raise argument parsing exception*/
         }
-
-    FILE *fp = fopen("within5Aofligand.pdb", "ab");
     if (fp != NULL)
     {
         for (i = 0; i < n; i++)
