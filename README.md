@@ -4,11 +4,11 @@
 [![Code Issues](https://www.quantifiedcode.com/api/v1/project/bcbc025fb69b44f9af57b732469e7b29/badge.svg)](https://www.quantifiedcode.com/app/project/bcbc025fb69b44f9af57b732469e7b29)
 
 
-Welcome to SSTMap Release version 1.0.0
-
+Welcome to SSTMap Release version 1.0
+.
 Thank you for using SSTMap, we've gone through a great deal of work trying to ensure compatibility with various operating systems and MD packages though we have not covered all the possible combinations.  If you run into a bug, please report it on the issues and we will work to quickly resolve it.
 
-Thank You,
+Thank you,
 
 Kamran and the Development Team.
 
