@@ -4,24 +4,20 @@ package:
 source:
   path: ../../
 
-build:
-  script: python setup.py install
-
 requirements:
   build:
     - python
     - numpy
     - setuptools
-    - gcc # [not win]
+    - gcc
 
   run:
     - python 
-    - libgcc # [linux and osx]
+    - libgcc
     - numpy
     - scipy
     - mdtraj
     - parmed
-    - matplotlib
 
 about:
   home: https://github.com/kamran-haider
