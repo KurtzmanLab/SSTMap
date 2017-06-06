@@ -2,6 +2,7 @@
 [![Anaconda-Server Badge](https://anaconda.org/solvationtools/sstmap/badges/installer/conda.svg)](https://conda.anaconda.org/solvationtools)
 [![Anaconda-Server Badge](https://anaconda.org/solvationtools/sstmap/badges/downloads.svg)](https://anaconda.org/solvationtools/sstmap)
 [![Code Issues](https://www.quantifiedcode.com/api/v1/project/bcbc025fb69b44f9af57b732469e7b29/badge.svg)](https://www.quantifiedcode.com/app/project/bcbc025fb69b44f9af57b732469e7b29)
+[![DOI](https://zenodo.org/badge/69484024.svg)](https://zenodo.org/badge/latestdoi/69484024)
 
 
 Welcome to SSTMap Release version 1.0
