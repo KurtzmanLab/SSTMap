@@ -2,7 +2,7 @@
 layout: post
 author: kamran-haider
 title: Running SSTMap Calculations
-date: 2017-05-03
+date: 2017-06-03
 published: true
 ---
 
