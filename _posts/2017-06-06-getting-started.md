@@ -2,7 +2,7 @@
 layout: post
 author: kamran-haider
 title: Installing SSTMap
-date: 2017-05-02
+date: 2017-06-06
 published: true
 ---
 The main requirement for installation of `SSTMap` is the anaconda python distribution. If you are not familiar with Anaconda, please have a look at [continuum.io/why-anaconda](https://www.continuum.io/why-anaconda).
