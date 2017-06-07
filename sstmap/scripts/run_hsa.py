@@ -63,7 +63,7 @@ def main():
     h = SiteWaterAnalysis(args.input_top, args.input_traj,
                             start_frame=args.start_frame, num_frames=args.num_frames,
                             ligand_file=args.ligand, supporting_file=args.param_file,
-                            clustercenter_file=args.clusters, rho_bulk=bulk_density, prefix=args.output_prefix)
+                            clustercenter_file=args.clusters, rho_bulk=args.bulk_density, prefix=args.output_prefix)
     h.initialize_hydration_sites()
     h.print_system_summary()
     h.calculate_site_quantities(hbonds=args.calc_hbonds)
