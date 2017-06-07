@@ -1,7 +1,7 @@
 ---
 layout: post
 author: kamran-haider
-title: Getting Started with SSTMap
+title: Installing SSTMap
 date: 2017-05-02
 published: true
 ---
