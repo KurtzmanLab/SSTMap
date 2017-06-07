@@ -6,8 +6,9 @@ date: 2017-06-03
 published: true
 ---
 
-`SSTMap` provides two main approaches for mapping water structure and thermodynamics on to solute surfaces, such as protein binding sites, the hydration site analysis (HSA) and Grid Inhomogeneous Solvation Theory (GIST). The theory behind these approaches are described in several publications (see References). Here we provide selected examples and discuss some practical aspects of running HSA and GIST calculations, through `run_hsa` and `run_gist`, respectively, which are the main command-line tools in `SSTMap`. For a detail list of command-line arguments to these programs and the MD trajectory requirements, see the bottom of this page. This tutorial focuses the commands for running calculations. For a detailed description of the outputs genrated by these programs, see this [post](http://sstmap.org/2017/05/09/undestanding-output/). 
+`SSTMap` provides two main approaches for mapping water structure and thermodynamics on to solute surfaces, such as protein binding sites, the hydration site analysis (HSA) and Grid Inhomogeneous Solvation Theory (GIST). The theory behind these approaches are described in several publications (see References). Here we provide selected examples and discuss some practical aspects of running HSA and GIST calculations, through `run_hsa` and `run_gist`, respectively, which are the main command-line tools in `SSTMap`. 
 <!--more-->
+For a detail list of command-line arguments to these programs and the MD trajectory requirements, see the bottom of this page. This tutorial focuses the commands for running calculations. For a detailed description of the outputs genrated by these programs, see this [post](http://sstmap.org/2017/05/09/undestanding-output/). 
 ### Amber
 ```bash
 $ run_hsa -i testcase.prmtop -t md100ps.nc -l ligand.pdb -s 0 -f 100 -o testcase
