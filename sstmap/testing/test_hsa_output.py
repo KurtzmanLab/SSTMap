@@ -59,21 +59,11 @@ class TestGistOutput():
         return passed
 
 
-def read_gist_sstmap(sstmap_gist_summary):
+def read_hsa_sstmap(sstmap_gist_summary):
     columns_to_read = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 17, 18]
     sstmap_data = np.loadtxt(sstmap_gist_summary, skiprows=1, usecols=columns_to_read)
     #sstmap_data = sstmap_data[np.where(sstmap_data[:, 4] != 1.0)]
     return np.round(sstmap_data, 3)
-
-def read_gist_cpptraj(cpptraj_gist_summary):
-    columns_to_read = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 19, 20]
-    cpptraj_data = np.loadtxt(cpptraj_gist_summary, skiprows=2, usecols=columns_to_read)
-    if cpptraj_data.shape[1] == 24:
-        columns_to_read = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 13, 14, 15, 16, 21, 22]
-        cpptraj_data = np.loadtxt(cpptraj_gist_summary, skiprows=2, usecols=columns_to_read)
-    
-    #cpptraj_data = cpptraj_data[np.where(cpptraj_data[:, 4] != 1.0)]
-    return cpptraj_data
 
 def parse_args():
     """Parse the command line arguments and perform some validation on the
@@ -84,12 +74,12 @@ def parse_args():
         The namespace containing the arguments
     """
     parser = ArgumentParser(
-        description='''Run tests of GIST calculations against validated output.''')
+        description='''Run tests of HSA calculations against validated output.''')
 
-    parser.add_argument('-t', '--test_gist_summary', required=True, type=str,
-                        help='''Summary file of GIST calculation to be tested.''')
-    parser.add_argument('-r', '--ref_gist_summary', required=True, type=str,
-                        help='''A refeeence summary file of GIST calculation''')
+    parser.add_argument('-t', '--test_hsa_summary', required=True, type=str,
+                        help='''Summary file of HSA calculation to be tested.''')
+    parser.add_argument('-r', '--ref_hsa_summary', required=True, type=str,
+                        help='''A reference summary file of HSA calculation''')
     args = parser.parse_args()
     return args
 
