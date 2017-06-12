@@ -36,17 +36,17 @@ Assuming that the output name was "testcase", the following files are generated 
  <tr><td>3</td><td>$$z$$</td><td>z-coordinate of hydration site center</td></tr>
  <tr><td>4</td><td>$$N_{wat}$$</td><td>Total number of waters in the site</td></tr>
  <tr><td>5</td><td>$$occupancy$$</td><td>Occupnacy</td></tr>
- <tr><td>6</td><td>$$E_{sw}$$</td><td>Average solute-water energy</td></tr>
- <tr><td>7</td><td>$$E_{sw,LJ}$$</td><td>Average solute-water Lennard-Jones energy</td></tr>
- <tr><td>8</td><td>$$E_{sw,Elec}$$</td><td>Average solute-water electrostatic energy</td></tr>
- <tr><td>9</td><td>$$E_{ww}$$</td><td>Average water-water energy</td></tr>
- <tr><td>10</td><td>$$E_{ww,LJ}$$</td><td>Average water-water Lennard-Jones energy</td></tr>
- <tr><td>11</td><td>$$E_{ww,Elec}$$</td><td>Average water-water electrostatic energy</td></tr>
- <tr><td>12</td><td>$$E_{tot}$$</td><td>Total averageenergy</td></tr>
- <tr><td>13</td><td>$$E_{ww,nbr}$$</td><td> Average water-water interaction energy per first shell neighbor</td></tr>
- <tr><td>14</td><td>$$TS_{sw,trans}$$</td><td>Solute-water translational entropy</td></tr>
- <tr><td>15</td><td>$$TS_{sw,orient}$$</td><td>Solute-water translational entropy</td></tr>
- <tr><td>16</td><td>$$TS_{tot}$$</td><td>Total solute-water entropy</td></tr>
+ <tr><td>6</td><td>$$E_{sw}$$</td><td>Average solute-water energy ($kcal/mol$)</td></tr>
+ <tr><td>7</td><td>$$E_{sw,LJ}$$</td><td>Average solute-water Lennard-Jones energy ($kcal/mol$)</td></tr>
+ <tr><td>8</td><td>$$E_{sw,Elec}$$</td><td>Average solute-water electrostatic energy ($kcal/mol$)</td></tr>
+ <tr><td>9</td><td>$$E_{ww}$$</td><td>Average water-water energy ($kcal/mol$)</td></tr>
+ <tr><td>10</td><td>$$E_{ww,LJ}$$</td><td>Average water-water Lennard-Jones energy ($kcal/mol$)</td></tr>
+ <tr><td>11</td><td>$$E_{ww,Elec}$$</td><td>Average water-water electrostatic energy ($kcal/mol$)</td></tr>
+ <tr><td>12</td><td>$$E_{tot}$$</td><td>Total average energy ($kcal/mol$)</td></tr>
+ <tr><td>13</td><td>$$E_{ww,nbr}$$</td><td> Average water-water interaction energy per first shell neighbor  ($kcal/mol$)</td></tr>
+ <tr><td>14</td><td>$$TS_{sw,trans}$$</td><td>Solute-water translational entropy  ($kcal/mol$)</td></tr>
+ <tr><td>15</td><td>$$TS_{sw,orient}$$</td><td>Solute-water translational entropy  ($kcal/mol$)</td></tr>
+ <tr><td>16</td><td>$$TS_{tot}$$</td><td>Total solute-water entropy  ($kcal/mol$)</td></tr>
  <tr><td>17</td><td>$$N_{nbrs}$$</td><td> Average number of first shell neighbors</td></tr>
  <tr><td>18</td><td>$$N_{hb,ww}$$</td><td> Average water-water hydrogen bonds</td></tr>
  <tr><td>19</td><td>$$N_{hb,sw}$$</td><td> Average solute-water hydrogen bonds</td></tr>
