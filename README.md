@@ -17,7 +17,7 @@ Kamran and the Development Team.
 SSTMap
 ======
 
-SSTMap is a tool to study structural and thermodynamic properties of water molecules on solute surfaces. It combines grid inhomogeneous solvation theory (IST) with measures of water structure to produce mapping of solvation structure and thermodynamics in protein binding sites and on the surfaces of other molecules of interest, such as small-molecules or host-guest systems. It provides both site-based and grid-based calculations in one package, with support for multiple MD packages and can be integrated into Python’s scientific computing environment for advanced applications.
+SSTMap is a tool to study structural and thermodynamic properties of water molecules on solute surfaces. It combines grid inhomogeneous solvation theory (IST) with measures of water structure to produce mapping of solvation structure and thermodynamics in protein binding sites and on the surfaces of other molecules of interest, such as small-molecules or host-guest systems. It provides both site-based and grid-based calculations in one package, with support for multiple MD packages and can be integrated into Python’s scientific computing environment for advanced applications. The cross-platform support is enabled by trajectory and topology parsers of <a href="http://mdtraj.org">MDTraj</a> and <a href="http://parmed.github.io/ParmEd/html/index.html">ParmEd</a>.
 
 Installation
 ------------
@@ -37,7 +37,7 @@ You can install the latest development version from the GitHub repository by exe
 pip install git+git://github.com/kurtzmanlab/sstmap.git#egg=sstmap
 ```
 
-You can also download the package manually from GitHub, unzip it, navigate into the package, and execute the command:
+You can also download the package manually from GitHub, unzip it, navigate into the directory, and execute the command:
 
 ```bash
 git clone git@github.com:KurtzmanLab/SSTMap.git
