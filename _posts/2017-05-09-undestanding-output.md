@@ -36,7 +36,7 @@ Assuming that the output name was "testcase", the following files are generated 
  <tr><td>3</td><td>$$z$$</td><td>z-coordinate of hydration site center</td></tr>
  <tr><td>4</td><td>$$N_{wat}$$</td><td>Total number of waters in the site</td></tr>
  <tr><td>5</td><td>$$occupancy$$</td><td>Occupnacy</td></tr>
- <tr><td>6</td><td>$$E_{sw}$$</td><td>Average solute-water energy (\\kcal/mol\\)</td></tr>
+ <tr><td>6</td><td>$$E_{sw}$$</td><td>Average solute-water energy (\kcal/mol\)</td></tr>
  <tr><td>7</td><td>$$E_{sw,LJ}$$</td><td>Average solute-water Lennard-Jones energy ($$kcal/mol$$)</td></tr>
  <tr><td>8</td><td>$$E_{sw,Elec}$$</td><td>Average solute-water electrostatic energy ($$kcal/mol$$)</td></tr>
  <tr><td>9</td><td>$$E_{ww}$$</td><td>Average water-water energy ($$kcal/mol$$)</td></tr>
