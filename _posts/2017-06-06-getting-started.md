@@ -5,7 +5,7 @@ title: Installing SSTMap
 date: 2017-06-06
 published: true
 ---
-The main requirement for installation of `SSTMap` is the anaconda python distribution. If you are not familiar with Anaconda, please have a look at [continuum.io/why-anaconda](https://www.continuum.io/why-anaconda).
+The main requirement for installation of `SSTMap` is the anaconda python distribution. If you are not familiar with Anaconda, please have a look at [continuum.io/why-anaconda](https://www.continuum.io/why-anaconda). SSTMap is implemented in python 2.7, so if you do not have the anaconda installation, downlaod the anaconda for python 2.7, as shown below. Altenratively, if you have a an anaconda installation for python 3.6, you can create a python 2.7 enviornment to run sstmap.
 
 <!--more-->
 For instructions on how to download and install Anaconda, please go to [Anaconda Download page](https://www.continuum.io/downloads). 
@@ -19,14 +19,17 @@ For MacOSX
 curl -O https://repo.continuum.io/archive/Anaconda2-4.3.1-MacOSX-x86_64.sh
 bash Anaconda2-4.3.1-MacOSX-x86_64.sh
 ```
+If you already have an anaconda installation for python 3.6, you can install and run SSTMap in a seprate python 2.7 envioronment. The enviornment is created as follows:
+```
+conda create -n py27 python=2.7
+source activate py27
+```
 
 ### Conda Installation
 The anaconda python distribution comes with `conda` package manager, which can then be used to install `SSTMap` with the following commands.
 
 ```
-conda config --add channels omnia
-conda config --add channels solvationtools
-conda install sstmap
+conda install sstmap -c omnia -c solvationtools
 ```
 
 ### GitHub Source Code
