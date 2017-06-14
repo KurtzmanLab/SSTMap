@@ -6,9 +6,10 @@ date: 2017-06-03
 published: true
 ---
 
-`SSTMap` provides two main approaches for mapping water structure and thermodynamics on to solute surfaces, such as protein binding sites, the hydration site analysis (HSA) and Grid Inhomogeneous Solvation Theory (GIST). The theory behind these approaches are described in several publications (see References). Here we provide selected examples and discuss some practical aspects of running HSA and GIST calculations, through `run_hsa` and `run_gist`, respectively, which are the main command-line tools in `SSTMap`. 
+`SSTMap` implements two approaches for mapping water structure and thermodynamics on to solute surfaces, such as protein binding sites, the hydration site analysis (HSA) and Grid Inhomogeneous Solvation Theory (GIST). The command lines to run each of these analyses are simply `run_hsa` and `run_gist` which are the main command-line tools in `SSTMap`. Here we provide examples of the command line arguments required to run these analyses with different popular MD packages.  
+
 <!--more-->
-For a detail list of command-line arguments to these programs and the MD trajectory requirements, see the bottom of this page. This tutorial focuses the commands for running calculations. For a detailed description of the outputs genrated by these programs, see this [post](http://sstmap.org/2017/05/09/undestanding-output/). 
+A detailed list of command-line arguments for these programs and the MD trajectory requirements can be found at the bottom of this page.  For a detailed description of the output genrated by these programs, see this [post](http://sstmap.org/2017/05/09/undestanding-output/). 
 ### Amber
 ```bash
 $ run_hsa -i testcase.prmtop -t md100ps.nc -l ligand.pdb -s 0 -f 100 -o testcase
@@ -17,20 +18,14 @@ $ run_gist -i testcase.prmtop -t md100ps.nc -l ligand.pdb -g 20 20 20 -s 0 -f 10
 ```
 Since amber prmtop file contains both non-bonded parameters and topology information for the system, therefore, you can leave out the `-p` flag, which is used to specify additional parameter files.
 ### Charmm/NAMD
-The `-p` flag is mandatory for (Charmm, NAMD, Gromacs). For these package, in order to obtain non-bonded parameters for energy calculation, additional files are required by the underlying `Parmed` parsers. For example, the commands for a Charmm simulation would be as follows: 
+
 ```
 run_hsa -i testcase.psf -t md100ps.dcd -l ligand.pdb -p toppar/ -s 0 -f 100 -o testcase
 $ run_gist -i testcase.psf -t md100ps.dcd -l ligand.pdb -g 10 10 10 -p toppar/ -s 0 -f 100 -o testcase
 ```
+An additional `-p` flag is mandatory for Charmm, NAMD, Gromacs in order to obtain the non-bonded parameters for energy calculations. These additional files are required by the underlying `Parmed` parsers. 
 
-When not sure of what additional files to provide, just run the `run_hsa` or `run_gist` on your system, without the `-p` flag and the help message will let you know what files to provide, e.g.,
-
-```
-$ run_hsa -i testcase.psf -t md100ps.dcd -l ligand.pdb -s 0 -f 100 -o testcase
-    SSTMap requires toppar as a supporting file/data for psf parameter format. Please provide it as an argument to supporting_file argument or if you are running run_gist or run_hsa, provide it as an argument to -p flag.
-    More specifically, Please provide a folder named toppar that contains charmm parameter/topology files.
-```   
-NAMD uses the same forcefileds as Charmm. Hence the same commands, as shown for as Charmm, are valid for NAMD.
+NAMD uses the same forcefileds as Charmm so the same input files are valid for NAMD.   
 
 ### Gromacs
 ```
