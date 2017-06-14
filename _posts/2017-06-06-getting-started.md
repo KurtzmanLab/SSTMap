@@ -9,7 +9,9 @@ The main requirement for installation of `SSTMap` is the anaconda python distrib
 
 <!--more-->
 For instructions on how to download and install Anaconda, please go to [Anaconda Download page](https://www.continuum.io/downloads). 
-The installation is very easy and can be done with the following two steps (applicable to Linux 64-bit systems). 
+The installation is very easy and can be done with the following two steps. 
+
+For Linux-64
 ```bash
 wget https://repo.continuum.io/archive/Anaconda2-4.3.1-Linux-x86_64.sh
 bash Anaconda2-4.3.1-Linux-x86_64.sh
