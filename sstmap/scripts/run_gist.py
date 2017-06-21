@@ -1,12 +1,8 @@
 from argparse import ArgumentParser
-from sstmap.water_analysis import requirements
 from sstmap.grid_water_analysis import GridWaterAnalysis
-import os
 import sys
-
-#param_message = ""
-#for k in requirements.keys():
-
+import os
+import shutil
 
 
 def parse_args():
@@ -50,16 +46,34 @@ def parse_args():
     for index, present in enumerate(files_present):
         if not present:
             sys.exit("%s not found. Please make sure it exits or give the correct path." % file_arguments[index])
-    if args.param_file is not None:
-       if not os.path.exists(args.param_file):# or not os.path.isdir(args.param_file):
-             sys.exit("%s not found. Please make sure it exits or give the correct path." % args.param_file)
+    if args.param_file is not None and not os.path.exists(args.param_file):
+        sys.exit("%s not found. Please make sure it exits or give the correct path." % args.param_file)
     return args
+
 
 def main():
     args = parse_args()
-    g = GridWaterAnalysis(args.input_top, args.input_traj,
+    curr_dir = os.getcwd()
+    data_dir = curr_dir + "/SSTMap_GIST"
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    else:
+        shutil.rmtree(data_dir)
+        os.makedirs(data_dir)
+
+    top = os.path.abspath(args.input_top)
+    traj = os.path.abspath(args.input_traj)
+
+    supp = args.param_file
+    if args.param_file is not None:
+        supp = os.path.abspath(args.param_file)
+    
+    ligand = os.path.abspath(args.ligand)
+
+    os.chdir(data_dir)
+    g = GridWaterAnalysis(top, traj,
                           start_frame=args.start_frame, num_frames=args.num_frames,
-                          ligand_file=args.ligand, supporting_file=args.param_file,
+                          ligand_file=ligand, supporting_file=supp,
                           grid_dimensions=args.grid_dim,
                           rho_bulk=args.bulk_density, prefix=args.output_prefix)
     g.print_system_summary()
@@ -67,6 +81,8 @@ def main():
     g.print_calcs_summary()
     g.write_data()
     g.generate_dx_files()
+    os.chdir(curr_dir)
+
 
 def entry_point():
     main()
