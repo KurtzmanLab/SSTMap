@@ -237,7 +237,7 @@ class GridWaterAnalysis(WaterAnalysis):
                 #self.voxeldata[voxel, 7] = self.voxeldata[voxel, 8] * self.voxeldata[voxel, 4]/(self.num_frames * self.voxel_vol)
 
     @function_timer
-    def calculate_grid_quantities(self, energy=True, entropy=True, hbonds=False, start_frame=None, num_frames=None):
+    def calculate_grid_quantities(self, energy=True, entropy=True, hbonds=False, start_frame=None, num_frames=None, chunk_size=None):
 
         if start_frame is None:
             start_frame = self.start_frame
@@ -248,7 +248,8 @@ class GridWaterAnalysis(WaterAnalysis):
         if hbonds is True:
             self.assign_hb_types()
         
-        chunk_size = 100
+        if chunk_size is None:
+            chunk_size = 1000
         if (start_frame + num_frames) <= chunk_size:
             chunk_size = start_frame + num_frames
 
@@ -293,7 +294,7 @@ class GridWaterAnalysis(WaterAnalysis):
                             prot_nbrs_all = self.non_water_atom_ids[np.where(distance_matrix[0, :][self.non_water_atom_ids] <= 3.5)]
                             prot_nbrs_hb = prot_nbrs_all[np.where(self.prot_hb_types[prot_nbrs_all] != 0)]
                             if wat_nbrs.shape[0] != 0 and prot_nbrs_hb.shape[0] != 0:
-                                hb_ww, hb_sw = self.calculate_hydrogen_bonds(trj, wat[1], wat_nbrs, prot_nbrs_hb)
+                                hb_ww, hb_sw = self.calculate_hydrogen_bonds(trj[frame], wat[1], wat_nbrs, prot_nbrs_hb)
                                 acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat[1])].shape[0]
                                 don_ww = hb_ww.shape[0] - acc_ww
                                 acc_sw = hb_sw[:, 0][np.where(hb_sw[:, 0] == wat[1])].shape[0]

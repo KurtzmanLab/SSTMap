@@ -1,8 +1,8 @@
 from argparse import ArgumentParser
-from sstmap.water_analysis import requirements
 from sstmap.site_water_analysis import SiteWaterAnalysis
-import os
 import sys
+import os
+import shutil
 
 
 def parse_args():
@@ -27,13 +27,15 @@ def parse_args():
     parser._action_groups.append(parser._action_groups.pop(1))
     parser.add_argument('-c', '--clusters', required=False, type=str, default=None,
                         help='''PDB file containing cluster centers.''')
+    parser.add_argument('-d', '--hsa_region', required=False, type=float, default=5.0,
+                        help='''Radius of sphere around ligand to define HSA region''')
     parser.add_argument('-p', '--param_file', required=False, type=str, default=None,
                           help='''Additional parameter files, specific for MD package''')
     parser.add_argument('-s', '--start_frame', required=False, type=int, default=0,
                         help='''Starting frame.''')
-    parser.add_argument('-d', '--bulk_density', required=False, type=float, default=0.0334,
+    parser.add_argument('-g', '--bulk_density', required=False, type=float, default=0.0334,
                         help='''Bulk density of the water model.''')
-    parser.add_argument('-b', '--calc_hbonds', required=False, type=bool, default=False,
+    parser.add_argument('-b', '--calc_hbonds', required=False, type=bool, default=True,
                         help='''True or False for whether to calculate h-bonds during calculations.''')
     parser.add_argument('-o', '--output_prefix', required=False, type=str, default="hsa",
                         help='''Prefix for all the results files.''')
@@ -48,27 +50,46 @@ def parse_args():
     for index, present in enumerate(files_present):
         if not present:
             sys.exit("%s not found. Please make sure it exits or give the correct path." % file_arguments[index])
-    if args.clusters is not None:
-        if not os.path.isfile(args.clusters):
-            sys.exit("%s not found. Please make sure it exits or give the correct path." % args.clusters)
-    if args.param_file is not None:
-        if not os.path.exists(args.param_file):# or not os.path.isdir(args.param_file):
-            sys.exit("%s not found. Please make sure it exits or give the correct path." % args.param_file)
+    if args.clusters is not None and not os.path.isfile(args.clusters):
+        sys.exit("%s not found. Please make sure it exits or give the correct path." % args.clusters)
+    if args.param_file is not None and not os.path.exists(args.param_file):# or not os.path.isdir(args.param_file):
+        sys.exit("%s not found. Please make sure it exits or give the correct path." % args.param_file)
     return args
 
 
 def main():
     args = parse_args()
+    curr_dir = os.getcwd()
+    data_dir = curr_dir + "/SSTMap_HSA"
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    else:
+        shutil.rmtree(data_dir)
+        os.makedirs(data_dir)
 
-    h = SiteWaterAnalysis(args.input_top, args.input_traj,
-                            start_frame=args.start_frame, num_frames=args.num_frames,
-                            ligand_file=args.ligand, supporting_file=args.param_file,
-                            clustercenter_file=args.clusters, rho_bulk=args.bulk_density, prefix=args.output_prefix)
-    h.initialize_hydration_sites()
+    top = os.path.abspath(args.input_top)
+    traj = os.path.abspath(args.input_traj)
+
+    supp = args.param_file
+    if args.param_file is not None:
+        supp = os.path.abspath(args.param_file)
+    
+    ligand = os.path.abspath(args.ligand)
+    clusters = args.clusters
+    if args.clusters is not None:
+        clusters = os.path.abspath(args.clusters)
+
+    os.chdir(data_dir)
+    h = SiteWaterAnalysis(top, traj,
+                        start_frame=args.start_frame, num_frames=args.num_frames,
+                        ligand_file=ligand, supporting_file=supp,
+                        clustercenter_file=clusters, rho_bulk=args.bulk_density, prefix=args.output_prefix)
+    h.initialize_hydration_sites(hsa_region_radius=args.hsa_region)
     h.print_system_summary()
     h.calculate_site_quantities(hbonds=args.calc_hbonds)
     h.write_calculation_summary()
     h.write_data()
+    os.chdir(curr_dir)
 
 
 def entry_point():

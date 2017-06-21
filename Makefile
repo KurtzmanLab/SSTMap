@@ -1,5 +1,5 @@
 CC      = g++
-SOURCEDIR = scripts
+SOURCEDIR = ./
 INSTALLDIR = ~/anaconda2/bin
 bruteclust: $(SOURCEDIR)/make_clust_brute.cpp
 	$(CC) -o bruteclust $(SOURCEDIR)/make_clust_brute.cpp; mv bruteclust $(INSTALLDIR)
