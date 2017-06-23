@@ -1,11 +1,4 @@
-#include <iostream>
-#include <fstream>
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string>
-#include <vector>
-#include "6dimprobable.h"
+#include "probable.h"
 
 using namespace std;
 
@@ -32,11 +25,11 @@ void point::set_point(const point &p) {
         x[i] = p.x[i];
     }
 }
-/*
-point::~point () {
+
+/*point::~point () {
     delete x;
-}
-*/
+}*/
+
 void point::zeros() {
     for (int i = 0; i < dim; i++) {
         x[i] = 0;
@@ -51,32 +44,23 @@ void point::ones() {
 
 void point::print_point() {
     for (int i = 0; i < dim; i++) {
-        //std::cout << x[i] << "\t";
+        cout << x[i] << "\t";
     }
-    //std::cout << std::endl;
+    cout << endl;
 }
 
 
 double dist(const point &p, const point &q) {
     if (p.dim != q.dim) {
-        //std::cerr << "Dimensions of points do not match in distance comparison!!\n";
-        //std::exit(EXIT_FAILURE);
+        cerr << "Dimensions of points do not match in distance comparison!!\n";
+        exit(EXIT_FAILURE);
     }
     double distance = 0.0;
-    double qdistance = 0.0;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < p.dim; i++) {
         distance += pow((p.x[i] - q.x[i]), 2);
     }
     double large = 10000;
     if (distance == 0) return large;
-    for (int i = 3; i < 7; i++) {
-        qdistance += p.x[i]*q.x[i];
-    }
-    qdistance = 2*acos(qdistance);
-    qdistance = qdistance*qdistance;
-    distance = distance+qdistance;
-    if (distance == 0) return large;
-    //distance = sqrt(distance)
     return sqrt(distance);
 
 }
@@ -115,60 +99,16 @@ void boxnode::set_boxnode(point mylo, point myhi, int mymom, int myd1, int myd2,
 
 double dist(const boxnode &b, const point &p) {
     double distance = 0.0;
-    //double qdistance = 0.0;
     if (p.dim != b.lo.dim || p.dim != b.hi.dim) {
-        //std::cerr << "Point and Box Points do not have the same dimensionality in distance calculation!!\n";
-        //std::exit(EXIT_FAILURE);
+        cerr << "Point and Box Points do not have the same dimensionality in distance calculation!!\n";
+        exit(EXIT_FAILURE);
     }
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < p.dim; i++) {
         if (p.x[i] < b.lo.x[i]) distance += pow((p.x[i]-b.lo.x[i]), 2);
         if (p.x[i] > b.hi.x[i]) distance += pow((p.x[i]-b.hi.x[i]), 2);
     }
-
-    /*
-        Cludge wherein q distance is ignored for box locations.
-    */
-
-    //for (int i = 3; i < 7; i++) {
-    //    if (p.x[i] < b.lo.x[i]) qdistance += p.x[i]*b.lo.x[i];
-    //    if (p.x[i] > b.hi.x[i]) qdistance += p.x[i]*b.hi.x[i];
-    //}
-
-    //qdistance = 2*acos(qdistance);
-    //qdistance = qdistance*qdistance;
-
-    //for (int i = 0; i < 3; i++) {
-    //    distance = pow((p.))
-    //}
-
-    //distance = distance+qdistance;
-
     return sqrt(distance);
     //This will return 0 if the point is in the box
-
-    /*
-        if (p.dim != q.dim) {
-        //std::cerr << "Dimensions of points do not match in distance comparison!!\n";
-        //std::exit(EXIT_FAILURE);
-    }
-    double distance = 0.0;
-    double qdistance = 0.0;
-    for (int i = 0; i < 3; i++) {
-        distance += pow((p.x[i] - q.x[i]), 2);
-    }
-    double large = 10000;
-    if (distance == 0) return large;
-    for (int i = 3; i < 7; i++) {
-        qdistance += p.x[i]*q.x[i];
-    }
-    qdistance = 2*acos(qdistance);
-    qdistance = qdistance*qdistance;
-    distance = distance+qdistance;
-    if (distance == 0) return large;
-    //distance = sqrt(distance)
-    return sqrt(distance);
-
-    */
 }
 
 int selecti(const int k, int *indx, int n, double *arr) {
@@ -251,19 +191,6 @@ kdtree::kdtree(std::vector< double > &vals) {
             pts[foo].x[2] = vals[i];
             //minn[2] = min(minn[2], vals[i]);
             //maxx[2] = max(maxx[2], vals[i]);
-            //foo++;
-        }
-        if (i%D==3) {
-            pts[foo].x[3] = vals[i];
-        }
-        if (i%D==4) {
-            pts[foo].x[4] = vals[i];
-        }
-        if (i%D==5) {
-            pts[foo].x[5] = vals[i];
-        }
-        if (i%D==6) {
-            pts[foo].x[6] = vals[i];
             foo++;
         }
     }
@@ -407,7 +334,6 @@ kdtree::~kdtree () {
     delete dn;
     delete nd;
     delete coord;
-    delete pts;
     //delete within1;
 }
 
@@ -542,10 +468,6 @@ void kdtree::sift_down(double* heap, int* ndx, int nn) {
 int kdtree::locatenear(point pt, double r, int *v, int nmax) {
     /*
         This fuction returns all the points within some distance of a target point. I dont think we will ever use it.
-
-        v is an array that will contain the point index's
-        nmax is the maximum number of points near that it can give, literally will stop when reached
-        r is the distance
     */
     int k, i, nb, nbold, nret, ntask, jdim, d1, d2;
     int task[50];
@@ -588,3 +510,165 @@ int kdtree::locatenear(point pt, double r, int *v, int nmax) {
     }
     return nret;
 }
+/*
+double kdtree::run_tree() {
+    //ofstream output;
+    //output.open(OUT.c_str());
+    //output.precision(16);
+    //cout << "run tree start" << endl;
+    double gd = 0;
+    double s = 0.0;
+    double T = 300.;
+    double R = 8.314472;
+    double pi = 3.14159265359;
+    double cenndist = 10000;
+    int npts2 = 0;
+    int fcount = 10000;
+    for (int i = 0; i < npts; i++) {
+        //if (pts[i].x[0] > maxx[0]-5 || pts[i].x[0] < minn[0]+5 || pts[i].x[1] > maxx[1]-5 || pts[i].x[1] < minn[1]+5 || pts[i].x[2] > maxx[2]-5 || pts[i].x[2] < minn[2]+5) {
+        //    continue;
+        //}
+        //else {
+        cenndist = pow((pts[i].x[0] - cenn[0]), 2) + pow((pts[i].x[1] - cenn[1]), 2) + pow((pts[i].x[2] - cenn[2]), 2);
+        //if (abs(pts[i].x[0] - cenn[0]) < 1 && abs(pts[i].x[1] - cenn[1]) < 1 && abs(pts[i].x[2] - cenn[2]) < 1) {
+        if (cenndist <= 1) {
+            nnearest(i, nd, dn, 1);
+            //cout << dn[0] << endl;
+            gd += log((0.0329223149*fcount*4*pi*pow(dn[0], 3))/3);
+            npts2++;
+        }
+    }
+    //cout << "\n\n";
+    //cout << gd << endl;
+    //cout << npts2 << endl;
+    s = R*T*0.239*(gd/npts2 + 0.5772156649)/1000;
+    //cout << s << endl;
+    return s;
+}
+*/
+double kdtree::run_tree_trans(std::vector<double > &cls) {
+    point pt;
+    double* dh;
+    int numvals = cls.size()/3;
+    dh = new double[numvals];
+    int vecpos = 0;
+    for (int i = 0; i < cls.size(); i+=3) {
+        //run through the vector of the acknowledged standard cluster file, skipping hydrogens until the end
+        pt.x[0] = cls[i]; pt.x[1] = cls[i+1]; pt.x[2] = cls[i+2];
+        dh[vecpos] = dnearest(pt);
+        vecpos++;
+    }
+
+    double gd = 0;
+    double s = 0.0;
+    double T = 300.;
+    double R = 8.314472;
+    double pi = 3.14159265359;
+
+    int fcount = 10000;
+
+    for (int i = 0; i < numvals; i++) {
+        gd += log((0.0329223149*fcount*4*pi*pow(dh[i], 3))/3);
+    }
+
+    s = R*T*0.239*(gd/numvals + 0.5772156649)/1000;
+
+    delete dh;
+    return s;
+}
+
+double kdtree::run_tree_orient() {
+    //ofstream ori("orientdists.txt"); ori.precision(16);
+    double gd = 0;
+    double s = 0.0;
+    double T = 300.;
+    double R = 8.314472;
+    double pi = 3.14159265359;
+    double de = 10000;
+    point z;
+    for (int i = 0; i < npts; i++) {
+        nnearest(i, nd, dn, 1);
+        //in order to implement this need to use a function which takes a point and returns a distance.
+        //dnearest from before.
+        if (pts[i].x[0] > pi/2) {
+            z.x[0] = pts[i].x[0] - 2*pi;
+            z.x[1] = pts[i].x[1];
+            z.x[2] = pts[i].x[2];
+            de = dnearest(z);
+            if (de < dn[0] && de != 0) {
+                dn[0] = de;
+            }
+        }
+        else if (pts[i].x[0] < -pi/2) {
+            z.x[0] = pts[i].x[0] + 2*pi;
+            z.x[1] = pts[i].x[1];
+            z.x[2] = pts[i].x[2];
+            de = dnearest(z);
+            if (de < dn[0] && de != 0) {
+                dn[0] = de;
+            }
+        }
+        else if (pts[i].x[1] > pi/2) {
+            z.x[0] = pts[i].x[0];
+            z.x[1] = pts[i].x[1] - 2*pi;
+            z.x[2] = pts[i].x[2];
+            de = dnearest(z);
+            if (de < dn[0] && de != 0) {
+                dn[0] = de;
+            }
+        }
+        else if (pts[i].x[1] < -pi/2) {
+            z.x[0] = pts[i].x[0];
+            z.x[1] = pts[i].x[1] + 2*pi;
+            z.x[2] = pts[i].x[2];
+            de = dnearest(z);
+            if (de < dn[0] && de != 0) {
+                dn[0] = de;
+            }
+        }
+        else if (pts[i].x[2] > pi/2) {
+            z.x[0] = pts[i].x[0];
+            z.x[1] = pts[i].x[1];
+            z.x[2] = pts[i].x[2] - 2*pi;
+            de = dnearest(z);
+            if (de < dn[0] && de != 0) {
+                dn[0] = de;
+            }
+        }
+        else if (pts[i].x[2] < -pi/2) {
+            z.x[0] = pts[i].x[0];
+            z.x[1] = pts[i].x[1];
+            z.x[2] = pts[i].x[2] + 2*pi;
+            de = dnearest(z);
+            if (de < dn[0] && de != 0) {
+                dn[0] = de;
+            }
+        }
+        //ori << dn[0] << endl;
+        gd += log((pow(dn[0], 3)*npts)/(6*pi));
+    }
+    //cout << gd << endl;
+    //cout << npts << endl;
+    s = R*T*0.239*(gd/npts + 0.5772156649)/1000;
+    //cout << s << endl;
+    return s;
+}
+
+/*void kdtree::run_locate() {
+    double dn = BIG;
+    double d;
+    int nr = 0;
+    for (int i = 0; i < npts; i++) {
+        nr = locatenear(pts[i], 0.25, within1, 3000);
+        //cout << nr << endl;
+        for (int j = 0; j < nr; j++) {
+            d = disti(i, within1[j]);
+            if (d < dn) {
+                dn = d;
+            }
+        }
+        //cout << dn << endl;
+    }
+}*/
+
+

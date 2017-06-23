@@ -1,60 +1,104 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <vector>
-#include <math.h>
-#include "6dimprobable.h"
-#include <Python.h>
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+/*
+ * File:   main.cpp
+ * Author: stevenramsey
+ *
+ * Created on March 16, 2016, 9:06 AM
+ */
+
+
+#include "probable.h"
 
 using namespace std;
 
-
-extern "C" {
-    DL_EXPORT(void) init_sstmap_probableconfig();
-}
-
-void sixdimprob(string infile) {
-    /*
+int main(int argc, char** argv) {
     if (argc <= 1) {
         cerr << "\nUSAGE:\n\n"
-        << "./6dimprob [-i inputfile]\n\n"
+        << "./probable [-i inputfile][-o outfile]\n\n"
         << "where\n\n"
-        << "inputfile is the file to read from (standard cluster)\n\n";
-        //<< "x coordinate of center is from clustercenterfile\n"
-        //<< "y coordinate of center is from clustercenterfile\n"
-        //<< "z coordinate of center is from clustercenterfile\n\n";
+        << "inputfile is the file to read from (a clusterfile with hydrogen atoms)\n"
+        << "outfile is an outfile to append probable configs to\n"
+        <<        "\t if not specified will be printed to probable.pdb \n\n";
         exit(0);
     }
-    */
-    //double s = 0;
 
-    ofstream probout("probcenters.pdb", ios::app);
+    double s = 0;
 
 
     clock_t t;
     t = clock();
-    int i = 0; 
-    /*   
+    int i = 0; string infile; string outfile;
     while (i<argc) {
         if (!strcmp(argv[i], "-i")) {
             infile = argv[++i];
         }
+        if (!strcmp(argv[i], "-o")) {
+            outfile = argv[++i];
+        }
         i++;
     }
-    */
+
     if (infile.empty()) {
         cerr << "infile needs to be defined\n"
         << "For full run instructions run executable with no arguments\n\n";
         exit(0);
     }
+    if (outfile.empty()) {
+        cerr << "outfile needs to be defined\n"
+        << "For full run instructions run executable with no arguments\n\n";
+        exit(0);
+    }
 
+
+    FILE * pFile;
+    pFile = fopen(outfile.c_str(), "a");
+    //fprintf (pFile, "%-6s%5i %-4s %3s %1s%4i    %8.3f%8.3f%8.3f%6.2f%6.2f\n", name.c_str(), pos, atom.c_str(), resname.c_str(), chainid.c_str(), resseq, vals[0], vals[1], vals[2], data[pos], T);
+
+
+
+    vector<double > tmp;
     double temp;
     string strtemp;
-    
-    vector<double > tmp4; //tmp4 contains all water atom coordinates
+    /*
+    ifstream input(expfile.c_str());
+    //getline(input, strtemp); //skip header
+    while (!input.eof()) {
+        getline(input, strtemp);
+        if (!strtemp.empty()) {
+            temp = atof(strtemp.substr(31, 7).c_str());
+            tmp.push_back(temp);
+            temp = atof(strtemp.substr(39, 7).c_str());
+            tmp.push_back(temp);
+            temp = atof(strtemp.substr(47, 7).c_str());
+            tmp.push_back(temp);
+        }
+    }
+    vector<double > tmp2;
+    for (int i = 0; i < tmp.size(); i++) {
+        if (i%9 == 0 || i%9==1 || i%9==2) {
+            tmp2.push_back(tmp[i]);
+        }
+    }
+     * /
+    /*
+    ofstream tout("test.dat"); tout.precision(16);
+    tout << tmp2.size() << endl;
+    for (int i = 0; i < tmp2.size(); i++) {
+        tout << tmp2[i] << "\t";
+        if (i%3== 2 && i!=0) {
+            tout << endl;
+        }
+    }
+    */
+    //kdtree trans(tmp2);
+    //cout << "made trans tree" << endl;
+
+    vector<double > tmp4;
     ifstream stput(infile.c_str());
     getline(stput, strtemp); //skip header
     while (!stput.eof()) {
@@ -62,26 +106,46 @@ void sixdimprob(string infile) {
         if (!strtemp.empty()) {
             temp = atof(strtemp.substr(31, 7).c_str());
             tmp4.push_back(temp);
+            tmp.push_back(temp);
             temp = atof(strtemp.substr(39, 7).c_str());
             tmp4.push_back(temp);
+            tmp.push_back(temp);
             temp = atof(strtemp.substr(47, 7).c_str());
             tmp4.push_back(temp);
+            tmp.push_back(temp);
         }
     }
-    vector<double> tmp2; //storage for waters before adjusted for angles
-    vector<double > tmp5; //tmp5 contains the oxygen x y z
+    vector<double > tmp5;
     for (int i = 0; i < tmp4.size(); i++) {
         if (i%9 == 0 || i%9 == 1 || i%9 == 2) {
             tmp5.push_back(tmp4[i]);
         }
-        tmp2.push_back(tmp4[i]);
     }
 
- 
+    kdtree trans(tmp5);
+    int transi = 0; //index of closest trans
+    int* indt;
+    indt = new int[1];
+    double* distt;
+    distt = new double[1];
+    double winner = 10000.00;
+    for (i = 0; i < trans.npts; i++) {
+        trans.nnearest(i, indt, distt, 1);
+        if (distt[0] < winner) {
+            winner = distt[0];
+            transi = indt[0];
+        }
+    }
+
+    delete distt;
+    delete indt;
+    //s = trans.run_tree_trans(tmp5);
+    //transout << s << endl;
+    //transout.close();
     /*
-        Begin euler angle (quaternion) code
+        Begin orientational code
     */
-    vector<double > tmp3; //will contain the quaternion description of the waters orientation
+    vector<double > tmp3;
     double pi = 3.14159265359; double cenndist = 10000;
     int x_ref[3]; int y_ref[3]; int z_ref[3];
     x_ref[0] = 1; x_ref[1] = 0; x_ref[2] = 0;
@@ -224,149 +288,109 @@ void sixdimprob(string infile) {
         e[2]= q[0]*q2[2]  -  q[1]*q2[3]  +  q[2]*q2[0]  +  q[3]*q2[1];
         e[3]= q[0]*q2[3]  +  q[1]*q2[2]  -  q[2]*q2[1]  +  q[3]*q2[0];
 
-        tmp3.push_back(e[0]); tmp3.push_back(e[1]); tmp3.push_back(e[2]); tmp3.push_back(e[3]);
-
-        
+        singtest=((e[1]*e[2]) + (e[3]*e[0]));
+        if (singtest > 0.4999) {
+            tmp3.push_back(sin(pi/2));
+            tmp3.push_back(0);
+            tmp3.push_back(2*atan2(e[1],e[0]));
+        }
+        else if (singtest < -0.4999) {
+            tmp3.push_back(sin(pi/-2));
+            tmp3.push_back(0);
+            tmp3.push_back(-2*atan2(e[1], e[0]));
+        }
+        else {
+            tmp3.push_back(sin(asin(2*singtest)));
+            tmp3.push_back(atan2(((2*e[1]*e[0])-(2*e[2]*e[3])) , (1 - (2*pow(e[1],2)) - (2*pow(e[3],2)))));
+            tmp3.push_back(atan2(((2*e[2]*e[0])-(2*e[1]*e[3])) , (1 - (2*pow(e[2],2)) - (2*pow(e[3],2)))));
+        }
     }
-    
+    kdtree orient(tmp3);
+    //s = orient.run_tree_orient();
+    //orientout << s << endl;
+    //orientout.close();
+    int orienti = 0; //index of closest orient
+    int* indo;
+    indo = new int[1];
+    double* disto;
+    disto = new double[1];
+    winner = 10000.00;
+    for (i = 0; i < orient.npts; i++) {
+        orient.nnearest(i, indo, disto, 1);
+        if (disto[0] < winner) {
+            winner = disto[0];
+            orienti = indo[0];
+        }
+    }
+
+    delete disto;
+    delete indo;
+
     /*
-        At this point we have tmp3 with quaternion values and tmp5 with oxygen coordinates
-    */ 
+        Determined the best water orientation as orienti in array of pts
+     *  Best oxygen position is the position of water at transi in pts
+     *   need to find oxygen position of water with orienti in tmp array
+     *      tmp array is for each water 9
+     *        therefore position of oxygen is orienti * 9, orienti*9 + 1, and orienti*9 +2
+     *   need to find distance of that water to transi
+     *   translate
+     */
 
-    vector<double> tmp;
+    double orientO_x = tmp[orienti*9];
+    double orientO_y = tmp[orienti*9 + 1];
+    double orientO_z = tmp[orienti*9 + 2];
+    double orientH1_x = tmp[orienti*9 + 3];
+    double orientH1_y = tmp[orienti*9 + 4];
+    double orientH1_z = tmp[orienti*9 + 5];
+    double orientH2_x = tmp[orienti*9 + 6];
+    double orientH2_y = tmp[orienti*9 + 7];
+    double orientH2_z = tmp[orienti*9 + 8];
 
-    if (tmp5.size()/3 != tmp3.size()/4) {
-        cout << "Somehow we have a different number of orientations than positions, back to the drawing board boys!\n\n";
-    }
-    
-    for (int i = 0; i < tmp5.size(); i+=3) {
-        int watpos = 0;
-        tmp.push_back(tmp5[i]);
-        tmp.push_back(tmp5[i+1]);
-        tmp.push_back(tmp5[i+2]);
-        watpos = i/3;
-        watpos = watpos*4;
-        tmp.push_back(tmp3[watpos]);
-        tmp.push_back(tmp3[watpos+1]);
-        tmp.push_back(tmp3[watpos+2]);
-        tmp.push_back(tmp3[watpos+3]);
+    string name = "ATOM";
+    string atom = "O";
+    string chainid = "X";
+    int resseq = 1;
+    string resname = "T3P";
+    string testfile = "test.pdb";
+    //FILE * tFile;
+    //tFile = fopen(testfile.c_str(), "a");
+    //fprintf (tFile, "%-6s%5i %-4s %3s %1s%4i    %8.3f%8.3f%8.3f%6.2f%6.2f\n", name.c_str(), i, atom.c_str(), resname.c_str(), chainid.c_str(), resseq, orientO_x, orientO_y, orientO_z, 0.0, 0.0);
+    //fprintf (tFile, "%-6s%5i %-4s %3s %1s%4i    %8.3f%8.3f%8.3f%6.2f%6.2f\n", name.c_str(), i, "H", resname.c_str(), chainid.c_str(), resseq, orientH1_x, orientH1_y, orientH1_z, 0.0, 0.0);
+    //fprintf (tFile, "%-6s%5i %-4s %3s %1s%4i    %8.3f%8.3f%8.3f%6.2f%6.2f\n", name.c_str(), i, "H", resname.c_str(), chainid.c_str(), resseq, orientH2_x, orientH2_y, orientH2_z, 0.0, 0.0);
 
-    }
 
-    kdtree friendlytree(tmp);
+    double transO_x = trans.pts[transi].x[0];
+    double transO_y = trans.pts[transi].x[1];
+    double transO_z = trans.pts[transi].x[2];
 
-    point pt; double* dists; int* winners;
+    double distx = (transO_x - orientO_x);
+    double disty = (transO_y - orientO_y);
+    double distz = (transO_z - orientO_z);
 
-    dists = new double[3];
-    winners = new int[3];
-    
-    double dtemp;
-    double windist = 10000;
-    double winner[9];
-
-    for (int i = 0; i < tmp.size(); i+=7) {
-        pt.x[0] =  tmp[i];
-        pt.x[1] =  tmp[i+1];
-        pt.x[2] =  tmp[i+2];
-        pt.x[3] =  tmp[i+3];
-        pt.x[4] =  tmp[i+4];
-        pt.x[5] =  tmp[i+5];
-        pt.x[6] =  tmp[i+6];
-        int watpos = i/7;
-        friendlytree.nnearest(watpos, winners, dists, 3);
-        watpos = watpos*9;
-        for (int j = 0; j < 3; j++) {
-            dtemp += dists[j];
+    orientO_x += distx;
+    orientO_y += disty;
+    orientO_z += distz;
+    orientH1_x += distx;
+    orientH1_y += disty;
+    orientH1_z += distz;
+    orientH2_x += distx;
+    orientH2_y += disty;
+    orientH2_z += distz;
+    double ox = 0.0, oy = 0.0, oz = 0.0;
+    for (i = 0; i < 3; i++) {
+        if (i > 0) {atom = "H";}
+        if (i == 0) {
+            ox = orientO_x; oy = orientO_y; oz = orientO_z;
         }
-        dtemp = dtemp/3;
-        if (dtemp < windist) {
-            windist = dtemp;
-            winner[0] = tmp2[watpos];
-            winner[1] = tmp2[watpos+1];
-            winner[2] = tmp2[watpos+2];
-            winner[3] = tmp2[watpos+3];
-            winner[4] = tmp2[watpos+4];
-            winner[5] = tmp2[watpos+5];
-            winner[6] = tmp2[watpos+6];
-            winner[7] = tmp2[watpos+7];
-            winner[8] = tmp2[watpos+8];
-
+        if (i == 1) {
+            ox = orientH1_x; oy = orientH1_y; oz = orientH1_z;
         }
-        
-
+        if (i == 2){
+            ox = orientH2_x; oy = orientH2_y; oz = orientH2_z;
+        }
+        fprintf (pFile, "%-6s%5i %-4s %3s %1s%4i    %8.3f%8.3f%8.3f%6.2f%6.2f\n", name.c_str(), i, atom.c_str(), resname.c_str(), chainid.c_str(), resseq, ox, oy, oz, 0.0, 0.0);
     }
-
-    char fileName[80];
-    sprintf(fileName, "temp.dat");
-
-    int pos = 0;
-    FILE * pFile;
-    pFile = fopen(fileName, "w");
-    //Define the pdb file stuff
-    string name = "ATOM"; string atom = "H"; string resname = "T3P"; string chainid = "C"; int resseq = 1; double occupancy = 0.0; double T = 0.0;
-    fprintf (pFile, "%-6s%5i %-4s %3s %1s%4i    %8.3f%8.3f%8.3f%6.2f%6.2f\n", name.c_str(), pos/1000, "O", resname.c_str(), chainid.c_str(), 0, winner[0], winner[1], winner[2], occupancy, T);
-    fprintf (pFile, "%-6s%5i %-4s %3s %1s%4i    %8.3f%8.3f%8.3f%6.2f%6.2f\n", name.c_str(), pos/1000, atom.c_str(), resname.c_str(), chainid.c_str(), 0, winner[3], winner[4], winner[5], occupancy, T);
-    fprintf (pFile, "%-6s%5i %-4s %3s %1s%4i    %8.3f%8.3f%8.3f%6.2f%6.2f\n", name.c_str(), pos/1000, atom.c_str(), resname.c_str(), chainid.c_str(), 0, winner[6], winner[7], winner[8], occupancy, T);
-
-    fclose(pFile);
-
-    string stemp;    
-    ifstream input("temp.dat");
-    getline(input, stemp); 
-    probout << stemp << endl;
-    getline(input, stemp); 
-    probout << stemp << endl;
-    getline(input, stemp); 
-    probout << stemp << endl;
-
-    delete dists;
-    delete winners;
-    input.close();
-    probout.close();
-}
-
-
-static PyObject * _sstmap_probableconfig_run6dimprob(PyObject * self, PyObject * args)
-{
-    char* standard_cluster_file;
-    if (!PyArg_ParseTuple(args, "s",
-                            &standard_cluster_file))
-        {
-            return NULL; /* raise argument parsing exception*/
-        }
-        string std_cluster_file (standard_cluster_file);
-        sixdimprob(std_cluster_file);
-    return Py_BuildValue("i", 1);
-
 }
 
 
 
-
-/* List of functions defined in the module */
-
-static PyMethodDef _sstmap_probableconfig_methods[] = {
-    {
-        "run_6dimprob",
-        (PyCFunction)_sstmap_probableconfig_run6dimprob,
-        METH_VARARGS,
-        "Run 6dimprobable"
-
-    },
-    {NULL, NULL}       /* sentinel */
-};
-
-
-/* Initialization function for the module (*must* be called initflp) */
-
-DL_EXPORT(void) init_sstmap_probableconfig(void)
-{
-    PyObject *m;
-
-    /* Initialize the type of the new type object here; doing it here
-     * is required for portability to Windows without requiring C++. */
-    //Flp_Type.ob_type = &PyType_Type;
-
-    /* Create the module and add the functions */
-    m = Py_InitModule("_sstmap_probableconfig", _sstmap_probableconfig_methods);
-}
