@@ -33,60 +33,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
+#include <math.h>
+#include "_sstmap_ext.h"
 
 
-double dist_mic(double x1, double x2, double x3, double y1, double y2, double y3, double b1, double b2, double b3) {
-    /* Method for obtaining inter atom distance using minimum image convention
-     */
-    //printf("x1: %f, x2: %f, x3: %f\n", x1, x2, x3);
-    //printf("y1: %f, y2: %f, y3: %f\n", y1, y2, y3);
-    double dx, dy, dz;
-    dx = x1-y1;
-    dy = x2-y2;
-    dz = x3-y3;
-    //printf("dx: %f, dy: %f, dz: %f\n", dx, dy, dz);
-    //printf("bx: %f, by: %f, bz: %f\n", b1/2.0, b2/2.0, b3/2.0);
-    if (dx > b1/2.0) dx -= b1;
-    else if (dx < -b1/2.0) dx += b1;
-    if (dy > b2/2.0) dy -= b2;
-    else if (dy < -b2/2.0) dy += b2;
-    if (dz > b3/2.0) dz -= b3;
-    else if (dz < -b3/2.0) dz += b3;
-    //printf("dist = %f", sqrt(pow(dx, 2) + pow(dy, 2) + pow(dz, 2)));
-    return 1.0/(sqrt((dx*dx) +(dy*dy) + (dz*dz)));
-    }
+using namespace std;
 
-double dist_mic_squared(double x1, double x2, double x3, double y1, double y2, double y3, double b1, double b2, double b3) {
-    /* Method for obtaining inter atom distance using minimum image convention
-     */
-    //printf("x1: %f, x2: %f, x3: %f\n", x1, x2, x3);
-    //printf("y1: %f, y2: %f, y3: %f\n", y1, y2, y3);
-    double dx, dy, dz;
-    dx = x1-y1;
-    dy = x2-y2;
-    dz = x3-y3;
-    //printf("dx: %f, dy: %f, dz: %f\n", dx, dy, dz);
-    //printf("bx: %f, by: %f, bz: %f\n", b1/2.0, b2/2.0, b3/2.0);
-    if (dx > b1/2.0) dx -= b1;
-    else if (dx < -b1/2.0) dx += b1;
-    if (dy > b2/2.0) dy -= b2;
-    else if (dy < -b2/2.0) dy += b2;
-    if (dz > b3/2.0) dz -= b3;
-    else if (dz < -b3/2.0) dz += b3;
-    //printf("dist = %f", sqrt(pow(dx, 2) + pow(dy, 2) + pow(dz, 2)));
-    return (dx*dx) + (dy*dy) + (dz*dz);
-    }
 
-double dist(double x1, double x2, double x3, double y1, double y2, double y3) {
-    /* Method for Euclidean distance between two points
-     */
-    double dx, dy, dz;
-    dx = x1-y1;
-    dy = x2-y2;
-    dz = x3-y3;
-    //printf("dist = %f", sqrt(pow(dx, 2) + pow(dy, 2) + pow(dz, 2)));
-    return sqrt(pow(dx, 2)+ pow(dy, 2)+ pow(dz, 2));
-    }
+extern "C" {
+    DL_EXPORT(void) init_sstmap_ext();
+}
 
 /*
 Calculates electrostatic energy of a query water molecule against a set of target atoms
@@ -180,6 +137,8 @@ PyObject *_sstmap_ext_assign_voxels(PyObject *self, PyObject *args)
                         //printf("wat_data: %d %d %d\n", voxel_id, *(int *)PyArray_GETPTR1(wat_data, 0), *(int *)PyArray_GETPTR1(wat_data, 1));
                         curr_voxel = PyList_GetItem(frame_data, i_frame);
                         PyList_Append(curr_voxel, wat_data);
+                        //free(curr_voxel);
+                        //free(wat_data);
                     }
                 }
             }
@@ -237,7 +196,7 @@ PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
             //printf("Iterator: %d, atom id: %d\n", target_at, target_at_id);
             //printf("Water atom coords %f %f %f\n", *wat_x, *wat_y, *wat_z);
             //printf("Target atom coords %f %f %f\n", *target_at_x, *target_at_y, *target_at_z);
-            d = dist_mic_squared(*wat_x, *wat_y, *wat_z, *target_at_x, *target_at_y, *target_at_z, *b_x, *b_y, *b_z);
+            d = dist_mic(*wat_x, *wat_y, *wat_z, *target_at_x, *target_at_y, *target_at_z, *b_x, *b_y, *b_z);
             //printf("Distance between %d and %d = %3.2f\n", wat_atom_id, target_at_id, d);
             *(double *)PyArray_GETPTR2(dist_array, wat_atom, target_at) += d;
         }
@@ -343,7 +302,6 @@ PyObject *_sstmap_ext_getNNTrEntropy(PyObject *self, PyObject *args)
     return Py_BuildValue("f", voxel_dTStr);
 }
 
-
 PyObject *_sstmap_ext_get_dist_matrix(PyObject *self, PyObject *args)
 {
     int nwtot, n, l;
@@ -379,64 +337,6 @@ PyObject *_sstmap_ext_get_dist_matrix(PyObject *self, PyObject *args)
     return Py_BuildValue("i", 1);
 }
 
-PyObject *_sstmap_ext_calculate_energy(PyObject *self, PyObject *args)
-{
-    PyArrayObject *dist, *chg, *acoeff, *bcoeff;
-    int solvent_at_sites, n_atoms, wat, i, j, at_i;
-    double *d, *a, *b, *c;
-    double d_sqrt, d_inv, d6, d12;
-    //PyObject* nbrs = PyList_New(100);
-
-    if (!PyArg_ParseTuple(args, "iO!O!O!O!",
-        &wat,
-        &PyArray_Type, &dist,
-        &PyArray_Type, &chg,
-        &PyArray_Type, &acoeff,
-        &PyArray_Type, &bcoeff))
-    {
-        return NULL;
-    }
-
-    solvent_at_sites = PyArray_DIM(dist, 0);
-    n_atoms = PyArray_DIM(dist, 1);
-    //printf("The number of solvent atoms = %i\n", solvent_at_sites);
-    //printf("The number of target atoms  = %i\n", n_atoms);
-
-    // for each water in the voxel
-    for (i = 0; i < solvent_at_sites; i++)
-    {
-        at_i = wat + i;
-        for (j = 0; j < n_atoms; j++)
-        {
-            if (at_i == j) continue;
-            d = (double *) PyArray_GETPTR2(dist, i, j);
-            a = (double *) PyArray_GETPTR2(acoeff, i, j);
-            b = (double *) PyArray_GETPTR2(bcoeff, i, j);
-            c = (double *) PyArray_GETPTR2(chg, i, j);
-            //printf("Acoeff between %i and %i is %f\n", at_i, j, *a);
-            //printf("Bcoeff between %i and %i is %f\n", at_i, j, *b);
-            //printf("CHP between %i and %i is %f\n", i, j, *c);
-            d_sqrt = sqrt(*d);
-            d_inv = 1.0 / *d;
-            d6 = d_inv * d_inv * d_inv;
-            d12 = d6 * d6;
-            //e_vdw += (*a * d12) + (*b * d6);
-            //e_elec += *c * 1/d_sqrt;
-            *a *= d12;
-            *a -= (*b * d6);
-            *c /= d_sqrt;
-            //if (at_i > 4614 && j >= 4614)
-            //{
-            //    printf("Dist of elec energy between %i and %i is %f\n", at_i, j, d_sqrt);
-            //    //printf("Pairwise elec energy between %i and %i is %f\n", at_i, j, *c);
-            //}
-        }
-    }
-
-    return Py_BuildValue("i", 1);
-
-}
-
 
 /* Method Table
  * Registering all the functions that will be called from Python
@@ -454,7 +354,7 @@ static PyMethodDef _sstmap_ext_methods[] = {
         "get_pairwise_distances",
         (PyCFunction)_sstmap_ext_get_pairwise_distances,
         METH_VARARGS,
-        "get distance matrix"
+        "Process grid"
     },
 
     {
@@ -470,12 +370,7 @@ static PyMethodDef _sstmap_ext_methods[] = {
         METH_VARARGS,
         "get voxel entropy"
     },  
-    {
-        "calculate_energy",
-        (PyCFunction)_sstmap_ext_calculate_energy,
-        METH_VARARGS,
-        "get energy"
-    },
+      
     {
         "get_dist_matrix",
         (PyCFunction)_sstmap_ext_get_dist_matrix,

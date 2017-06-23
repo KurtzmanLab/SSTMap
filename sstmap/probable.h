@@ -1,3 +1,18 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+/*
+ * File:   probable.h
+ * Author: stevenramsey
+ *
+ * Created on March 16, 2016, 9:06 AM
+ */
+
+#ifndef PROBABLE_H
+#define PROBABLE_H
 #include <iostream>
 #include <fstream>
 #include <math.h>
@@ -5,8 +20,10 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <string.h>
+#endif /* PROBABLE_H */
 
-static int D = 7;
+static int D = 3;
 
 struct point {
     int dim;
@@ -78,11 +95,12 @@ struct kdtree {
     static void sift_down(double *heap, int *ndx, int nn);
     int locatenear(point pt, double r, int *v, int nmax);
     //double run_tree();
-    //double run_tree_orient();
-    //double run_tree_trans(std::vector<double > &cls);
+    double run_tree_orient();
+    double run_tree_trans(std::vector<double > &cls);
     //void run_locate();
     //void print_boxes();
     //void print_tree(int y);
     //void print_box(int y);
 
 };
+
