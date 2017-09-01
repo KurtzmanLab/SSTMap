@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
 
     vector<double > tmp4;
     ifstream stput(infile.c_str());
-    getline(stput, strtemp); //skip header
+    //getline(stput, strtemp); //skip header
     while (!stput.eof()) {
         getline(stput, strtemp);
         if (!strtemp.empty()) {

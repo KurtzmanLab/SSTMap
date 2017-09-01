@@ -74,13 +74,13 @@ def print_progress_bar (count, total):
         Based on:
         http://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
     """
-    bar_len = 60
+    bar_len = 20
     filled_len = int(round(bar_len * count / float(total)))
 
     percents = round(100.0 * count / float(total), 1)
     bar = "=" * filled_len + ' ' * (bar_len - filled_len)
 
-    sys.stdout.write('Progress |%s| %s%s Done\r' % (bar, percents, '%'))
+    sys.stdout.write('Progress |%s| %s%s Done.\r' % (bar, percents, '%'))
     sys.stdout.flush()
     if count == total: 
         print
@@ -331,7 +331,7 @@ def read_gist_summary(gist_data_file):
     f.close()
     return hsa_data
 
-def write_watpdb_from_list(traj, filename, water_id_list, full_water_res=False):
+def write_watpdb_from_list(coords, filename, water_id_list, full_water_res=False):
     """Summary
     
     Parameters
@@ -352,17 +352,15 @@ def write_watpdb_from_list(traj, filename, water_id_list, full_water_res=False):
     TYPE
         Description
     """
-    
     pdb_line_format = "{0:6}{1:>5}  {2:<3}{3:<1}{4:>3} {5:1}{6:>4}{7:1}   {8[0]:>8.3f}{8[1]:>8.3f}{8[2]:>8.3f}{9:>6.2f}{10:>6.2f}{11:>12s}\n"
     ter_line_format = "{0:3}   {1:>5}      {2:>3} {3:1}{4:4} \n"
     pdb_lines = []
     # write form the list of (water, frame) tuples
-    coords = md.utils.in_units_of(traj.xyz, "nanometers", "angstroms")
     # at_index, wat in enumerate(water_id_list):
     at = 1
     res = 1
     with open(filename + ".pdb", 'w') as f:
-        for i in range(0,len(water_id_list)):
+        for i in range(len(water_id_list)):
             wat = water_id_list[i]
             at_index = at #% 10000
             res_index = res % 10000
@@ -404,7 +402,7 @@ def write_watpdb_from_list(traj, filename, water_id_list, full_water_res=False):
 
 
 
-def write_watpdb_from_coords(traj, filename, wat_coords):
+def write_watpdb_from_coords(filename, coords, full_water_res=False):
     """Summary
     
     Parameters
@@ -425,7 +423,59 @@ def write_watpdb_from_coords(traj, filename, wat_coords):
     TYPE
         Description
     """
-    
+
+    pdb_line_format = "{0:6}{1:>5}  {2:<3}{3:<1}{4:>3} {5:1}{6:>4}{7:1}   {8[0]:>8.3f}{8[1]:>8.3f}{8[2]:>8.3f}{9:>6.2f}{10:>6.2f}{11:>12s}\n"
+    ter_line_format = "{0:3}   {1:>5}      {2:>3} {3:1}{4:4} \n"
+    pdb_lines = []
+    # write form the list of (water, frame) tuples
+    # at_index, wat in enumerate(water_id_list):
+    at = 0
+    res = 0
+    wat_i = 0
+    with open(filename + ".pdb", 'w') as f:
+        f.write("REMARK Initial number of clusters: N/A\n")
+        while wat_i < len(coords):
+            at_index = at  # % 10000
+            res_index = res % 10000
+            # wat_coords = md.utils.in_units_of(
+            #    coords[wat[0], wat[1], :], "nanometers", "angstroms")
+            wat_coords = coords[wat_i]
+            # chain_id = possible_chains[chain_id_index]
+            chain_id = "A"
+            pdb_line = pdb_line_format.format(
+                "ATOM", at_index, "O", " ", "WAT", chain_id, res_index, " ", wat_coords, 0.00, 0.00, "O")
+            # pdb_lines.append(pdb_line)
+            f.write(pdb_line)
+            wat_i += 1
+            if full_water_res:
+                # H1_coords = md.utils.in_units_of(
+                #    coords[wat[0], wat[1] + 1, :], "nanometers", "angstroms")
+                H1_coords = coords[wat_i]
+                pdb_line_H1 = pdb_line_format.format("ATOM", at_index + 1, "H1", " ", "WAT", chain_id, res_index, " ",
+                                                     H1_coords, 0.00, 0.00, "H")
+                # pdb_lines.append(pdb_line_H1)
+                f.write(pdb_line_H1)
+                # H2_coords = md.utils.in_units_of(
+                #    coords[wat[0], wat[1] + 2, :], "nanometers", "angstroms")
+                H2_coords = coords[wat_i + 1]
+                pdb_line_H2 = pdb_line_format.format("ATOM", at_index + 2, "H2", " ", "WAT", chain_id, res_index, " ",
+                                                     H2_coords, 0.00, 0.00, "H")
+                # pdb_lines.append(pdb_line_H2)
+                f.write(pdb_line_H2)
+                at += 3
+                res += 1
+                wat_i += 2
+            else:
+                at += 1
+                res += 1
+            if res_index == 9999:
+                ter_line = ter_line_format.format("TER", at, "WAT", chain_id, res_index)
+                at = 1
+                # pdb_lines.append(ter_line)
+    # pdb_lines.append("END")
+    # np.savetxt(filename + ".pdb", np.asarray(pdb_lines), fmt="%s")
+
+    """
     pdb_line_format = "{0:6}{1:>5}  {2:<3}{3:<1}{4:>3} {5:1}{6:>4}{7:1}   {8[0]:>8.3f}{8[1]:>8.3f}{8[2]:>8.3f}{9:>6.2f}{10:>6.2f}{11:>12s}\n"
     ter_line_format = "{0:3}   {1:>5}      {2:>3} {3:1}{4:4} \n"
     pdb_lines = ["REMARK Initial number of clusters: N/A\n"]
@@ -445,6 +495,8 @@ def write_watpdb_from_coords(traj, filename, wat_coords):
     
     with open(filename + ".pdb", "w") as f:
         f.write("".join(pdb_lines))
+    
+    """
 
 class NeighborSearch(object):
     """

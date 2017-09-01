@@ -15,7 +15,7 @@
 #
 # This library is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURtrj.xyzE.  See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public
@@ -29,7 +29,6 @@ MD trajectories.
 import sys
 import numpy as np
 import mdtraj as md
-from memory_profiler import profile
 
 from sstmap.water_analysis import WaterAnalysis
 from sstmap.utils import print_progress_bar, function_timer
@@ -37,13 +36,13 @@ import _sstmap_ext as calc
 
 GASKCAL = 0.0019872041
 
-
 class GridWaterAnalysis(WaterAnalysis):
     @function_timer
     def __init__(self, topology_file, trajectory, start_frame=0, num_frames=0,
                  supporting_file=None, ligand_file=None,
                  grid_center=None, grid_dimensions=[5.0, 5.0, 5.0],
                  grid_resolution=[0.5, 0.5, 0.5], rho_bulk=None, prefix="test"):
+
         if num_frames is None:
             print("Number of frames not specified, setting to default, N=10000")
             num_frames = 10000
@@ -59,7 +58,7 @@ class GridWaterAnalysis(WaterAnalysis):
         if ligand_file is not None and grid_center is None:
             # TODO: change this as a utility function
             # get ligad center
-            lig = md.load_pdb(ligand_file)
+            lig = md.load_pdb(ligand_file, no_boxchk=True)
             com = np.zeros((lig.n_frames, 3))
             masses = np.ones(lig.n_atoms)
             masses /= masses.sum()
@@ -69,7 +68,7 @@ class GridWaterAnalysis(WaterAnalysis):
         # set 3D grid around the region of interest
         self.initialize_grid(grid_center, grid_resolution, grid_dimensions)
         # initialize data structures to store voxel data
-        self.voxeldata, self.voxeldict = self.initialize_voxel_data()
+        self.voxeldata, self.voxel_eulers = self.initialize_voxel_data()
         # print "Reading in trajectory ..."
         # self.trj = md.load(self.trajectory, top=self.paramname)[self.start_frame: self.start_frame + self.num_frames]
         # print "Done!"
@@ -104,10 +103,9 @@ class GridWaterAnalysis(WaterAnalysis):
         self.assign_hb_types()
 
     def initialize_voxel_data(self):
-        voxel_dict = []
         v_count = 0
         voxel_array = np.zeros((self.grid.size, 35), dtype="float64")
-        # print voxel_dict_new.shape
+        # print voxel_eulers_new.shape
         for index, value in np.ndenumerate(self.grid):
             # point = grid.pointForIndex(index) # get cartesian coords for the
             # grid point
@@ -118,14 +116,14 @@ class GridWaterAnalysis(WaterAnalysis):
             voxel_array[v_count, 2] = point[1]
             voxel_array[v_count, 3] = point[2]
             voxel_array[v_count, 0] = v_count
-            # print voxel_dict_new[v_count, 0], voxel_dict_new[v_count, 1],
-            # voxel_dict_new[v_count, 2]
+            # print voxel_eulers_new[v_count, 0], voxel_eulers_new[v_count, 1],
+            # voxel_eulers_new[v_count, 2]
             # create a dictionary key-value pair with voxel index as key and
             # it's coords as
-            voxel_dict.append([[]])
-            # voxel_dict[v_count].append(np.zeros(14, dtype="float64"))
+            # voxel_eulers[v_count].append(np.zeros(14, dtype="float64"))
             v_count += 1
-        return voxel_array, voxel_dict
+        voxel_eulers = [[] for i in xrange(voxel_array.shape[0])]
+        return voxel_array, voxel_eulers
 
     def calculate_euler_angles(self, water, coords):
 
@@ -169,7 +167,9 @@ class GridWaterAnalysis(WaterAnalysis):
         if theta > 1E-5 and theta < pi - 1E-5:
             # define a new vector which is perpendicular to both z-axes
             node = np.cross(zlab, zwat)
-            node *= 1 / (np.linalg.norm(node))
+            norm = np.linalg.norm(node)
+            if norm > 0.0:
+                node /= norm
             # get angle phi which is the angle between node and xlab
             dp = np.dot(node, xlab)
             if dp <= -1.0:
@@ -200,7 +200,7 @@ class GridWaterAnalysis(WaterAnalysis):
                     psi = twopi - psi
             if not theta <= pi and theta >= 0 and phi <= twopi and phi >= 0 and psi <= twopi and psi >= 0:
                 print("Error: Euler angles don't fall into range!")
-        self.voxeldict[voxel_id][0].append([theta, phi, psi])
+        self.voxel_eulers[voxel_id].append(np.asarray([theta, phi, psi]))
 
     @function_timer
     def calculate_entropy(self, num_frames=None):
@@ -217,7 +217,7 @@ class GridWaterAnalysis(WaterAnalysis):
                 self.voxeldata[voxel, 8] = self.voxeldata[voxel, 7] * num_frames * self.voxel_vol / (
                 1.0 * self.voxeldata[voxel, 4])
                 # print voxel, self.voxeldata[voxel, 7], self.voxeldata[voxel, 8]
-                angle_array = np.asarray(self.voxeldict[voxel][0])
+                angle_array = np.asarray(self.voxel_eulers[voxel])
                 # density-weighted orinet entropy
                 dTS_nn_or = calc.getNNOrEntropy(int(self.voxeldata[voxel, 4]), angle_array)
                 # normalized orientational entropy
@@ -232,31 +232,19 @@ class GridWaterAnalysis(WaterAnalysis):
                 # density-weighted trnaslationa entropy
                 # self.voxeldata[voxel, 7] = self.voxeldata[voxel, 8] * self.voxeldata[voxel, 4]/(self.num_frames * self.voxel_vol)
 
-    @function_timer
-    def calculate_grid_quantities(self, energy=True, entropy=True, hbonds=False, start_frame=None, num_frames=None):
 
+    def process_chunk(self, begin_chunk, chunk_size, topology, energy, hbonds, entropy):
         nbr_cutoff_sq = 3.5 ** 2
-        if start_frame is None:
-            start_frame = self.start_frame
-        if num_frames is None:
-            num_frames = self.num_frames
-
-        chunk_size = 1
-        if (start_frame + num_frames) <= chunk_size:
-            chunk_size = start_frame + num_frames
-
-        chunk_iter = int((start_frame + num_frames) / chunk_size)
-        chunk_iter += int((start_frame + num_frames) % chunk_size)
-        chunk_counter = 0
-        for trj in md.iterload(self.trajectory, top=self.topology_file, chunk=chunk_size):
-            chunk_counter += 1
-            #print "Processing frame: ", chunk_counter
-            pos = trj.xyz * 10.0
+        with md.open(self.trajectory) as f:
+            f.seek(begin_chunk)
+            trj = f.read_as_traj(topology, n_frames=chunk_size, stride=1)
+            trj.xyz *= 10.0
             pbc = md.utils.in_units_of(trj.unitcell_lengths, "nanometers", "angstroms")
             frame_data = [[] for i in range(trj.n_frames)]
-            calc.assign_voxels(pos, self.dims, self.gridmax, self.origin, frame_data, self.wat_oxygen_atom_ids)
+            calc.assign_voxels(trj.xyz, self.dims, self.gridmax, self.origin, frame_data, self.wat_oxygen_atom_ids)
+
             for frame in range(trj.n_frames):
-                coords = pos[frame, :, :].reshape(1, pos.shape[1], pos.shape[2])
+                coords = trj.xyz[frame, :, :].reshape(1, trj.xyz.shape[1], trj.xyz.shape[2])
                 periodic_box = pbc[frame].reshape(1, pbc.shape[1])
                 waters = frame_data[frame]
                 for wat in waters:
@@ -267,13 +255,13 @@ class GridWaterAnalysis(WaterAnalysis):
                         calc.get_pairwise_distances(wat, self.all_atom_ids, coords, pbc, distance_matrix)
                         wat_nbrs = self.wat_oxygen_atom_ids[np.where(
                             (distance_matrix[0, :][self.wat_oxygen_atom_ids] <= nbr_cutoff_sq) & (
-                            distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
+                                distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
                         self.voxeldata[wat[0], 17] += wat_nbrs.shape[0]
                         calc.calculate_energy(wat[1], distance_matrix, e_elec_array, e_lj_array, self.bcoeff)
                         self.voxeldata[wat[0], 11] += np.sum(e_lj_array[:, :self.wat_oxygen_atom_ids[0]])
                         self.voxeldata[wat[0], 11] += np.sum(e_elec_array[:, :self.wat_oxygen_atom_ids[0]])
                         self.voxeldata[wat[0], 13] += np.sum(
-                            e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_lj_array[:, wat[1] + 1:])
+                            e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_lj_array[:, wat[1] + self.water_sites:])
                         self.voxeldata[wat[0], 13] += np.sum(
                             e_elec_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(
                             e_elec_array[:, wat[1] + self.water_sites:])
@@ -328,10 +316,30 @@ class GridWaterAnalysis(WaterAnalysis):
                                     # self.voxeldata[wat[0], 21] += f_enc
                     if entropy:
                         self.calculate_euler_angles(wat, coords[0, :, :])
+
+    @function_timer
+    def calculate_grid_quantities(self, energy=True, entropy=True, hbonds=True, start_frame=None, num_frames=None):
+
+        if start_frame is None:
+            start_frame = self.start_frame
+        if num_frames is None:
+            num_frames = self.num_frames
+
+        chunk_size = 1
+        if (start_frame + num_frames) <= chunk_size:
+            chunk_size = start_frame + num_frames
+
+        chunk_iter = int(num_frames / chunk_size)
+        #chunk_iter += int((start_frame + num_frames) % chunk_size)
+        chunk_counter = 0
+        print_progress_bar(chunk_counter, chunk_iter)
+        topology = md.load_topology(self.topology_file)
+        for i in xrange(start_frame, start_frame + num_frames):
+            chunk_counter += 1
+            self.process_chunk(i, chunk_size, topology, energy, hbonds, entropy)
             print_progress_bar(chunk_counter, chunk_iter)
             if chunk_counter == chunk_iter:
                 break
-
 
         for voxel in xrange(self.voxeldata.shape[0]):
             if self.voxeldata[voxel, 4] >= 1.0:
