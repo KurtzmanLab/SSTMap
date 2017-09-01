@@ -394,13 +394,13 @@ int prob(string infile, string outfile) {
         }
         fprintf (pFile, "%-6s%5i %-4s %3s %1s%4i    %8.3f%8.3f%8.3f%6.2f%6.2f\n", name.c_str(), i, atom.c_str(), resname.c_str(), chainid.c_str(), resseq, ox, oy, oz, 0.0, 0.0);
     }
+    fclose(pFile);
 }
-
 
 int renum(string infile) {
 	//int i = 0; string infile;
 	int i = 0;
-    /*
+	/*
 	while (i < argc) {
 		if (!strcmp(argv[i], "-i")) {
 			infile = argv[++i];
@@ -416,6 +416,7 @@ int renum(string infile) {
 	while (!input.eof()) {
 		getline(input, temp);
 		if (!temp.empty()) {
+            cout << "got line\n" << endl;
 			if (pos%3==0 && pos!=0) {
                                 watnum++;
                         }
@@ -463,7 +464,9 @@ static PyObject * _sstmap_probableconfig_run(PyObject * self, PyObject * args)
         }
         string std_cluster_file (standard_cluster_file);
         string std_output_file (output_file);
+        // run the probabel config code
         prob(std_cluster_file, std_output_file);
+
     return Py_BuildValue("i", 1);
 
 }
@@ -478,6 +481,7 @@ static PyObject * _sstmap_renum_probpdb_run(PyObject * self, PyObject * args)
         }
         string std_cluster_file (standard_cluster_file);
         renum(std_cluster_file);
+
     return Py_BuildValue("i", 1);
 
 }

@@ -26,13 +26,13 @@ def write_nonbonded_parameters(cms_file):
             ct_vdw.append(vdw_type[e.vdwtype])  # add to vdw list for this ct
             ct_chg.append(e.charge)
             # print e.index, e.charge
-        ct_vdw *= int(old_div(ct.atom_total, len(ct.ffio.site)))
-        ct_chg *= int(old_div(ct.atom_total, len(ct.ffio.site)))
+        ct_vdw *= int(ct.atom_total / len(ct.ffio.site))
+        ct_chg *= int(ct.atom_total / len(ct.ffio.site))
         # print int(ct.atom_total / len( ct.ffio.site ))
         vdw.extend(ct_vdw)
         chg.extend(ct_chg)
 
-    chg = numpy.asarray(chg)*18.2223
+    chg = numpy.asarray(chg) * 18.2223
     vdw_params = []
     # print len(chg)
     # print len(all_at_ids)

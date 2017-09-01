@@ -35,8 +35,6 @@ def parse_args():
                         help='''Starting frame.''')
     parser.add_argument('-g', '--bulk_density', required=False, type=float, default=0.0334,
                         help='''Bulk density of the water model.''')
-    parser.add_argument('-b', '--calc_hbonds', required=False, type=bool, default=True,
-                        help='''True or False for whether to calculate h-bonds during calculations.''')
     parser.add_argument('-o', '--output_prefix', required=False, type=str, default="hsa",
                         help='''Prefix for all the results files.''')
 
@@ -82,11 +80,11 @@ def main():
     os.chdir(data_dir)
     h = SiteWaterAnalysis(top, traj,
                         start_frame=args.start_frame, num_frames=args.num_frames,
-                        ligand_file=ligand, supporting_file=supp,
+                        ligand_file=ligand, supporting_file=supp, hsa_region_radius=args.hsa_region,
                         clustercenter_file=clusters, rho_bulk=args.bulk_density, prefix=args.output_prefix)
-    h.initialize_hydration_sites(hsa_region_radius=args.hsa_region)
+    h.initialize_hydration_sites()
     h.print_system_summary()
-    h.calculate_site_quantities(hbonds=args.calc_hbonds)
+    h.calculate_site_quantities()
     h.write_calculation_summary()
     h.write_data()
     os.chdir(curr_dir)

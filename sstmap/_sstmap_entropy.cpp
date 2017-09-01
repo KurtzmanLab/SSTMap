@@ -82,7 +82,7 @@ void bruteclust(string cfile, string wfile) {
     int numclust = cens.size()/3;
 
     ifstream winput(wfile.c_str());
-    //getline(winput, temp); //skip header
+    getline(winput, temp); //skip header
     while (!winput.eof()) {
         getline(winput, temp);
         if (!temp.empty()) {
@@ -103,7 +103,7 @@ void bruteclust(string cfile, string wfile) {
     //stringstream ss;
     //cout << "cencount" << cencount << endl;
     int j = 0;
-    for (int i = 0; i < numclust; i++) {
+    for (int i = 0; i <= numclust; i++) {
         val = i+1;
         //cout << val << endl;
         if (i < 9) {
@@ -809,8 +809,8 @@ static PyObject * _sstmap_entropy_run6dimprob(PyObject * self, PyObject * args)
         {
             return NULL; /* raise argument parsing exception*/
         }
-        string std_cluster_file (standard_cluster_file);
-        sixdimprob(std_cluster_file);
+        //string std_cluster_file (standard_cluster_file);
+        //sixdimprob(std_cluster_file);
     return Py_BuildValue("i", 1);
 
 }

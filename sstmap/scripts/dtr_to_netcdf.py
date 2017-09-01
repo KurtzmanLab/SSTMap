@@ -13,7 +13,7 @@ def parse_args():
     parser = ArgumentParser(
         description='''Run GIST calculations through command-line.''')
 
-    parser.add_argument('-i', '--input_parm', required=True, type=str,
+    parser.add_argument('-i', '--input_parm', required=False, type=str,
                         help='''Input toplogy File.''')
     parser.add_argument('-t', '--input_traj', required=True, type=str,
                         help='''Input trajectory file.''')
@@ -29,6 +29,8 @@ def main():
     traj = md.load_dtr(args.input_traj, top=args.input_parm)
     print("Outputting NETCDF ...")
     traj[-1:-10001].save_netcdf(args.output_prefix + "_converted.nc")
+    print("Outputting PDB file of frame 1 ...")
+    md.save_pdb(traj[0])
     print("Done")
 
 
