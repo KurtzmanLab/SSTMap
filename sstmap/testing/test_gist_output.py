@@ -15,8 +15,11 @@ import sys
 import numpy as np
 import numpy.testing as npt
 quantities = ["voxel", "xcoord", "ycoord", "zcoord",
-                "n_wat", "g_O", "dTStrans-dens", "dTStrans-norm", "dTSorient-dens", 
-                "dTSorient-norm", "Esw-dens", "Esw-norm", "Eww-dens", "Eww-norm-unref", 
+                "n_wat", "g_O", 
+                "dTStrans-dens", "dTStrans-norm", 
+                "dTSorient-dens", "dTSorient-norm", 
+                "dTSsix-dens", "dTSsix-norm", 
+                "Esw-dens", "Esw-norm", "Eww-dens", "Eww-norm-unref", 
                 "neighbor-dens", "neighbor-norm"]
 class TestGistOutput():
     
@@ -60,19 +63,14 @@ class TestGistOutput():
 
 
 def read_gist_sstmap(sstmap_gist_summary):
-    columns_to_read = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 17, 18]
+    columns_to_read = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 19, 20]
     sstmap_data = np.loadtxt(sstmap_gist_summary, skiprows=1, usecols=columns_to_read)
     #sstmap_data = sstmap_data[np.where(sstmap_data[:, 4] != 1.0)]
     return np.round(sstmap_data, 3)
 
 def read_gist_cpptraj(cpptraj_gist_summary):
-    columns_to_read = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 19, 20]
+    columns_to_read = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 21, 22]
     cpptraj_data = np.loadtxt(cpptraj_gist_summary, skiprows=2, usecols=columns_to_read)
-    if cpptraj_data.shape[1] == 24:
-        columns_to_read = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 13, 14, 15, 16, 21, 22]
-        cpptraj_data = np.loadtxt(cpptraj_gist_summary, skiprows=2, usecols=columns_to_read)
-    
-    #cpptraj_data = cpptraj_data[np.where(cpptraj_data[:, 4] != 1.0)]
     return cpptraj_data
 
 def parse_args():
@@ -98,6 +96,7 @@ def run_all_gist_tests(test_data_file, ref_data_file):
     test_result = {1: "Passed", 0: "Failed"}
     test_data = read_gist_sstmap(test_data_file)
     ref_data = read_gist_cpptraj(ref_data_file)
+    print test_data.shape, ref_data.shape
     diff_nwat = []
     for row in xrange(test_data.shape[0]):
         if test_data[row, 4] <= 1:
@@ -120,8 +119,9 @@ def run_all_gist_tests(test_data_file, ref_data_file):
     test_num = 0
     
     for quantity_index in xrange(4, test_data.shape[1]):
+        print "Testing: %s" % quantities[quantity_index]
         result = testcase.test_quantity(quantity_index)
-        print "Testing %s ... %s" % (quantities[quantity_index], test_result[bool(result)])
+        print "Resut: %s" % (test_result[bool(result)])
         
 
 def main():

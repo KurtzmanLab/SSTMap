@@ -104,7 +104,7 @@ class GridWaterAnalysis(WaterAnalysis):
 
     def initialize_voxel_data(self):
         v_count = 0
-        voxel_array = np.zeros((self.grid.size, 35), dtype="float64")
+        voxel_array = np.zeros((self.grid.size, 37), dtype="float64")
         # print voxel_eulers_new.shape
         for index, value in np.ndenumerate(self.grid):
             # point = grid.pointForIndex(index) # get cartesian coords for the
@@ -258,16 +258,16 @@ class GridWaterAnalysis(WaterAnalysis):
                                 distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
                         self.voxeldata[wat[0], 17] += wat_nbrs.shape[0]
                         calc.calculate_energy(wat[1], distance_matrix, e_elec_array, e_lj_array, self.bcoeff)
-                        self.voxeldata[wat[0], 11] += np.sum(e_lj_array[:, :self.wat_oxygen_atom_ids[0]])
-                        self.voxeldata[wat[0], 11] += np.sum(e_elec_array[:, :self.wat_oxygen_atom_ids[0]])
-                        self.voxeldata[wat[0], 13] += np.sum(
+                        self.voxeldata[wat[0], 13] += np.sum(e_lj_array[:, :self.wat_oxygen_atom_ids[0]])
+                        self.voxeldata[wat[0], 13] += np.sum(e_elec_array[:, :self.wat_oxygen_atom_ids[0]])
+                        self.voxeldata[wat[0], 15] += np.sum(
                             e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_lj_array[:, wat[1] + self.water_sites:])
-                        self.voxeldata[wat[0], 13] += np.sum(
+                        self.voxeldata[wat[0], 15] += np.sum(
                             e_elec_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(
                             e_elec_array[:, wat[1] + self.water_sites:])
                         e_nbr_list = [np.sum(e_lj_array[:, wat_nbrs + i] + e_elec_array[:, wat_nbrs + i]) for i in
                                       xrange(self.water_sites)]
-                        self.voxeldata[wat[0], 15] += np.sum(e_nbr_list)
+                        self.voxeldata[wat[0], 17] += np.sum(e_nbr_list)
                         """
                         ###DEBUG START###
                         elj_sw = np.sum(e_lj_array[:, :self.wat_oxygen_atom_ids[0]])
@@ -302,14 +302,14 @@ class GridWaterAnalysis(WaterAnalysis):
                                 don_ww = hb_ww.shape[0] - acc_ww
                                 acc_sw = hb_sw[:, 0][np.where(hb_sw[:, 0] == wat[1])].shape[0]
                                 don_sw = hb_sw.shape[0] - acc_sw
-                                self.voxeldata[wat[0], 23] += hb_sw.shape[0]
-                                self.voxeldata[wat[0], 25] += hb_ww.shape[0]
-                                self.voxeldata[wat[0], 27] += don_sw
-                                self.voxeldata[wat[0], 29] += acc_sw
-                                self.voxeldata[wat[0], 31] += don_ww
-                                self.voxeldata[wat[0], 33] += acc_ww
+                                self.voxeldata[wat[0], 25] += hb_sw.shape[0]
+                                self.voxeldata[wat[0], 27] += hb_ww.shape[0]
+                                self.voxeldata[wat[0], 29] += don_sw
+                                self.voxeldata[wat[0], 31] += acc_sw
+                                self.voxeldata[wat[0], 33] += don_ww
+                                self.voxeldata[wat[0], 35] += acc_ww
                                 if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
-                                    self.voxeldata[wat[0], 19] += wat_nbrs.shape[0] / hb_ww.shape[0]
+                                    self.voxeldata[wat[0], 21] += wat_nbrs.shape[0] / hb_ww.shape[0]
                                     # f_enc =  1.0 - (wat_nbrs.shape[0] / 5.25)
                                     # if f_enc < 0.0:
                                     #    f_enc = 0.0
@@ -343,14 +343,14 @@ class GridWaterAnalysis(WaterAnalysis):
 
         for voxel in xrange(self.voxeldata.shape[0]):
             if self.voxeldata[voxel, 4] >= 1.0:
-                self.voxeldata[voxel, 12] = self.voxeldata[voxel, 11] / self.voxeldata[voxel, 4]
-                self.voxeldata[voxel, 11] /= (num_frames * self.voxel_vol)
-                self.voxeldata[voxel, 14] = self.voxeldata[voxel, 13] / (self.voxeldata[voxel, 4] * 2.0)
-                self.voxeldata[voxel, 13] /= (num_frames * self.voxel_vol * 2.0)
-                if self.voxeldata[voxel, 17] > 0.0:
-                    self.voxeldata[voxel, 16] = self.voxeldata[voxel, 15] / (self.voxeldata[voxel, 17] * 2.0)
-                    self.voxeldata[voxel, 15] /= (num_frames * self.voxel_vol * self.voxeldata[voxel, 17] * 2.0)
-                for i in range(17, 35, 2):
+                self.voxeldata[voxel, 14] = self.voxeldata[voxel, 13] / self.voxeldata[voxel, 4]
+                self.voxeldata[voxel, 13] /= (num_frames * self.voxel_vol)
+                self.voxeldata[voxel, 16] = self.voxeldata[voxel, 15] / (self.voxeldata[voxel, 4] * 2.0)
+                self.voxeldata[voxel, 15] /= (num_frames * self.voxel_vol * 2.0)
+                if self.voxeldata[voxel, 19] > 0.0:
+                    self.voxeldata[voxel, 18] = self.voxeldata[voxel, 17] / (self.voxeldata[voxel, 19] * 2.0)
+                    self.voxeldata[voxel, 17] /= (num_frames * self.voxel_vol * self.voxeldata[voxel, 19] * 2.0)
+                for i in range(19, 37, 2):
                     self.voxeldata[voxel, i + 1] = self.voxeldata[voxel, i] / self.voxeldata[voxel, 4]
                     self.voxeldata[voxel, i] /= (num_frames * self.voxel_vol)
         if entropy:
@@ -363,11 +363,11 @@ class GridWaterAnalysis(WaterAnalysis):
             prefix = self.prefix
         print("Writing voxel data ...")
         with open(prefix + "_gist_data.txt", "w") as f:
-            gist_header = "voxel x y z nwat gO gH dTStr-dens dTStr-norm dTSor-dens dTSor-norm Esw-dens Esw-norm Eww-dens Eww-norm Eww-nbr-dens Eww-nbr-norm Nnbr-dens Nnbr-norm fHB-dens fHB-norm fenc-dens fenc-norm Nhbsw_dens Nhbsw_norm Nhbww_dens Nhbww_norm Ndonsw_dens Ndonsw_norm Naccsw_dens Naccsw_norm Ndonww_dens Ndonww_norm Naccww_dens Naccww_norm\n"
+            gist_header = "voxel x y z nwat gO gH dTStr-dens dTStr-norm dTSor-dens dTSor-norm dTSsix-dens dTSsix-norm Esw-dens Esw-norm Eww-dens Eww-norm Eww-nbr-dens Eww-nbr-norm Nnbr-dens Nnbr-norm fHB-dens fHB-norm fenc-dens fenc-norm Nhbsw_dens Nhbsw_norm Nhbww_dens Nhbww_norm Ndonsw_dens Ndonsw_norm Naccsw_dens Naccsw_norm Ndonww_dens Ndonww_norm Naccww_dens Naccww_norm\n"
             f.write(gist_header)
             formatted_output_occupied_voxels = "{0[0]:.0f} {0[1]:.3f} {0[2]:.3f} {0[3]:.3f} {0[4]:.0f} {0[5]:.6f} {0[6]:.0f} "
             formatted_output_empty_voxels = formatted_output_occupied_voxels
-            for q in range(7, 35):
+            for q in range(7, 37):
                 formatted_output_occupied_voxels += "{0[%d]:.6f} " % q
                 formatted_output_empty_voxels += "{0[%d]:.0f} " % q
             formatted_output_occupied_voxels += "\n"
@@ -384,7 +384,7 @@ class GridWaterAnalysis(WaterAnalysis):
         if prefix == None:
             prefix = self.prefix
         print("Generating dx files ...")
-        gist_header = "voxel x y z nwat gO gH dTStr-dens dTStr-norm dTSor-dens dTSor-norm Esw-dens Esw-norm Eww-dens Eww-norm Eww-nbr-dens Eww-nbr-norm Nnbr-dens Nnbr-norm fHB-dens fHB-norm fenc-dens fenc-norm Nhbww-dens Nhbww-norm Nhbsw-dens Nhbsw-norm Ndonsw-dens Ndonsw-norm Naccsw-dens Naccsw-norm Ndonww-dens Ndonww-norm Naccww-dens Naccww-norm\n"
+        gist_header = "voxel x y z nwat gO gH dTStr-dens dTStr-norm dTSor-dens dTSor-norm dTSsix-dens dTSsix-norm Esw-dens Esw-norm Eww-dens Eww-norm Eww-nbr-dens Eww-nbr-norm Nnbr-dens Nnbr-norm fHB-dens fHB-norm fenc-dens fenc-norm Nhbww-dens Nhbww-norm Nhbsw-dens Nhbsw-norm Ndonsw-dens Ndonsw-norm Naccsw-dens Naccsw-norm Ndonww-dens Ndonww-norm Naccww-dens Naccww-norm\n"
         dx_header = ""
         dx_header += 'object 1 class gridpositions counts %d %d %d\n' % (
             self.grid.shape[0], self.grid.shape[1], self.grid.shape[2])
@@ -404,7 +404,7 @@ class GridWaterAnalysis(WaterAnalysis):
         for data_field, title in enumerate(data_keys):
             # if data_field > 4:# and data_field < 6:
             # print "Writing dx file for: ", title
-            if data_field > 4:
+            if data_field > 4 and data_field % 2 == 1:
                 f = open(prefix + "_" + title + ".dx", 'w')
                 f.write(dx_header)
                 dx_file_objects.append(f)
@@ -414,13 +414,13 @@ class GridWaterAnalysis(WaterAnalysis):
         for k in range(1, len(self.voxeldata) + 1):
             # print "writing data for voxel: ", k
             if self.voxeldata[k - 1][4] > 1.0:
-                for column_i in range(5, len(data_keys)):
+                for column_i in range(5, len(data_keys), 2):
                     dx_file_objects[column_i].write(
                         "%0.6f " % (self.voxeldata[k - 1][column_i]))
                     if k % 3 == 0:
                         dx_file_objects[column_i].write("\n")
             else:
-                for column_i in range(5, len(data_keys)):
+                for column_i in range(5, len(data_keys), 2):
                     dx_file_objects[column_i].write(
                         "%i " % (self.voxeldata[k - 1][column_i]))
                     if k % 3 == 0:
@@ -458,10 +458,10 @@ class GridWaterAnalysis(WaterAnalysis):
             if k[4] > 1.0:
                 nwat_grid += k[4] / (num_frames * self.voxel_vol)
                 # print k[11]
-                Eswtot += k[11]
-                Ewwtot += k[13]
-                dTStr_tot += k[7]
-                dTSor_tot += k[9]
+                Eswtot += k[13]
+                Ewwtot += k[15]
+                dTStr_tot += k[9]
+                dTSor_tot += k[11]
 
         nwat_grid *= self.voxel_vol
         Eswtot *= self.voxel_vol
