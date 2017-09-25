@@ -63,7 +63,7 @@ class TestGistOutput():
 
 
 def read_gist_sstmap(sstmap_gist_summary):
-    columns_to_read = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 19, 20]
+    columns_to_read = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 18, 19]
     sstmap_data = np.loadtxt(sstmap_gist_summary, skiprows=1, usecols=columns_to_read)
     #sstmap_data = sstmap_data[np.where(sstmap_data[:, 4] != 1.0)]
     return np.round(sstmap_data, 3)
@@ -119,9 +119,10 @@ def run_all_gist_tests(test_data_file, ref_data_file):
     test_num = 0
     
     for quantity_index in xrange(4, test_data.shape[1]):
-        print "Testing: %s" % quantities[quantity_index]
+        print "--------------------------------------"
+        print "Checking: %s" % quantities[quantity_index]
         result = testcase.test_quantity(quantity_index)
-        print "Resut: %s" % (test_result[bool(result)])
+        print "\t%s" % test_result[bool(result)]
         
 
 def main():
