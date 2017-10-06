@@ -379,8 +379,8 @@ class GridWaterAnalysis(WaterAnalysis):
         # Normalize
         for voxel in xrange(self.voxeldata.shape[0]):
             if self.voxeldata[voxel, 4] >= 1.0:
-                self.voxeldata[voxel, 14] = self.voxeldata[voxel, 13] / self.voxeldata[voxel, 4]
-                self.voxeldata[voxel, 13] /= (num_frames * self.voxel_vol)
+                self.voxeldata[voxel, 14] = self.voxeldata[voxel, 13] / (self.voxeldata[voxel, 4] * 2.0)
+                self.voxeldata[voxel, 13] /= (num_frames * self.voxel_vol * 2.0)
                 self.voxeldata[voxel, 16] = self.voxeldata[voxel, 15] / (self.voxeldata[voxel, 4] * 2.0)
                 self.voxeldata[voxel, 15] /= (num_frames * self.voxel_vol * 2.0)
                 if self.voxeldata[voxel, 19] > 0.0:
@@ -432,7 +432,7 @@ class GridWaterAnalysis(WaterAnalysis):
         if prefix == None:
             prefix = self.prefix
         print("Generating dx files ...")
-        gist_header = "voxel x y z nwat gO gH dTStr-dens dTStr-norm dTSor-dens dTSor-norm dTSsix-dens dTSsix-norm Esw-dens Esw-norm Eww-dens Eww-norm Eww-nbr-dens Eww-nbr-norm Nnbr-dens Nnbr-norm fHB-dens fHB-norm Nhbww-dens Nhbww-norm Nhbsw-dens Nhbsw-norm Ndonsw-dens Ndonsw-norm Naccsw-dens Naccsw-norm Ndonww-dens Ndonww-norm Naccww-dens Naccww-norm\n"
+        gist_header = "voxel x y z nwat gO gH dTStrans-dens dTStrans-norm dTSorient-dens dTSorient-norm dTSsix-dens dTSsix-norm Esw-dens Esw-norm Eww-dens Eww-norm Eww-nbr-dens Eww-nbr-norm neighbor-dens neighbor-norm fHB-dens fHB-norm Nhbww-dens Nhbww-norm Nhbsw-dens Nhbsw-norm Ndonsw-dens Ndonsw-norm Naccsw-dens Naccsw-norm Ndonww-dens Ndonww-norm Naccww-dens Naccww-norm\n"
         dx_header = ""
         dx_header += 'object 1 class gridpositions counts %d %d %d\n' % (
             self.grid.shape[0], self.grid.shape[1], self.grid.shape[2])
@@ -443,7 +443,7 @@ class GridWaterAnalysis(WaterAnalysis):
         dx_header += 'delta 0 0 %.1f\n' % (self.spacing[2])
         dx_header += 'object 2 class gridconnections counts %d %d %d\n' % (
             self.grid.shape[0], self.grid.shape[1], self.grid.shape[2])
-        dx_header += 'object 3 class array type float rank 0 items %d data follows\n' % (
+        dx_header += 'object 3 class array type double rank 0 items %d data follows\n' % (
             self.grid.shape[0] * self.grid.shape[1] * self.grid.shape[2])
         dx_file_objects = []
 
@@ -457,6 +457,7 @@ class GridWaterAnalysis(WaterAnalysis):
             else:
                 dx_file_objects.append(None)
 
+        """
         for k in range(1, len(self.voxeldata) + 1):
             # print "writing data for voxel: ", k
             if self.voxeldata[k - 1][4] > 1.0:
@@ -471,6 +472,16 @@ class GridWaterAnalysis(WaterAnalysis):
                         "%i " % (self.voxeldata[k - 1][column_i]))
                     if k % 3 == 0:
                         dx_file_objects[column_i].write("\n")
+        """
+        #try general formatting
+        for k in range(1, len(self.voxeldata) + 1):
+            # print "writing data for voxel: ", k
+            for column_i in range(5, len(data_keys), 2):
+                dx_file_objects[column_i].write(
+                    "%g " % (self.voxeldata[k - 1][column_i]))
+                if k % 3 == 0:
+                    dx_file_objects[column_i].write("\n")
+
         for f in dx_file_objects:
             if f is not None:
                 f.close()
