@@ -94,7 +94,7 @@ class WaterAnalysis(object):
         self.trajectory = trajectory
         self.supporting_file = supporting_file
         self.start_frame = start_frame
-        assert num_frames >= 100, "A minimum of 100 frames are required for analysis."
+        #assert num_frames >= 100, "A minimum of 100 frames are required for analysis."
         self.num_frames = num_frames
         self.check_topology_requiremnts(self.topology_file, self.supporting_file)
         first_frame = md.load_frame(self.trajectory, self.start_frame, top=self.topology_file)

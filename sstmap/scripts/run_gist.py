@@ -21,7 +21,7 @@ def parse_args():
                           help='''Input trajectory file.''')
     required.add_argument('-l', '--ligand', required=True, type=str, default=None,
                           help='''Input ligand PDB file.''')
-    required.add_argument('-g', '--grid_dim', required=True, nargs=3, type=float, default=[20.0, 20.0, 20.0],
+    required.add_argument('-g', '--grid_dim', required=True, nargs=3, type=int, default=[20, 20, 20],
                           help='''grid dimensions e.g., 10 10 10''')
     required.add_argument('-f', '--num_frames', required=False, type=int, default=10000,
                           help='''Total number of frames to process.''')
