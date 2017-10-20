@@ -51,10 +51,6 @@ class SiteWaterAnalysis(WaterAnalysis):
     """
     Hydration site analysis calculations for water molecules on solute surfaces
     in a molecular dynamics simulation.
-    
-    Examples
-    --------
-
     """
     @function_timer
     def __init__(self, topology_file, trajectory, start_frame=0, num_frames=None,
@@ -121,6 +117,8 @@ class SiteWaterAnalysis(WaterAnalysis):
         self.is_site_waters_populated = False
         self.hsa_region_O_ids = [[] for i in range(self.num_frames)]
         self.hsa_region_flat_ids = [[] for i in range(self.num_frames)]
+        self.hsa_region_water_coords = None
+        self.clustercenter_file = "clustercenterfile.pdb"  # hard-coded string for external entropy routines
 
         self.data_titles = ["index", "x", "y", "z",
                             "nwat", "occupancy",
@@ -210,7 +208,19 @@ class SiteWaterAnalysis(WaterAnalysis):
             Coordinates of hydration sites, represented by a 2-D array with shape N x 3,
             where N is the number of hydration sites identified during clustering.
 
-        site_waters :
+        site_waters : list
+            List of N sub-lists where N is the number of identified hydration sites, each sublist
+            consist of a 3-element tuple for every water identified in that site. First element of
+            the tuple is frame number, second element is correct index of the oxygen atom in the
+            the original topology and third element is the offset index as read from a version of
+            a trimmed version trajectory for clustering.
+
+        Notes
+        -----
+        The following attributes of the object are updated in this function:
+            hsa_region_O_ids
+            hsa_region_flat_ids
+            hsa_region_water_coords
 
         """
         clustering_stride = 10
@@ -352,7 +362,7 @@ class SiteWaterAnalysis(WaterAnalysis):
             water_id_frame_list = [(i, nbr) for i in range(len(binding_site_waters)) for nbr in binding_site_waters[i]]
             water_coordinates = np.array([trj.xyz[wat[0], wat[1], :] for wat in water_id_frame_list])
 
-        # TODO: This behaves differently when HSA region waters are known and when they are unknown!
+        # Initialize array that stores coordinates all water molecules in HSA region, used for entropy calcs
         self.hsa_region_water_coords = np.zeros((len(water_id_frame_list) * 3, 3), dtype=float)
         tree = spatial.cKDTree(water_coordinates)
         nbr_list = tree.query_ball_point(init_cluster_coords, sphere_radius)
@@ -362,15 +372,13 @@ class SiteWaterAnalysis(WaterAnalysis):
             cutoff = np.ceil(cutoff)
         else:
             cutoff = np.floor(cutoff)
-        # for each cluster, set cluster center equal to geometric center of all
-        # waters in the cluster
+        # For each cluster, set cluster center equal to geometric center of all waters in the cluster
         site_waters = []
         cluster_index = 1
         for cluster in nbr_list:
             cluster_water_coords = water_coordinates[cluster]
             if len(cluster) > cutoff:
                 near_flag = 0
-                cluster_name = '{0:06d}'.format(cluster_index)
                 waters_offset = [(water_id_frame_list[wat][0] + self.start_frame,
                                   ((water_id_frame_list[wat][1] - start_point) * self.water_sites)
                                   + self.wat_oxygen_atom_ids[0]) for wat in cluster]
@@ -379,10 +387,12 @@ class SiteWaterAnalysis(WaterAnalysis):
                 masses /= masses.sum()
                 com[:] = water_coordinates[cluster].T.dot(masses)
                 cluster_center = com[:]
+                # Raise flag if the current cluster center is within 1.2 A of existing cluster center
                 for other, coord in enumerate(final_cluster_coords[:-1]):
                     dist = np.linalg.norm(md.utils.in_units_of(cluster_center, "nanometers", "angstroms") - coord)
                     if dist < 1.20:
                         near_flag += 1
+                # Only add cluster center if it is at a safe distance from others
                 if near_flag == 0:
                     final_cluster_coords.append(md.utils.in_units_of(cluster_center, "nanometers", "angstroms"))
                     site_waters.append(waters_offset)
@@ -390,8 +400,7 @@ class SiteWaterAnalysis(WaterAnalysis):
 
         write_watpdb_from_coords("clustercenterfile", final_cluster_coords)
         print("Final number of clusters: %d" % len(final_cluster_coords))
-        self.clustercenter_file = "clustercenterfile.pdb"
-        return np.asarray(final_cluster_coords), site_waters    
+        return np.asarray(final_cluster_coords), site_waters
 
 
     def process_chunk(self, begin_chunk, chunk_size, topology, energy, hbonds, entropy):
@@ -401,7 +410,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         with md.open(self.trajectory) as f:
             f.seek(begin_chunk)
             trj = f.read_as_traj(topology, n_frames=chunk_size, stride=1)
-            #md.utils.in_units_of(trj.xyz, "nanometers", "angstroms", inplace=True)
+            # TODO: Use consistent unit conversion approach
             trj.xyz *= 10.0
             trj.unitcell_lengths *= 10.0
             pbc = trj.unitcell_lengths
