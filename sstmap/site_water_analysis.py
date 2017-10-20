@@ -74,22 +74,25 @@ class SiteWaterAnalysis(WaterAnalysis):
         num_frames : int, optional
             The total number of frames or the length of simulation over which
             calculations will be performed. Default: 10000
+        supporting_file : None, optional
+            Filename of additional file containing non-bonded parameters for
+            every particle in the system. Default: None
         ligand_file : None, optional
             Filename for a PDB file containing coordinates of a co-crystallized
             ligand. This is used by the clustering method to identify binding
             site water molecules in the trjectory.
+        hsa_region_radius : float, optional
+            Distance cutoff (in Angstrom) used to identify hsa region. All waters within this
+            distance from any of the ligand atom are included in the analysis. Default: 5.0
         clustercenter_file : None, optional
             Filename for a PDB file containing a set of pre-generated cluster
             centers. If not provided, default clustering method would generate
             a set of clusters.
-        desmond_helper_file : None, optional
-            Filename for a pre-generated text file containing non-bonded
-            parametersfor every particle in the system, applicable only
-            when a Desmond MD trajectory and topology is to be processed.
-            Default: None
         prefix : string, optional
             A prefix for all results and intermediate files generated during
             calculations.
+        rho_bulk : float
+            Reference bulk water density to be used in calculations. Default: None
         """
         print("Initializing ...")
         if num_frames is None:
@@ -106,17 +109,30 @@ class SiteWaterAnalysis(WaterAnalysis):
         if self.num_frames == 0:
             sys.exit("Number of frames = %d, no calculations will be performed" % self.num_frames)
 
-        self.generate_nonbonded_params()
-        self.assign_hb_types()
         self.ligand = ligand_file
         self.clustercenter_file = clustercenter_file
-        self.hsa_data = None
-        self.hsa_dict = None
-        self.hsa_region_radius = hsa_region_radius
+        self.hsa_region_radius = hsa_region_radius * 0.1
         if hsa_region_radius > 10.0:
             print "Warning: Currently, clustering region is restricted to a 10.0A sphere around the ligand molecule."
             self.hsa_region_radius = 10.0
+        self.hsa_data = None
+        self.hsa_dict = None
+        self.site_waters = None
         self.is_site_waters_populated = False
+        self.hsa_region_O_ids = [[] for i in range(self.num_frames)]
+        self.hsa_region_flat_ids = [[] for i in range(self.num_frames)]
+
+        self.data_titles = ["index", "x", "y", "z",
+                            "nwat", "occupancy",
+                            "Esw", "EswLJ", "EswElec",
+                            "Eww", "EwwLJ", "EwwElec", "Etot", "Ewwnbr",
+                            "TSsw_trans", "TSsw_orient", "TStot",
+                            "Nnbrs", "Nhbww", "Nhbsw", "Nhbtot",
+                            "f_hb_ww", "f_enc",
+                            "Acc_ww", "Don_ww", "Acc_sw", "Don_sw",
+                            "solute_acceptors", "solute_donors"]
+        #self.generate_nonbonded_params()
+        #self.assign_hb_types()
 
     @function_timer
     def initialize_hydration_sites(self):
@@ -124,14 +140,18 @@ class SiteWaterAnalysis(WaterAnalysis):
         Generates hydration sites and initialize data structures for storing hydration site
         information for subsequent calculations. Hydration sites are generated either from
         a pre-spcified set of cluster centers or from a clustering algorithm.
+
+        Notes
+        -----
+        This function initializes several attributes of SiteWaterAnalysis object, which are
+        previously assumed to be set to None.
         """
 
         if self.clustercenter_file is not None:
-
             clusters_pdb_file = md.load_pdb(self.clustercenter_file, no_boxchk=True)
             cluster_coords = md.utils.in_units_of(clusters_pdb_file.xyz[0, :, :], "nanometers", "angstroms")
-            self.hsa_data, self.hsa_dict = self.initialize_site_data(cluster_coords)
             self.site_waters = [[] for site in xrange(self.hsa_data.shape[0])]
+            self.hsa_data, self.hsa_dict = self.initialize_site_data(cluster_coords)
         else:
             cluster_coords, self.site_waters = self.generate_clusters(self.ligand)
             self.hsa_data, self.hsa_dict = self.initialize_site_data(cluster_coords)
@@ -158,15 +178,6 @@ class SiteWaterAnalysis(WaterAnalysis):
             cluster centers. The full results for a quantity consist of a list of all 
             measurements obtained during the calculation.  
         """
-        self.data_titles = ["index", "x", "y", "z",
-                            "nwat", "occupancy",
-                            "Esw", "EswLJ", "EswElec",
-                            "Eww", "EwwLJ", "EwwElec", "Etot", "Ewwnbr",
-                            "TSsw_trans", "TSsw_orient", "TStot",
-                            "Nnbrs", "Nhbww", "Nhbsw", "Nhbtot",
-                            "f_hb_ww", "f_enc",
-                            "Acc_ww", "Don_ww", "Acc_sw", "Don_sw",
-                            "solute_acceptors", "solute_donors"]
         n_sites = cluster_coords.shape[0]
         site_array = np.zeros((n_sites, len(self.data_titles)))
         site_dict = {}
@@ -182,114 +193,114 @@ class SiteWaterAnalysis(WaterAnalysis):
 
 #
     @function_timer
-    def generate_clusters(self, ligand_file, clustering_stride=10, ):
+    def generate_clusters(self, ligand_file):
         """Generate hydration sites from water molecules found in the binding site
-        during the simulation.
+        during the simulation. Clustering is done in two steps; i). An initial clustering over a 10%
+        of frames, and ii). A refinement step where all frames are used.
         
         Parameters
         ----------
         ligand_file : string
             Name of the PDB file containing atomic coordinates of the ligand,
             assumed to be co-crystallized with the protein.
-        
+
         Returns
         -------
-        TYPE
-            Description
-            :param clustering_stride:
-            :param clustering_region_radius:
+        final_cluster_coords : numpy.ndarray
+            Coordinates of hydration sites, represented by a 2-D array with shape N x 3,
+            where N is the number of hydration sites identified during clustering.
+
+        site_waters :
+
         """
+        clustering_stride = 10
         print("Reading trajectory for clustering.")
-        print("Performing an initial clustering over %d frames." % (self.num_frames/10.0))
+        print("Performing an initial clustering over %d frames." % (self.num_frames/clustering_stride))
         # Obtain binding site solute atoms using ligand atom coordinates
         ligand = md.load_pdb(ligand_file, no_boxchk=True)
-        #ligand_coords = md.utils.in_units_of(ligand.xyz[0, :, :], "nanometers", "angstroms")
         ligand_coords = ligand.xyz[0, :, :]
         binding_site_atom_indices = np.asarray(range(ligand_coords.shape[0]))
         topology = md.load_topology(self.topology_file)
-        # this is to fit the units of mdtraj loader
-        self.hsa_region_radius *= 0.1
+        # Change the units of to fit those of MDTraj loader
+        # TODO: Replace with mdtraj units methods
+
+        # Step 1: Initial Clustering
         with md.open(self.trajectory) as f:
             f.seek(self.start_frame)
-            trj_short = f.read_as_traj(topology, n_frames=self.num_frames, stride=clustering_stride, atom_indices=np.concatenate((binding_site_atom_indices, self.wat_oxygen_atom_ids)))
+            trj_short = f.read_as_traj(topology, n_frames=self.num_frames, stride=clustering_stride,
+                        atom_indices=np.concatenate((binding_site_atom_indices, self.wat_oxygen_atom_ids)))
+            if trj_short.n_frames < self.num_frames/clustering_stride:
+                print "WARNING: Expecting %d frames for initial clustering step, received %d." % \
+                        (self.num_frames/clustering_stride, trj_short.n_frames)
+
             # Obtain water molecules solvating the binding site
-            # This is a workaround to use MDTraj compute_neighbor function
-            # xyz coordinates of the trajectory are modified such that first
-            # n atoms coordinates are switched to n atoms of ligand coordinates.
-            # For this to work, the number of solute atoms must be greater than
-            # the number of ligand atoms
-            #coords = md.utils.in_units_of(trj_short.xyz, "nanometers", "angstroms")
+            # FIXME: This is a workaround to use MDTraj compute_neighbor function xyz coordinates of the trajectory are
+            # modified such that first n atoms coordinates are switched to n atoms of ligand coordinates.
+            # Unexpected things will happen if the number of solute atoms less than the number of ligand atoms, which is
+            # highly unlikely.
             coords = trj_short.xyz
             for i_frame in range(trj_short.n_frames):
                 for pseudo_index in range(ligand_coords.shape[0]):
                     coords[i_frame, pseudo_index, :] = ligand_coords[pseudo_index, :]
-            haystack = np.setdiff1d(trj_short.topology.select("all"), binding_site_atom_indices)
-            binding_site_waters = md.compute_neighbors(trj_short, self.hsa_region_radius, binding_site_atom_indices, haystack_indices=haystack)
-            # generate a list of all waters with their frame ids
-            water_id_frame_list = [(i, nbr) for i in range(
-                len(binding_site_waters)) for nbr in binding_site_waters[i]]
 
-            # Build KDTree and get initial neighbor count for all waters
-            water_coordinates = np.ma.array(
-                [coords[wat[0], wat[1], :] for wat in water_id_frame_list],
-                mask=False)
-            #water_coordinates *= 0.1
-            # Set up clustering loop
-            # print("Performing clustering on the superconfiguration.")
+            haystack = np.setdiff1d(trj_short.topology.select("all"), binding_site_atom_indices)
+            binding_site_waters = md.compute_neighbors(trj_short, self.hsa_region_radius,
+                                        binding_site_atom_indices, haystack_indices=haystack)
+            # generate a list of tuples, each tuple is a water and corresponding frame number in trj_short
+            water_id_frame_list = [(i, nbr) for i in range(len(binding_site_waters)) for nbr in binding_site_waters[i]]
+
+            # Start initial clustering by building a KDTree and get initial neighbor count for all waters
+            water_coordinates = np.ma.array([coords[wat[0], wat[1], :] for wat in water_id_frame_list], mask=False)
+            tree = spatial.cKDTree(water_coordinates)
+            sphere_radius = 0.1
+            nbr_list = tree.query_ball_point(water_coordinates, sphere_radius)
+            nbr_count_list = np.ma.array([len(nbrs) for nbrs in nbr_list], mask=False)
             cutoff = trj_short.n_frames * 2 * 0.1401
             if np.ceil(cutoff) - cutoff <= 0.5:
                 cutoff = np.ceil(cutoff)
             else:
                 cutoff = np.floor(cutoff)
             n_wat = 3 * cutoff
+
+            # Set up clustering loop
             cluster_list = []
             cluster_iter = 0
-            sphere_radius = 0.1
-            tree = spatial.cKDTree(water_coordinates)
-            nbr_list = tree.query_ball_point(water_coordinates, sphere_radius)
-            nbr_count_list = np.ma.array([len(nbrs) for nbrs in nbr_list], mask=False)
-            # Clustering loop
             while n_wat > cutoff:
-                # get water with max nbrs and retrieve its nbrs, which are marked
-                # for exclusion
+                # Get water with max nbrs and retrieve its neighbors and marked for exclusion in next iteration
                 max_index = np.argmax(nbr_count_list)
                 to_exclude = np.array(nbr_list[max_index])
-                # set current water count to current neighbors plus one for the
-                # water itself
+                # Set current water count to current neighbors plus one for the water itself
                 n_wat = len(to_exclude) + 1
-                # Mask current water, its nbrs so that they are not considered in
-                # the next iteration
+
+                # Mask current water, its neighbors so that they are not considered in the next iteration
                 nbr_count_list.mask[to_exclude] = True
                 nbr_count_list.mask[max_index] = True
+                # Mask current waters' and its neighbors' coords so that they are not considered in the next iteration
                 water_coordinates.mask[to_exclude] = True
                 water_coordinates.mask[max_index] = True
-                # For each members of this cluster, get its neighbors, create a
-                # unique set out of this list
-                nbrs_of_to_exclude = np.unique(
-                    np.array([n_excluded for excluded_nbrs in
-                              nbr_list[to_exclude] for n_excluded in
-                              excluded_nbrs]))
-                # Remove original members of the cluster from this list to get the
-                # final list of waters to update
+
+                # Accumulate neighbors for each water in current cluster, removing common neighbors
+                nbrs_of_to_exclude = np.unique(np.array([n_excluded for excluded_nbrs in
+                                        nbr_list[to_exclude] for n_excluded in excluded_nbrs]))
+
+                # Obtain the list of waters whose neighbors need to be updated due to exclusion of the waters above
                 to_update = np.setxor1d(to_exclude, nbrs_of_to_exclude)
                 to_update = np.setdiff1d(to_update, np.asarray(max_index))
-                # Update the neighbor count for each water in the update list, if
-                # update list is not empty
+
+                # Update the neighbor count for each water from the list generated above
                 if to_update.shape[0] != 0:
                     tree = spatial.cKDTree(water_coordinates)
-                    updated_nbr_list = tree.query_ball_point(
-                        water_coordinates[to_update], sphere_radius)
-                    # for each updated member, get its original index and update
-                    # the original neighbor search list
+                    updated_nbr_list = tree.query_ball_point(water_coordinates[to_update], sphere_radius)
+                    # for each updated member, get its original index and update the original neighbor search list
                     for index, nbrs in enumerate(updated_nbr_list):
                         if not nbr_count_list.mask[to_update[index]]:
                             nbr_count_list[to_update[index]] = len(nbrs)
-                # check distance with previously identified clusters and do not
-                # consider if within 1.2A of an existing cluster
+
+                # Check distances with previously identified clusters and do not consider if within 1.2 A
+                # of an existing cluster
                 current_wat = water_id_frame_list[max_index]
-                current_wat_coords = md.utils.in_units_of(
-                    coords[current_wat[0], current_wat[1], :],
-                    "nanometers", "angstroms")
+                current_wat_coords = md.utils.in_units_of(coords[current_wat[0], current_wat[1], :],
+                                                          "nanometers", "angstroms")
                 near_flag = 0
                 if len(cluster_list) != 0:
                     for clust in cluster_list:
@@ -299,46 +310,50 @@ class SiteWaterAnalysis(WaterAnalysis):
                             near_flag += 1
                 if near_flag == 0:
                     cluster_iter += 1
-                    # print("Cluster iteration: %d" % cluster_iter)
                     cluster_list.append(water_id_frame_list[max_index])
-                    # if cluster_iter >= clustering_init_max:
-                    #    "Terminating initial clustering after max."
-                    #    break
-
-            #md.utils.in_units_of(coords, "nanometers", "angstroms", inplace=True)
-            #write_watpdb_from_list(coords, self.prefix + "_initial_clustercenterfile", water_id_list=cluster_list)
             init_cluster_coords = [coords[cluster[0], cluster[1], :] for cluster in cluster_list]
 
+        # Step 2: Refinement
         print("Refining initial cluster positions by considering %d frames." % self.num_frames)
-        water_coordinates = None
-        water_id_frame_list = None
-        start_point = None
-        self.hsa_region_O_ids = [[] for i in range(self.num_frames)]
-        self.hsa_region_flat_ids = [[] for i in range(self.num_frames)]
+        # Initialize variables and data structures
+
+        # Read in the trajectory but only first N solute atoms where N equals the number of ligand atoms
+        # plus all water oxygen atoms
+        # WARNING: This shifts indices of waters and once they are assigned to clusters, the indices need to
+        # be corrected.
         with md.open(self.trajectory) as f:
             f.seek(self.start_frame)
-            trj = f.read_as_traj(topology, n_frames=self.num_frames, stride=1, atom_indices=np.concatenate((binding_site_atom_indices, self.wat_oxygen_atom_ids)))
-            #md.utils.in_units_of(trj_short.xyz, "nanometers", "angstroms", inplace=True)
+            trj = f.read_as_traj(topology, n_frames=self.num_frames, stride=1,
+                                 atom_indices=np.concatenate((binding_site_atom_indices, self.wat_oxygen_atom_ids)))
+            if trj.n_frames < self.num_frames:
+                print "WARNING: Expecting %d frames for HSA, received %d." % \
+                        (self.num_frames, trj.n_frames)
+
             for i_frame in range(trj.n_frames):
                 for pseudo_index in range(ligand_coords.shape[0]):
                     trj.xyz[i_frame, pseudo_index, :] = ligand_coords[pseudo_index, :]
             haystack = np.setdiff1d(trj.topology.select("all"), binding_site_atom_indices)
             start_point = haystack[0]
-            binding_site_waters = md.compute_neighbors(trj, self.hsa_region_radius, binding_site_atom_indices, haystack_indices=haystack)
+            binding_site_waters = md.compute_neighbors(trj, self.hsa_region_radius,
+                                                       binding_site_atom_indices, haystack_indices=haystack)
+            # From the full frame-wise set of waters in the binding site, build two more frame-wise lists
+            # one where each frame has a correct indices of waters and another with a new index which ranges from
+            # 0 to M, where M is the total number of hsa region waters - 1
             start = 0
             for i in range(len(binding_site_waters)):
                 for wat in binding_site_waters[i]:
                     wat_0 = wat - start_point
                     wat_offset = (wat_0 * self.water_sites) + self.wat_oxygen_atom_ids[0]
+                    #
                     self.hsa_region_O_ids[i].append(wat_offset)
-                    #print wat, (wat + ((wat - start_point) * (self.water_sites - 1))) + (self.non_water_atom_ids.shape[0] - ligand_coords.shape[0])
                     self.hsa_region_flat_ids[i].append(start)
                     start += 3
 
             water_id_frame_list = [(i, nbr) for i in range(len(binding_site_waters)) for nbr in binding_site_waters[i]]
             water_coordinates = np.array([trj.xyz[wat[0], wat[1], :] for wat in water_id_frame_list])
-        self.hsa_region_water_coords = np.zeros((len(water_id_frame_list) * 3, 3), dtype=float)
 
+        # TODO: This behaves differently when HSA region waters are known and when they are unknown!
+        self.hsa_region_water_coords = np.zeros((len(water_id_frame_list) * 3, 3), dtype=float)
         tree = spatial.cKDTree(water_coordinates)
         nbr_list = tree.query_ball_point(init_cluster_coords, sphere_radius)
         final_cluster_coords = []
@@ -357,7 +372,8 @@ class SiteWaterAnalysis(WaterAnalysis):
                 near_flag = 0
                 cluster_name = '{0:06d}'.format(cluster_index)
                 waters_offset = [(water_id_frame_list[wat][0] + self.start_frame,
-                                  ((water_id_frame_list[wat][1] - start_point) * self.water_sites) + self.wat_oxygen_atom_ids[0]) for wat in cluster]
+                                  ((water_id_frame_list[wat][1] - start_point) * self.water_sites)
+                                  + self.wat_oxygen_atom_ids[0]) for wat in cluster]
                 com = np.zeros(3)
                 masses = np.ones(cluster_water_coords.shape[0])
                 masses /= masses.sum()
@@ -375,7 +391,8 @@ class SiteWaterAnalysis(WaterAnalysis):
         write_watpdb_from_coords("clustercenterfile", final_cluster_coords)
         print("Final number of clusters: %d" % len(final_cluster_coords))
         self.clustercenter_file = "clustercenterfile.pdb"
-        return np.asarray(final_cluster_coords), site_waters
+        return np.asarray(final_cluster_coords), site_waters    
+
 
     def process_chunk(self, begin_chunk, chunk_size, topology, energy, hbonds, entropy):
 
@@ -484,7 +501,7 @@ class SiteWaterAnalysis(WaterAnalysis):
     @function_timer
     def calculate_site_quantities(self, energy=True, entropy=True, hbonds=True, start_frame=None, num_frames=None):
         '''
-        
+
         Parameters
         ----------
         energy : bool, optional
@@ -857,7 +874,6 @@ class SiteWaterAnalysis(WaterAnalysis):
         print("System information:")
         print("\tParameter file: %s\n" % self.topology_file)
         print("\tTrajectory: %s\n" % self.trajectory)
-        print("\tPeriodic Box: %s\n" % self.box_type)
         print("\tFrames: %d, Total Atoms: %d, Waters: %d, Solute Atoms: %d\n"
               % (self.num_frames, self.all_atom_ids.shape[0], self.wat_oxygen_atom_ids.shape[0],
                  self.non_water_atom_ids.shape[0]))

@@ -231,48 +231,11 @@ class GridWaterAnalysis(WaterAnalysis):
     def calculate_entropy(self, num_frames=None):
         if num_frames is None:
             num_frames = self.num_frames
-
         calc.getNNTrEntropy(num_frames, self.voxel_vol, self.rho_bulk, 300.0, self.grid_dims, self.voxeldata, self.voxel_O_coords, self.voxel_quarts)
-        #for voxel in xrange(self.voxeldata.shape[0]):
-        #    if self.voxeldata[voxel, 4] > 1.0:
-        #        print voxel, self.voxeldata[voxel, 5]
-        """
-        #for voxel in xrange(self.voxeldata.shape[0]):
-            #if self.voxeldata[voxel, 4] >= 1.0:
-                #dens = 1.0 * self.voxeldata[voxel, 4] / (num_frames * self.voxel_vol)
-                #self.voxeldata[voxel, 5] = dens / self.rho_bulk
-                #print voxel, self.voxeldata[voxel, 4]
-                #angle_array = np.asarray(self.voxel_quarts[voxel])
-                #coord_array = np.asarray(self.voxel_O_coords[voxel])
-                #calc.getNNOrEntropy
-        
-                # density-weighted trans entropy
-                dTStr_dens = -GASKCAL * 300 * self.rho_bulk * self.voxeldata[voxel, 5] * np.log(
-                    self.voxeldata[voxel, 5])
-                self.voxeldata[voxel, 7] = dTStr_dens
-                self.voxeldata[voxel, 8] = self.voxeldata[voxel, 7] * num_frames * self.voxel_vol / (
-                1.0 * self.voxeldata[voxel, 4])
-                # print voxel, self.voxeldata[voxel, 7], self.voxeldata[voxel, 8]
-                angle_array = np.asarray(self.voxel_quarts[voxel])
-                # density-weighted orinet entropy
-                dTS_nn_or = calc.getNNOrEntropy(int(self.voxeldata[voxel, 4]), angle_array)
-                # normalized orientational entropy
-                self.voxeldata[voxel, 10] = GASKCAL * 300 * ((dTS_nn_or / self.voxeldata[voxel, 4]) + 0.5772)
-                # density-weighted orientational entropy
-                self.voxeldata[voxel, 9] = self.voxeldata[voxel, 10] * self.voxeldata[voxel, 4] / (
-                num_frames * self.voxel_vol)
-                # coord_array = np.asarray(waters[1])
-                # dTS_nn_tr = calc.getNNTrEntropy(len(waters[0]), self.num_frames, coord_array)
-                # normalized translational entropy
-                # self.voxeldata[voxel, 8] = GASKCAL * 300 * ((dTS_nn_tr/self.voxeldata[voxel, 4]) + 0.5772156649)
-                # density-weighted trnaslationa entropy
-                # self.voxeldata[voxel, 7] = self.voxeldata[voxel, 8] * self.voxeldata[voxel, 4]/(self.num_frames * self.voxel_vol)
-                
-        """
 
 
 
-    def process_chunk(self, begin_chunk, chunk_size, topology, energy, hbonds, entropy):
+    def process_frame(self, begin_chunk, chunk_size, topology, energy, hbonds, entropy):
         nbr_cutoff_sq = 3.5 ** 2
         with md.open(self.trajectory) as f:
             f.seek(begin_chunk)
@@ -371,7 +334,7 @@ class GridWaterAnalysis(WaterAnalysis):
         topology = md.load_topology(self.topology_file)
         for i in xrange(start_frame, start_frame + num_frames):
             chunk_counter += 1
-            self.process_chunk(i, chunk_size, topology, energy, hbonds, entropy)
+            self.process_frame(i, chunk_size, topology, energy, hbonds, entropy)
             print_progress_bar(chunk_counter, chunk_iter)
             if chunk_counter == chunk_iter:
                 break
@@ -491,7 +454,6 @@ class GridWaterAnalysis(WaterAnalysis):
         print("System information:")
         print("\tParameter file: %s\n" % self.topology_file)
         print("\tTrajectory: %s\n" % self.trajectory)
-        print("\tPeriodic Box: %s\n" % self.box_type)
         print("\tFrames: %d, Total Atoms: %d, Waters: %d, Solute Atoms: %d\n" \
               % (self.num_frames, self.all_atom_ids.shape[0], self.wat_oxygen_atom_ids.shape[0],
                  self.non_water_atom_ids.shape[0]))

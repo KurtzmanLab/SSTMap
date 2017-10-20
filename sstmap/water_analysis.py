@@ -52,8 +52,11 @@ ANGLE_CUTOFF_RAD = 0.523599
 requirements = {   
     "prmtop": ["prmtop", "", "lorentz-bertholot"],
     "parm7": ["parm7", "", "lorentz-bertholot"],
-    "psf": ["toppar", "Please provide a folder named toppar that contains charmm parameter/topology files.", "lorentz-bertholot"],
-    "gro": ["top", "Please provide graomcs .top file corresponding to your system and also make sure that .itp files are present in the directory where calculations are being run.", "lorentz-bertholot"],
+    "psf": ["toppar", "Please provide a folder named toppar that contains charmm parameter/topology files.",
+            "lorentz-bertholot"],
+    "gro": ["top", "Please provide graomcs .top file corresponding to your system and also make sure that .itp files "
+                   "are present in the directory where calculations are being run. To get a list of .itp files being "
+                   "used by gromacs topology file, type $grep #include ", "lorentz-bertholot"],
     "pdb": ["txt", "Please provide a text file containing non-bonded parameters for your system.", "geometric"],
     }
 
@@ -89,28 +92,46 @@ class WaterAnalysis(object):
         rho_bulk : float
             Reference bulk water density to be used in calculations. Default: None
         """
-
+        # Check sanity checks on files
+        if not os.path.exists(topology_file) or not os.path.exists(trajectory):
+            raise IOError("File %s or %s does not exist." % (topology_file, trajectory))
         self.topology_file = topology_file
         self.trajectory = trajectory
+
+        # Check if correct supporting file is provided.
         self.supporting_file = supporting_file
+        topology_extension = self.topology_file.split(".")[-1]
+        required_support = requirements[topology_extension][0]
+        self.comb_rule = None
+        if required_support == topology_extension:
+            self.supporting_file = self.topology_file
+            self.comb_rule = requirements[topology_extension][-1]
+        else:
+            if topology_extension not in requirements.keys():
+                message = """SSTMap currently does not support %s topology file type.
+                If this is a non-standard force-filed, consider using a PDB file as a topplogy
+                and provide a text file containing non-bonded parameters for each atom in your system.
+                See sstmap.org for more details.
+                """ % topology_extension
+                sys.exit(message)
+            else:
+                self.supporting_file = supporting_file
+                self.comb_rule = requirements[topology_extension][-1]
+
+        # Set frame numbers
         self.start_frame = start_frame
-        #assert num_frames >= 100, "A minimum of 100 frames are required for analysis."
         self.num_frames = num_frames
-        self.check_topology_requiremnts(self.topology_file, self.supporting_file)
+        # Create Parmed topology object and perform sanity check on PBC's in the trajectory
         first_frame = md.load_frame(self.trajectory, self.start_frame, top=self.topology_file)
         assert first_frame.unitcell_lengths is not None, "Could not detect unit cell information."
         self.topology = first_frame.topology
-        self.box_type = "Unspecified"
-        orthogonal = False
-        try:
-            orthogonal = np.allclose(md.load_frame(self.trajectory, 0, top=self.topology_file).unitcell_angles, 90)
-            if orthogonal:
-                self.box_type = "Orthorhombic"
-        except Exception as e:
-            print("WARNING: Only orthorhombic periodic boxes are currently supported.")
+
+        # Assign reference density
         self.rho_bulk = rho_bulk
         if self.rho_bulk is None:
             self.rho_bulk = 0.0334
+
+        # Create index arrays for iteration over groups of atoms and perform some sanity checks on system topology
         super_wat_select_exp = ""
         for i, wat_res in enumerate(_WATER_RESNAMES):
             if i < len(_WATER_RESNAMES) - 1:
@@ -118,49 +139,20 @@ class WaterAnalysis(object):
             else:
                 super_wat_select_exp += "resname %s" % wat_res        
         self.all_atom_ids = self.topology.select("all")
-        self.wat_atom_ids = self.topology.select("water")
         self.prot_atom_ids = self.topology.select("protein")
+        self.wat_atom_ids = self.topology.select("water")
         if self.wat_atom_ids.shape[0] == 0:
             self.wat_atom_ids = self.topology.select(super_wat_select_exp)
-        assert (self.wat_atom_ids.shape[0] != 0), "Unable to recognize waters in the system!"
+        assert (self.wat_atom_ids.shape[0] != 0), "Unable to recognize water residues in the system!"
         assert (self.topology.atom(self.wat_atom_ids[0]).name == "O"), "Failed while constructing water oxygen atom indices!"
         self.wat_oxygen_atom_ids = np.asarray([atom for atom in self.wat_atom_ids if self.topology.atom(atom).name == "O"])
+        self.water_sites = self.wat_oxygen_atom_ids[1] - self.wat_oxygen_atom_ids[0]
+        for i in self.wat_oxygen_atom_ids:
+            O, H1, H2 = self.topology.atom(i).name[0], self.topology.atom(i + 1).name[0], self.topology.atom(i + 2).name[0]
+            if O != "O" or H1 != "H" or H2 != "H":
+                sys.exit("Water molecules in the topology must be organized as Oxygen, Hydrogen, Hydrogen, Virtual-sites.")
         self.non_water_atom_ids = np.setdiff1d(self.all_atom_ids, self.wat_atom_ids)
         assert (self.wat_atom_ids.shape[0] + self.non_water_atom_ids.shape[0] == self.all_atom_ids.shape[0]), "Failed to partition atom indices in the system correctly!"
-
-    def check_topology_requiremnts(self, top_file, support_file):
-        """
-        Performs a check on supplied topology and supporting files to determine if the
-        required files for this topology format are available for calculations and if
-        checks are successful assigns combination rule corresponding to the format.
-
-        Parameters
-        ----------
-        """
-
-        topology_extension = top_file.split(".")[-1]
-
-        if topology_extension not in requirements.keys():
-            message = """SSTMap currently does not support %s topology file type.
-            If this is a non-standard forcefiled, consider using a PDB file as a topplogy
-            and provide a text file containing non-bonded parameters for each atom in your system.
-            See sstmap.org for more details.
-            """ % topology_extension
-            sys.exit(message)
-
-        required_support = requirements[topology_extension][0]
-        if required_support == topology_extension:
-            self.supporting_file = self.topology_file
-
-        else:
-            if support_file is None:
-                message_1 = """SSTMap requires %s as a supporting file/data for %s parameter format.
-                Please provide it as an argument to supporting_file argument or if you are running
-                run_gist or run_hsa, provide it as an argument to -p flag.
-                """ % (required_support, topology_extension)
-                message_2 = """More specifically, %s""" % requirements[topology_extension][1]
-                sys.exit(message_1 + message_2)
-        self.comb_rule = requirements[topology_extension][-1]
 
     def assign_hb_types(self):
         """Generates index arrays for atoms of different types in the system, assign
@@ -264,7 +256,6 @@ class WaterAnalysis(object):
         """
 
         # use parmed to get parameters
-        self.water_sites = self.wat_oxygen_atom_ids[1] - self.wat_oxygen_atom_ids[0]
 
         vdw = []
         chg = []
@@ -291,7 +282,7 @@ class WaterAnalysis(object):
                             parmed_topology_object.atoms[at].epsilon])
                 chg.append(parmed_topology_object.atoms[at].charge)
 
-        # .prmtop, .gro, .
+        # for .prmtop, .gro, .
         else:
             parmed_topology_object = pmd.load_file(self.supporting_file)
             for at in self.all_atom_ids:
@@ -308,6 +299,8 @@ class WaterAnalysis(object):
         water_sig = vdw[self.wat_atom_ids[0:self.water_sites], 0].reshape(self.water_sites, 1)
         water_eps = vdw[self.wat_atom_ids[0:self.water_sites], 1].reshape(self.water_sites, 1)
         self.acoeff, self.bcoeff = self.apply_combination_rules(water_sig, water_eps, vdw, self.comb_rule)
+
+
         """
         # for debuging
         water_sig = vdw[self.wat_oxygen_atom_ids[0]][0]
