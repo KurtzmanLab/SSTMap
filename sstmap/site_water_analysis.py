@@ -217,11 +217,17 @@ class SiteWaterAnalysis(WaterAnalysis):
 
         Notes
         -----
-        The following attributes of the object are updated in this function:
-            hsa_region_O_ids
-            hsa_region_flat_ids
-            hsa_region_water_coords
-
+        The following attributes of the object are updated when the clustering is successfully completed.
+        self.hsa_region_O_ids:
+            The indices of water oxygen atoms in HSA region for each frame are stored
+            in the corresponding lists.
+        self.hsa_region_flat_ids:
+            Same as above except that indices are not atom indices from the topology
+            but in a sequence from 0 to N, where N is the total number of water oxygen atoms found in the
+            HSA region throughout the simulation.
+        self.hsa_region_water_coords:
+            An N x 3 numpy array, where N is the total number of water water oxygen atoms found in the
+            HSA region throughout the simulation.
         """
         clustering_stride = 10
         print("Reading trajectory for clustering.")

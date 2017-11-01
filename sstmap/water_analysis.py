@@ -314,9 +314,12 @@ class WaterAnalysis(object):
 
 
     def apply_combination_rules(self, water_sig, water_eps, vdw, rule=None):
-        """
+        """Returns A and B coefficients for the AB form of Lennard-Jones potentials.
 
-        Args:
+        Parameters
+        ----------
+
+
             water_sig: 
             water_eps: 
             vdw: 
