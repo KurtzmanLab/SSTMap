@@ -1267,8 +1267,8 @@ PyObject *_sstmap_ext_getNNTrEntropy(PyObject *self, PyObject *args)
     printf("Total referenced orientational entropy of the grid:"
                     " dTSorient = %9.5f kcal/mol, Nf=%d\n", dTSorienttot, num_frames);
     double dTSot = gas_kcal * temp * ((dTSo/nwtt) + euler_masc);
-    printf("watcount in vol = %d\n", nwtt);
-    printf("watcount in subvol = %d\n", nwts);
+    //printf("watcount in vol = %d\n", nwtt);
+    //printf("watcount in subvol = %d\n", nwts);
     printf("Total referenced translational entropy of the grid:"
                         " dTStrans = %9.5f kcal/mol, Nf=%d\n", dTStranstot, num_frames);
     printf("Total 6d if all one vox: %9.5f kcal/mol\n", dTSst);

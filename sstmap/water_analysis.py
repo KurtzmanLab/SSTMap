@@ -34,20 +34,16 @@ of Water Structure on Protein Active Site Surfaces. J Phys Chem B. 120:8743-8756
 ##############################################################################
 # Imports
 ##############################################################################
-import sys
-import os
-
-import numpy as np
-import mdtraj as md
 import parmed as pmd
 from parmed.charmm import CharmmParameterSet
+from sstmap.utils import *
+
 ##############################################################################
 # Globals
 ##############################################################################
 
 DON_ACC_LIST = ["oxygen", "nitrogen", "sulfur"]
 _WATER_RESNAMES = ['H2O', 'HHO', 'OHH', 'HOH',  'OH2', 'SOL', 'WAT', 'TIP', 'TIP2', 'TIP3', 'TIP4', 'T3P', 'T4P', 'T5P']
-#_WAT_NBR_AVG = ["T3P": 5.25]
 ANGLE_CUTOFF_RAD = 0.523599
 requirements = {   
     "prmtop": ["prmtop", "", "lorentz-bertholot"],
@@ -70,8 +66,7 @@ class WaterAnalysis(object):
     dynamics trajectories.
     """
 
-    def __init__(self, topology_file, trajectory, start_frame=0,
-                 num_frames=0, supporting_file=None, rho_bulk=None):
+    def __init__(self, topology_file, trajectory, supporting_file=None, rho_bulk=None):
         """Initialize WaterAnalysis object for a trajectory and
         corresponding topology file.
         
@@ -81,11 +76,6 @@ class WaterAnalysis(object):
             Filename of the system topology file.
         trajectory : string
             Filename of the molecular dynamics trajectory.
-        start_frame : int, optional
-            The frame index from which the calculations will begin. Default: 0
-        num_frames : int, optional
-            The total number of frames or the length of simulation over which 
-            calculations will be performed. Default: 0
         supporting_file : None, optional
             Filename of additional file containing non-bonded parameters for
             every particle in the system. Default: None
@@ -118,11 +108,8 @@ class WaterAnalysis(object):
                 self.supporting_file = supporting_file
                 self.comb_rule = requirements[topology_extension][-1]
 
-        # Set frame numbers
-        self.start_frame = start_frame
-        self.num_frames = num_frames
         # Create Parmed topology object and perform sanity check on PBC's in the trajectory
-        first_frame = md.load_frame(self.trajectory, self.start_frame, top=self.topology_file)
+        first_frame = md.load_frame(self.trajectory, 0, top=self.topology_file)
         assert first_frame.unitcell_lengths is not None, "Could not detect unit cell information."
         self.topology = first_frame.topology
 
@@ -143,8 +130,10 @@ class WaterAnalysis(object):
         self.wat_atom_ids = self.topology.select("water")
         if self.wat_atom_ids.shape[0] == 0:
             self.wat_atom_ids = self.topology.select(super_wat_select_exp)
-        assert (self.wat_atom_ids.shape[0] != 0), "Unable to recognize water residues in the system!"
-        assert (self.topology.atom(self.wat_atom_ids[0]).name == "O"), "Failed while constructing water oxygen atom indices!"
+        assert (self.wat_atom_ids.shape[0] != 0), \
+            "Unable to recognize water residues in the system!"
+        assert (self.topology.atom(self.wat_atom_ids[0]).name == "O"), \
+            "Failed while constructing water oxygen atom indices!"
         self.wat_oxygen_atom_ids = np.asarray([atom for atom in self.wat_atom_ids if self.topology.atom(atom).name == "O"])
         self.water_sites = self.wat_oxygen_atom_ids[1] - self.wat_oxygen_atom_ids[0]
         for i in self.wat_oxygen_atom_ids:
@@ -152,29 +141,50 @@ class WaterAnalysis(object):
             if O != "O" or H1 != "H" or H2 != "H":
                 sys.exit("Water molecules in the topology must be organized as Oxygen, Hydrogen, Hydrogen, Virtual-sites.")
         self.non_water_atom_ids = np.setdiff1d(self.all_atom_ids, self.wat_atom_ids)
-        assert (self.wat_atom_ids.shape[0] + self.non_water_atom_ids.shape[0] == self.all_atom_ids.shape[0]), "Failed to partition atom indices in the system correctly!"
+        assert (self.wat_atom_ids.shape[0] + self.non_water_atom_ids.shape[0] == self.all_atom_ids.shape[0]), \
+            "Failed to partition atom indices in the system correctly!"
+        # Obtain non-bonded parameters for the system
+        print("Obtaining non-bonded parameters for the system ...")
+        self.chg_product, self.acoeff, self.bcoeff = self.generate_nonbonded_params()
+        assert self.chg_product.shape == self.acoeff.shape == self.bcoeff.shape, \
+            "Mismatch in non-bonded parameter matrices, exiting."
+        print("Done.")
+        print("Assigning hydrogen bond types ...")
+        self.don_H_pair_dict = {}
+        self.prot_hb_types = np.zeros(len(self.non_water_atom_ids), dtype=np.int_)
+        self.solute_acc_ids, self.solute_don_ids, self.solute_acc_don_ids = self.assign_hb_types()
+        print("Done.")
 
+    @function_timer
     def assign_hb_types(self):
-        """Generates index arrays for atoms of different types in the system, assign
-        a hydrogen-bond type to each atom and generate a dictionary of H-bond donors
-        where indices of each connected hydrogen are stored for each donor.
+        """Assigns a hydrogen-bond type to each atom and updates a dictionary of H-bond donors
+        whose keys are donor atom ids and values are the indices of each connected hydrogen are stored for each donor.
+
+        Returns
+        -------
+        solute_acc_ids : numpy.ndarray
+            An array of indices corresponding to solute acceptor atoms
+        solute_don_ids : numpy.ndarray
+            An array of indices corresponding to solute donor atoms
+        solute_acc_don_ids : numpy.ndarray
+            An array of indices corresponding to solute atoms that are both acceptors and donors
 
         Notes
         -----
-        Several np.ndarray objects are generated and assigned as attributes 
-        to WaterAnalysis object.
+        The following attributes of the object are also updated.
+        self.don_H_pair_dict:
+            This dictionary is populated with keys that are indices of atoms in solute_don_ids and in
+            solute_acc_don_ids. The value for each key is a list of tuples where each tuple is the pair
+            of atom indices, first index is the donor atom and second index is the covalently-bonded hydrogen atom.
+        self.prot_hb_types:
+            Array size equal number of solute atoms and each value is the numeric h-bond type, using the
+            following scheme; 0=non_hb, 1=acceptor, 2=donor, 3=both.
         """
 
-        # Obtain H-bond typing info
         self.topology.create_standard_bonds()
         acc_list = []
         don_list = []
         acc_don_list = []
-        # To speed up calculations, we will pre-generate donor atom, hydrogen
-        # pairs
-        
-        self.don_H_pair_dict = {}
-        #self.new_dict = {}
         # obtain a list of non-water bonds
         non_water_bonds = [(bond[0].index, bond[1].index)
                            for bond in self.topology.bonds if bond[0].residue.name not in _WATER_RESNAMES]
@@ -198,9 +208,6 @@ class WaterAnalysis(object):
                             don_h_pairs.append([at1, at2])
                         if self.topology.atom(at1).element.name == "hydrogen":
                             don_h_pairs.append([at2, at1])
-                    #if len(don_h_pairs) != 0 and at not in list(self.don_H_pair_dict.keys()):
-                    #    don_list.append(at)
-                    #    self.don_H_pair_dict[at] = don_h_pairs
                     if len(don_h_pairs) != 0:
                         keys_all.append(at)
                         for bond in don_h_pairs:
@@ -219,9 +226,6 @@ class WaterAnalysis(object):
                             don_h_pairs.append([at1, at2])
                         if self.topology.atom(at1).element.name == "hydrogen":
                             don_h_pairs.append([at2, at1])
-                    #if len(don_h_pairs) != 0 and at not in list(self.don_H_pair_dict.keys()):
-                    #    acc_don_list.append(at)
-                    #    self.don_H_pair_dict[at] = don_h_pairs
                     if len(don_h_pairs) != 0:
                         keys_all.append(at)
                         for bond in don_h_pairs:
@@ -238,24 +242,39 @@ class WaterAnalysis(object):
             else:
                 self.don_H_pair_dict[pair[0]].append([pair[0], pair[1]])
 
-        self.solute_acc_ids = np.array(acc_list, dtype=np.int)
-        self.solute_acc_don_ids = np.array(acc_don_list, dtype=np.int)
-        self.solute_don_ids = np.array(don_list, dtype=np.int)
-        self.prot_hb_types = np.zeros(len(self.non_water_atom_ids), dtype=np.int_)
+        solute_acc_ids = np.array(acc_list, dtype=np.int)
+        solute_acc_don_ids = np.array(acc_don_list, dtype=np.int)
+        solute_don_ids = np.array(don_list, dtype=np.int)
 
-        for at_id in self.solute_acc_ids:
+        for at_id in solute_acc_ids:
             self.prot_hb_types[at_id] = 1
-        for at_id in self.solute_don_ids:
+        for at_id in solute_don_ids:
             self.prot_hb_types[at_id] = 2
-        for at_id in self.solute_acc_don_ids:
+        for at_id in solute_acc_don_ids:
             self.prot_hb_types[at_id] = 3
 
+        return solute_acc_ids, solute_don_ids, solute_acc_don_ids
+
+    @function_timer
     def generate_nonbonded_params(self):
         """
-        Obtains non-bonded parameters for each atom in the system.
-        """
+        Generates non-bonded parameters for energy calculations.
 
-        # use parmed to get parameters
+        Returns
+        -------
+        chg_product : numpy.ndarray
+            An N_sites x N_particles matrix where N_sites is the number of sites in the water model and N_atoms
+            is the total number of particles in the system, each entry of the matrix is the product of the charges
+            q_i*q_j used for the calculation of electrostatic interactions.
+        acoeff : numpy.ndarray
+            An N_sites x N_particles matrix where N_sites is the number of sites in the water model and N_atoms
+            is the total number of particles in the system, each entry of the matrix is the A coefficient in the
+            AB form of Lennard Jones potential.
+        bcoeff  : numpy.ndarray
+            An N_sites x N_particles matrix where N_sites is the number of sites in the water model and N_atoms
+            is the total number of particles in the system, each entry of the matrix is the B coefficient in the
+            AB form of Lennard Jones potential.
+        """
 
         vdw = []
         chg = []
@@ -281,8 +300,6 @@ class WaterAnalysis(object):
                 vdw.append([parmed_topology_object.atoms[at].sigma,
                             parmed_topology_object.atoms[at].epsilon])
                 chg.append(parmed_topology_object.atoms[at].charge)
-
-        # for .prmtop, .gro, .
         else:
             parmed_topology_object = pmd.load_file(self.supporting_file)
             for at in self.all_atom_ids:
@@ -290,82 +307,34 @@ class WaterAnalysis(object):
                             parmed_topology_object.atoms[at].epsilon])
                 chg.append(parmed_topology_object.atoms[at].charge)
 
-        # User provided charges are supposed to be in correct units.
+        # User provided charges are assumed to be in correct units.
+        # TODO: Make the units for charges explicit in docstring
         if not self.supporting_file.endswith(".txt"):
             chg = np.asarray(chg) * 18.2223
         vdw = np.asarray(vdw)
         water_chg = chg[self.wat_atom_ids[0:self.water_sites]].reshape(self.water_sites, 1)
-        self.chg_product = water_chg * np.tile(chg[self.all_atom_ids], (self.water_sites, 1))
+        chg_product = water_chg * np.tile(chg[self.all_atom_ids], (self.water_sites, 1))
+
         water_sig = vdw[self.wat_atom_ids[0:self.water_sites], 0].reshape(self.water_sites, 1)
         water_eps = vdw[self.wat_atom_ids[0:self.water_sites], 1].reshape(self.water_sites, 1)
-        self.acoeff, self.bcoeff = self.apply_combination_rules(water_sig, water_eps, vdw, self.comb_rule)
-
-
-        """
-        # for debuging
-        water_sig = vdw[self.wat_oxygen_atom_ids[0]][0]
-        water_eps = vdw[self.wat_oxygen_atom_ids[0]][1]
-        self.water_water_acoeff = 4 * water_eps * (water_sig ** 12)
-        self.water_water_bcoeff = -4 * water_eps * (water_sig ** 6)
-        solute_water_sig, solute_water_eps = self.apply_combination_rules_old(water_sig, water_eps, vdw, self.comb_rule)
-        self.solute_water_acoeff = 4 * solute_water_eps * (solute_water_sig ** 12)
-        self.solute_water_bcoeff = -4 * solute_water_eps * (solute_water_sig ** 6)
-        """
-
-
-    def apply_combination_rules(self, water_sig, water_eps, vdw, rule=None):
-        """Returns A and B coefficients for the AB form of Lennard-Jones potentials.
-
-        Parameters
-        ----------
-
-
-            water_sig: 
-            water_eps: 
-            vdw: 
-            rule: 
-
-        :return:
-        """
         mixed_sig, mixed_eps = None, None
-        acoeff, bcoeff = None, None
-        if rule is None or rule == "lorentz-bertholot":
-            mixed_sig = 0.5*(water_sig + vdw[self.all_atom_ids, 0])
+        if self.comb_rule is None or self.comb_rule == "lorentz-bertholot":
+            mixed_sig = 0.5 * (water_sig + vdw[self.all_atom_ids, 0])
             mixed_eps = np.sqrt(water_eps * vdw[self.all_atom_ids, 1])
-        if rule == "geometric":
+        if self.comb_rule == "geometric":
             mixed_sig = np.sqrt(water_sig * vdw[self.all_atom_ids, 0])
             mixed_eps = np.sqrt(water_eps * vdw[self.all_atom_ids, 1])
-        acoeff = 4 * mixed_eps * (mixed_sig**12)
-        bcoeff = 4 * mixed_eps * (mixed_sig**6)
-        return acoeff, bcoeff
 
-    def apply_combination_rules_old(self, water_sig, water_eps, vdw, rule=None):
-        """
-
-        Args:
-            water_sig:
-            water_eps:
-            vdw:
-            rule:
-
-        Returns:
-
-        """
-
-        solute_water_sig, solute_water_eps = None, None
-        if rule is None or rule == "lorentz-bertholot":
-            solute_water_sig = 0.5*(water_sig + vdw[self.non_water_atom_ids, 0])
-            solute_water_eps = np.sqrt(water_eps * vdw[self.non_water_atom_ids, 1])
-        if rule == "geometric":
-            solute_water_sig = np.sqrt(water_sig * vdw[self.non_water_atom_ids, 0])
-            solute_water_eps = np.sqrt(water_eps * vdw[self.non_water_atom_ids, 1])
-
-        return solute_water_sig, solute_water_eps
+        if mixed_eps is not None and mixed_sig is not None:
+            acoeff = 4 * mixed_eps * (mixed_sig**12)
+            bcoeff = 4 * mixed_eps * (mixed_sig**6)
+        else:
+            raise Exception("Couldn't assign vdw params")
+        return chg_product, acoeff, bcoeff
 
     def calculate_energy(self, distance_matrix):
         """Calculates total interaction energy of a water molecule with the rest of the
         system from the distance matrix and non-bonded parameter attributes of the WaterAnalysis object.
-
         
         Parameters
         ----------
@@ -387,23 +356,11 @@ class WaterAnalysis(object):
             wat_solute_dist_6 = distance_matrix[0, :][self.non_water_atom_ids] ** -6
             wat_wat_dist_12 = distance_matrix[0, :][self.wat_oxygen_atom_ids] ** -12
             wat_solute_dist_12 = distance_matrix[0, :][self.non_water_atom_ids] ** -12
-            #energy_sw_lj = (self.solute_water_acoeff*np.power(wat_solute_dist, -12)) + (self.solute_water_bcoeff*np.power(wat_solute_dist, -6))
-            #energy_ww_lj = (self.water_water_acoeff*np.power(wat_wat_dist, -12)) + (self.water_water_bcoeff*np.power(wat_wat_dist, -6))
             energy_sw_lj = (self.solute_water_acoeff * wat_solute_dist_12) + (self.solute_water_bcoeff*wat_solute_dist_6)
-            #energy_ww_lj = (self.water_water_acoeff*wat_wat_dist_12) + (self.water_water_bcoeff*wat_wat_dist_6)
             energy_ww_lj = (self.water_water_acoeff * wat_wat_dist_12) + (self.water_water_bcoeff*wat_wat_dist_6)
-
             water_chg = self.chg[self.wat_atom_ids[0:self.water_sites]].reshape(self.water_sites, 1)
             energy_elec = water_chg*np.tile(self.chg[self.all_atom_ids], (self.water_sites, 1))
             energy_elec *= distance_matrix ** -1
-            #for i in xrange(self.wat_atom_ids.shape[0]):
-            #    print "ref elec dist between current water atoms and %i: " % (self.wat_atom_ids[i])
-            #    print distance_matrix[:, i]
-
-            #print "Solute-water LJ Energy of this water: ", np.nansum(energy_sw_lj)
-            #print "Solute-water Elec Energy of this water: ", np.sum(energy_elec[:, self.non_water_atom_ids])
-            #print "Water-water LJ Energy of this water: ", np.nansum(energy_ww_lj)/2.0
-            #print "Water-water Elec Energy of this water: ", (np.sum(energy_elec[:, self.wat_atom_ids[0]:water_id])/2.0) + (np.sum(energy_elec[:, water_id + self.water_sites:])/2.0)
             energy_lj = np.concatenate((energy_sw_lj, energy_ww_lj), axis=0)
         return energy_lj, energy_elec
 
@@ -450,55 +407,4 @@ class WaterAnalysis(object):
         hbonds_sw = angle_triplets_sw[np.where(angles_sw <= ANGLE_CUTOFF_RAD)]
         return (hbonds_ww, hbonds_sw)
 
-    def calculate_hydrogen_bonds2(self, coords, water, water_nbrs, solute_nbrs):
-        """Calculates hydrogen bonds made by a water molecule with its first shell
-        water and solute neighbors.
-        
-        Parameters
-        ----------
-        traj : md.trajectory
-            MDTraj trajectory object for which hydrogen bonds are to be calculates. 
-        water : int
-            The index of water oxygen atom
-        water_nbrs : np.ndarray, int, shape=(N^{ww}_nbr, )
-            Indices of the water oxygen atoms in the first solvation shell of the water molecule.
-        solute_nbrs : np.ndarray, int, shape=(N^{sw}_nbr, )
-            Indices of thesolute atoms in the first solvation shell of the water molecule.
-        
-        Returns
-        -------
-        (hbonds_ww, hbonds_sw) : tuple
-            A tuple consisting of two np.ndarray objects for water-water and solute-water
-            hydrogen bonds. A hydrogen bond is represented by an array of indices
-            of three atom particpating in the hydrogen bond, [Donor, H, Acceptor]
-        """
-        angle_triplets = []
-        for wat_nbr in water_nbrs:
-            angle_triplets.extend([[water, wat_nbr, wat_nbr+1], [water, wat_nbr, wat_nbr+2], [wat_nbr, water, water+1], [wat_nbr, water, water+2]])
-        for solute_nbr in solute_nbrs:
-            if self.prot_hb_types[solute_nbr] == 1 or self.prot_hb_types[solute_nbr] == 3:
-                angle_triplets.extend([[solute_nbr, water, water+1], [solute_nbr, water, water+2]])
-            if self.prot_hb_types[solute_nbr] == 2 or self.prot_hb_types[solute_nbr] == 3:
-                for don_H_pair in self.don_H_pair_dict[solute_nbr]:
-                    angle_triplets.extend([[water, solute_nbr, don_H_pair[1]]])
-
-        angle_triplets = np.asarray(angle_triplets)
-        angle_triplets_ww = angle_triplets[:water_nbrs.shape[0]*4]
-        angle_triplets_sw = angle_triplets[water_nbrs.shape[0]*4:]
-        
-        angles = np.asarray([self.calc_angle(coords, triplet) for triplet in angle_triplets])
-        angles_ww = angles[0:water_nbrs.shape[0]*4]
-        angles_sw = angles[water_nbrs.shape[0]*4:]
-
-        hbonds_ww = angle_triplets_ww[np.where(angles_ww <= 30.0)]
-        hbonds_sw = angle_triplets_sw[np.where(angles_sw <= 30.0)]
-        return hbonds_ww, hbonds_sw
-
-    def calc_angle(self, coords, triplet):
-        """
-        """
-        dp = np.dot(coords[0, triplet[0], :] - coords[0, triplet[1], :], coords[0, triplet[2], :] - coords[0, triplet[1], :])
-        norms = [np.linalg.norm(coords[0, triplet[0], :] - coords[0, triplet[1], :]), np.linalg.norm(coords[0, triplet[2], :] - coords[0, triplet[1], :])]
-        cos_angle = dp / (norms[0] * norms[1])
-        return np.degrees(np.arccos(cos_angle))
 

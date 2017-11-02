@@ -34,6 +34,7 @@ import mdtraj as md
 from sstmap.water_analysis import WaterAnalysis
 from sstmap.utils import print_progress_bar, function_timer
 import _sstmap_ext as calc
+from sstmap.utils import *
 
 GASKCAL = 0.0019872041
 
@@ -101,8 +102,8 @@ class GridWaterAnalysis(WaterAnalysis):
         self.grid_size = np.cast['uint32'](self.grid_size)
         # Finally allocate the space for the grid
         self.grid = np.zeros(self.dims, dtype=np.int_)
-        self.generate_nonbonded_params()
-        self.assign_hb_types()
+        #self.generate_nonbonded_params()
+        #self.assign_hb_types()
 
     def initialize_voxel_data(self):
         v_count = 0
@@ -342,6 +343,11 @@ class GridWaterAnalysis(WaterAnalysis):
         # Normalize
         for voxel in xrange(self.voxeldata.shape[0]):
             if self.voxeldata[voxel, 4] >= 1.0:
+                #self.voxeldata[voxel, 5] = self.voxeldata[voxel, 4]/num_frames
+                #if self.voxeldata[voxel, 5] >= 0.01:
+                #    coords.append(self.voxeldata[voxel, 1:4])
+                #voxel_dens = 1.0 * self.voxeldata[voxel, 4] / (num_frames * self.voxel_vol)
+                #self.voxeldata[voxel, 5] = voxel_dens / self.rho_bulk
                 self.voxeldata[voxel, 14] = self.voxeldata[voxel, 13] / (self.voxeldata[voxel, 4] * 2.0)
                 self.voxeldata[voxel, 13] /= (num_frames * self.voxel_vol * 2.0)
                 self.voxeldata[voxel, 16] = self.voxeldata[voxel, 15] / (self.voxeldata[voxel, 4] * 2.0)
@@ -352,6 +358,7 @@ class GridWaterAnalysis(WaterAnalysis):
                 for i in range(19, 35, 2):
                     self.voxeldata[voxel, i + 1] = self.voxeldata[voxel, i] / self.voxeldata[voxel, 4]
                     self.voxeldata[voxel, i] /= (num_frames * self.voxel_vol)
+
         if entropy:
             self.calculate_entropy(num_frames=num_frames)
 
