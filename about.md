@@ -9,10 +9,13 @@ title: About
 
 ![overview](https://kurtzmanlab.github.io/SSTMap/assets/overview.png)
 
+
 ###  Citation  [![DOI for Citing SSTMap](https://img.shields.io/badge/DOI-10.1021%2Fj.jctc.2017.11.021-blue.svg)](http://doi.org/10.1021/acs.jctc.7b00592)
 
 * Haider K, Cruz A, Ramsey S, Gilson MK, and Kurtzman T. Solvation Structure and Thermodynamic Mapping (SSTMap): An Open-Source, Flexible Package for the Analysis of Water in Molecular Dynamics Trajectories. J. Chem. Theor. Comput. (20017). [DOI](http://doi.org/10.1021/acs.jctc.7b00592)
 
+  
+  
   
 
 #### Shoutout to Lanyon
