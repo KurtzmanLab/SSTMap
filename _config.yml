@@ -10,7 +10,7 @@ permalink:           pretty
 # Setup
 title:               SSTMap
 tagline:             'Solvation Structure and Thermodynamic Mapping'
-description:         'A computational tool for studying structure and thermodynamics of water molecules on solute surfaces, developed by the <a href="http://www.lehman.edu/faculty/tkurtzman/" target="_blank">Kurtzman</a> and <a href="http://gilson.cloud.ucsd.edu/" target="_blank">Gilson Labs</a>.'
+description:         'A computational tool for studying structure and thermodynamics of water molecules on solute surfaces, developed by the <a href="http://www.lehman.edu/faculty/tkurtzman/" target="_blank">Kurtzman</a> and <a href="http://gilson.cloud.ucsd.edu/" target="_blank">Gilson</a> Labs.'
 url:                 https://KurtzmanLab.github.io/SSTMap/
 baseurl:             ""
 paginate:            5
