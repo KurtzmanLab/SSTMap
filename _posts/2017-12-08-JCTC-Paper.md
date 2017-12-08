@@ -1,6 +1,6 @@
 ---
 layout: post
-author: tkurtzman
+author: tom-kurtzman
 title: JCTC Paper Published
 date: 2017-12-08
 published: true
