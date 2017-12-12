@@ -45,11 +45,10 @@ class GridWaterAnalysis(WaterAnalysis):
                  grid_center=None, grid_dimensions=[20, 20, 20],
                  grid_resolution=[0.5, 0.5, 0.5], rho_bulk=None, prefix="test"):
 
-        if num_frames is None:
-            print("Number of frames not specified, setting to default, N=10000")
-            num_frames = 10000
-        super(GridWaterAnalysis, self).__init__(topology_file, trajectory, start_frame, num_frames, supporting_file,
-                                                rho_bulk)
+        print("Initializing ...")
+        self.start_frame = start_frame
+        self.num_frames = num_frames
+        super(GridWaterAnalysis, self).__init__(topology_file, trajectory, supporting_file, rho_bulk)
 
         self.grid_dims = np.asarray(grid_dimensions, int)
         self.resolution = grid_resolution[0]
@@ -59,7 +58,7 @@ class GridWaterAnalysis(WaterAnalysis):
                          speicify a ligand PDB file whose center would be chosen as grid center.")
 
         if ligand_file is not None and grid_center is None:
-            # TODO: change this as a utility function
+            # TODO: change this to a utility function
             # get ligad center
             lig = md.load_pdb(ligand_file, no_boxchk=True)
             com = np.zeros((lig.n_frames, 3))
@@ -107,6 +106,7 @@ class GridWaterAnalysis(WaterAnalysis):
 
     def initialize_voxel_data(self):
         v_count = 0
+        #TODO: generate separate arrays for each quantity to avoid indexing hell
         voxel_array = np.zeros((self.grid.size, 35), dtype="float64")
         # print voxel_quarts_new.shape
         for index, value in np.ndenumerate(self.grid):
@@ -130,6 +130,17 @@ class GridWaterAnalysis(WaterAnalysis):
         return voxel_array, voxel_quarts, voxel_O_coords
 
     def calculate_euler_angles(self, water, coords):
+        """
+
+        Parameters
+        ----------
+        water :
+        coords :
+
+        Returns
+        -------
+
+        """
         pi = np.pi
         twopi = 2 * np.pi
         # define the lab frame of reference
@@ -230,115 +241,125 @@ class GridWaterAnalysis(WaterAnalysis):
 
     @function_timer
     def calculate_entropy(self, num_frames=None):
+        """
+
+        Parameters
+        ----------
+        num_frames :
+
+        Returns
+        -------
+
+        """
         if num_frames is None:
             num_frames = self.num_frames
         calc.getNNTrEntropy(num_frames, self.voxel_vol, self.rho_bulk, 300.0, self.grid_dims, self.voxeldata, self.voxel_O_coords, self.voxel_quarts)
 
 
-
-    def process_frame(self, begin_chunk, chunk_size, topology, energy, hbonds, entropy):
+    def _process_frame(self, trj, frame_i, energy, hbonds, entropy):
         nbr_cutoff_sq = 3.5 ** 2
-        with md.open(self.trajectory) as f:
-            f.seek(begin_chunk)
-            trj = f.read_as_traj(topology, n_frames=chunk_size, stride=1)
-            trj.xyz *= 10.0
-            pbc = md.utils.in_units_of(trj.unitcell_lengths, "nanometers", "angstroms")
-            frame_data = [[] for i in range(trj.n_frames)]
-            calc.assign_voxels(trj.xyz, self.dims, self.gridmax, self.origin, frame_data, self.wat_oxygen_atom_ids)
-
-            for frame in range(trj.n_frames):
-                coords = trj.xyz[frame, :, :].reshape(1, trj.xyz.shape[1], trj.xyz.shape[2])
-                periodic_box = pbc[frame].reshape(1, pbc.shape[1])
-                waters = frame_data[frame]
-                for wat in waters:
-                    self.voxeldata[wat[0], 4] += 1
-                    if energy or hbonds:
-                        e_lj_array, e_elec_array = np.copy(self.acoeff), np.copy(self.chg_product)
-                        distance_matrix = np.zeros((self.water_sites, self.all_atom_ids.shape[0]))
-                        calc.get_pairwise_distances(wat, self.all_atom_ids, coords, pbc, distance_matrix)
-                        wat_nbrs = self.wat_oxygen_atom_ids[np.where(
-                            (distance_matrix[0, :][self.wat_oxygen_atom_ids] <= nbr_cutoff_sq) & (
-                                distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
-                        self.voxeldata[wat[0], 19] += wat_nbrs.shape[0]
-                        calc.calculate_energy(wat[1], distance_matrix, e_elec_array, e_lj_array, self.bcoeff)
-                        self.voxeldata[wat[0], 13] += np.sum(e_lj_array[:, :self.wat_oxygen_atom_ids[0]])
-                        self.voxeldata[wat[0], 13] += np.sum(e_elec_array[:, :self.wat_oxygen_atom_ids[0]])
-                        self.voxeldata[wat[0], 15] += np.sum(
-                            e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_lj_array[:, wat[1] + self.water_sites:])
-                        self.voxeldata[wat[0], 15] += np.sum(
-                            e_elec_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(
-                            e_elec_array[:, wat[1] + self.water_sites:])
-                        e_nbr_list = [np.sum(e_lj_array[:, wat_nbrs + i] + e_elec_array[:, wat_nbrs + i]) for i in
-                                      xrange(self.water_sites)]
-                        self.voxeldata[wat[0], 17] += np.sum(e_nbr_list)
-                        """
-                        ###DEBUG START###
-                        elj_sw = np.sum(e_lj_array[:, :self.wat_oxygen_atom_ids[0]])
-                        eelec_sw = np.sum(e_elec_array[:, :self.wat_oxygen_atom_ids[0]])
-                        elj_ww = np.sum(e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_lj_array[:, wat[1] + 1:])
-                        eelec_ww = np.sum(e_elec_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_elec_array[:, wat[1] + self.water_sites:])
-                        e_nbr_list = [np.sum(e_lj_array[:, wat_nbrs + i] + e_elec_array[:, wat_nbrs + i]) for i in xrange(self.water_sites)]
-                        enbr = np.sum(e_nbr_list)
-                        print "Calc: ", elj_sw, eelec_sw, elj_ww, eelec_ww, enbr
-                        distance_matrix = np.sqrt(distance_matrix)
-                        energy_lj, energy_elec = self.calculate_energy(distance_matrix)
-                        test_1 = np.sum(energy_lj[:self.wat_oxygen_atom_ids[0]:])
-                        test_2 = np.sum(energy_elec[:, self.non_water_atom_ids])
-                        test_3 = np.nansum(energy_lj[self.wat_oxygen_atom_ids[0]:])
-                        test_4 = np.sum(energy_elec[:, self.wat_atom_ids[0]:wat[1]]) + np.sum(energy_elec[:, wat[1] + self.water_sites:])
-                        test_5 = 0.0
-                        test_5 += np.sum(energy_lj[self.wat_oxygen_atom_ids[0]:][(wat_nbrs - self.wat_oxygen_atom_ids[0]) / self.water_sites])
-                        for i in range(self.water_sites):
-                            test_5 += np.sum(energy_elec[:, wat_nbrs + i])
-                        print "Ref: ", test_1, test_2, test_3, test_4, test_5
-                        ###DEBUG END###
-                        """
-                        # H-bond calculations
-                        if hbonds:
-                            prot_nbrs_all = self.non_water_atom_ids[
-                                np.where(distance_matrix[0, :][self.non_water_atom_ids] <= nbr_cutoff_sq)]
-                            prot_nbrs_hb = prot_nbrs_all[np.where(self.prot_hb_types[prot_nbrs_all] != 0)]
-                            if wat_nbrs.shape[0] != 0 and prot_nbrs_hb.shape[0] != 0:
-                                # hb_ww, hb_sw = self.calculate_hydrogen_bonds2(coords, wat[1], wat_nbrs, prot_nbrs_hb)
-                                hb_ww, hb_sw = self.calculate_hydrogen_bonds(trj, wat[1], wat_nbrs, prot_nbrs_hb)
-                                acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat[1])].shape[0]
-                                don_ww = hb_ww.shape[0] - acc_ww
-                                acc_sw = hb_sw[:, 0][np.where(hb_sw[:, 0] == wat[1])].shape[0]
-                                don_sw = hb_sw.shape[0] - acc_sw
-                                self.voxeldata[wat[0], 23] += hb_sw.shape[0]
-                                self.voxeldata[wat[0], 25] += hb_ww.shape[0]
-                                self.voxeldata[wat[0], 27] += don_sw
-                                self.voxeldata[wat[0], 29] += acc_sw
-                                self.voxeldata[wat[0], 31] += don_ww
-                                self.voxeldata[wat[0], 33] += acc_ww
-                                if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
-                                    self.voxeldata[wat[0], 21] += wat_nbrs.shape[0] / hb_ww.shape[0]
-                    if entropy:
-                        self.calculate_euler_angles(wat, coords[0, :, :])
+        trj.xyz *= 10.0
+        coords = trj.xyz
+        periodic_box = md.utils.in_units_of(trj.unitcell_lengths, "nanometers", "angstroms")
+        waters = []
+        calc.assign_voxels(trj.xyz, self.dims, self.gridmax, self.origin, waters, self.wat_oxygen_atom_ids)
+        for wat in waters:
+            self.voxeldata[wat[0], 4] += 1
+            if energy or hbonds:
+                e_lj_array, e_elec_array = np.copy(self.acoeff), np.copy(self.chg_product)
+                distance_matrix = np.zeros((self.water_sites, self.all_atom_ids.shape[0]))
+                calc.get_pairwise_distances(wat, self.all_atom_ids, coords, periodic_box, distance_matrix)
+                wat_nbrs = self.wat_oxygen_atom_ids[np.where(
+                    (distance_matrix[0, :][self.wat_oxygen_atom_ids] <= nbr_cutoff_sq) & (
+                        distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
+                self.voxeldata[wat[0], 19] += wat_nbrs.shape[0]
+                calc.calculate_energy(wat[1], distance_matrix, e_elec_array, e_lj_array, self.bcoeff)
+                self.voxeldata[wat[0], 13] += np.sum(e_lj_array[:, :self.wat_oxygen_atom_ids[0]])
+                self.voxeldata[wat[0], 13] += np.sum(e_elec_array[:, :self.wat_oxygen_atom_ids[0]])
+                self.voxeldata[wat[0], 15] += np.sum(
+                    e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_lj_array[:, wat[1] + self.water_sites:])
+                self.voxeldata[wat[0], 15] += np.sum(
+                    e_elec_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(
+                    e_elec_array[:, wat[1] + self.water_sites:])
+                e_nbr_list = [np.sum(e_lj_array[:, wat_nbrs + i] + e_elec_array[:, wat_nbrs + i]) for i in
+                              xrange(self.water_sites)]
+                self.voxeldata[wat[0], 17] += np.sum(e_nbr_list)
+                """
+                ###DEBUG START###
+                elj_sw = np.sum(e_lj_array[:, :self.wat_oxygen_atom_ids[0]])
+                eelec_sw = np.sum(e_elec_array[:, :self.wat_oxygen_atom_ids[0]])
+                elj_ww = np.sum(e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_lj_array[:, wat[1] + 1:])
+                eelec_ww = np.sum(e_elec_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_elec_array[:, wat[1] + self.water_sites:])
+                e_nbr_list = [np.sum(e_lj_array[:, wat_nbrs + i] + e_elec_array[:, wat_nbrs + i]) for i in xrange(self.water_sites)]
+                enbr = np.sum(e_nbr_list)
+                print "Calc: ", elj_sw, eelec_sw, elj_ww, eelec_ww, enbr
+                distance_matrix = np.sqrt(distance_matrix)
+                energy_lj, energy_elec = self.calculate_energy(distance_matrix)
+                test_1 = np.sum(energy_lj[:self.wat_oxygen_atom_ids[0]:])
+                test_2 = np.sum(energy_elec[:, self.non_water_atom_ids])
+                test_3 = np.nansum(energy_lj[self.wat_oxygen_atom_ids[0]:])
+                test_4 = np.sum(energy_elec[:, self.wat_atom_ids[0]:wat[1]]) + np.sum(energy_elec[:, wat[1] + self.water_sites:])
+                test_5 = 0.0
+                test_5 += np.sum(energy_lj[self.wat_oxygen_atom_ids[0]:][(wat_nbrs - self.wat_oxygen_atom_ids[0]) / self.water_sites])
+                for i in range(self.water_sites):
+                    test_5 += np.sum(energy_elec[:, wat_nbrs + i])
+                print "Ref: ", test_1, test_2, test_3, test_4, test_5
+                ###DEBUG END###
+                """
+                # H-bond calculations
+                if hbonds:
+                    prot_nbrs_all = self.non_water_atom_ids[
+                        np.where(distance_matrix[0, :][self.non_water_atom_ids] <= nbr_cutoff_sq)]
+                    prot_nbrs_hb = prot_nbrs_all[np.where(self.prot_hb_types[prot_nbrs_all] != 0)]
+                    if wat_nbrs.shape[0] != 0 and prot_nbrs_hb.shape[0] != 0:
+                        # hb_ww, hb_sw = self.calculate_hydrogen_bonds2(coords, wat[1], wat_nbrs, prot_nbrs_hb)
+                        hb_ww, hb_sw = self.calculate_hydrogen_bonds(trj, wat[1], wat_nbrs, prot_nbrs_hb)
+                        acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat[1])].shape[0]
+                        don_ww = hb_ww.shape[0] - acc_ww
+                        acc_sw = hb_sw[:, 0][np.where(hb_sw[:, 0] == wat[1])].shape[0]
+                        don_sw = hb_sw.shape[0] - acc_sw
+                        self.voxeldata[wat[0], 23] += hb_sw.shape[0]
+                        self.voxeldata[wat[0], 25] += hb_ww.shape[0]
+                        self.voxeldata[wat[0], 27] += don_sw
+                        self.voxeldata[wat[0], 29] += acc_sw
+                        self.voxeldata[wat[0], 31] += don_ww
+                        self.voxeldata[wat[0], 33] += acc_ww
+                        if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
+                            self.voxeldata[wat[0], 21] += wat_nbrs.shape[0] / hb_ww.shape[0]
+            if entropy:
+                self.calculate_euler_angles(wat, coords[0, :, :])
 
     @function_timer
-    def calculate_grid_quantities(self, energy=True, entropy=True, hbonds=True, start_frame=None, num_frames=None):
+    def calculate_grid_quantities(self, energy=True, entropy=True, hbonds=True):
+        """
 
-        if start_frame is None:
-            start_frame = self.start_frame
-        if num_frames is None:
-            num_frames = self.num_frames
+        Parameters
+        ----------
+        energy :
+        entropy :
+        hbonds :
+        start_frame :
+        num_frames :
 
-        chunk_size = 1
-        if (start_frame + num_frames) <= chunk_size:
-            chunk_size = start_frame + num_frames
+        Returns
+        -------
 
-        chunk_iter = int(num_frames / chunk_size)
-        #chunk_iter += int((start_frame + num_frames) % chunk_size)
-        chunk_counter = 0
-        print_progress_bar(chunk_counter, chunk_iter)
+        """
+        print_progress_bar(0, self.num_frames)
         topology = md.load_topology(self.topology_file)
-        for i in xrange(start_frame, start_frame + num_frames):
-            chunk_counter += 1
-            self.process_frame(i, chunk_size, topology, energy, hbonds, entropy)
-            print_progress_bar(chunk_counter, chunk_iter)
-            if chunk_counter == chunk_iter:
-                break
+        with md.open(self.trajectory) as f:
+            for frame_i in xrange(self.start_frame, self.start_frame + self.num_frames):
+                print_progress_bar(frame_i - self.start_frame, self.num_frames)
+                try:
+                    f.seek(frame_i)
+                except IndexError:
+                    print("No more frames to read.")
+                    break
+                else:
+                    trj = f.read_as_traj(topology, n_frames=1, stride=1)
+                    self._process_frame(trj, frame_i, energy, hbonds, entropy)
+            if (frame_i - self.start_frame) < self.num_frames:
+                self.num_frames = frame_i - self.start_frame
 
         # Normalize
         for voxel in xrange(self.voxeldata.shape[0]):
@@ -349,21 +370,31 @@ class GridWaterAnalysis(WaterAnalysis):
                 #voxel_dens = 1.0 * self.voxeldata[voxel, 4] / (num_frames * self.voxel_vol)
                 #self.voxeldata[voxel, 5] = voxel_dens / self.rho_bulk
                 self.voxeldata[voxel, 14] = self.voxeldata[voxel, 13] / (self.voxeldata[voxel, 4] * 2.0)
-                self.voxeldata[voxel, 13] /= (num_frames * self.voxel_vol * 2.0)
+                self.voxeldata[voxel, 13] /= (self.num_frames * self.voxel_vol * 2.0)
                 self.voxeldata[voxel, 16] = self.voxeldata[voxel, 15] / (self.voxeldata[voxel, 4] * 2.0)
-                self.voxeldata[voxel, 15] /= (num_frames * self.voxel_vol * 2.0)
+                self.voxeldata[voxel, 15] /= (self.num_frames * self.voxel_vol * 2.0)
                 if self.voxeldata[voxel, 19] > 0.0:
                     self.voxeldata[voxel, 18] = self.voxeldata[voxel, 17] / (self.voxeldata[voxel, 19] * 2.0)
-                    self.voxeldata[voxel, 17] /= (num_frames * self.voxel_vol * self.voxeldata[voxel, 19] * 2.0)
+                    self.voxeldata[voxel, 17] /= (self.num_frames * self.voxel_vol * self.voxeldata[voxel, 19] * 2.0)
                 for i in range(19, 35, 2):
                     self.voxeldata[voxel, i + 1] = self.voxeldata[voxel, i] / self.voxeldata[voxel, 4]
-                    self.voxeldata[voxel, i] /= (num_frames * self.voxel_vol)
+                    self.voxeldata[voxel, i] /= (self.num_frames * self.voxel_vol)
 
         if entropy:
-            self.calculate_entropy(num_frames=num_frames)
+            self.calculate_entropy(num_frames=self.num_frames)
 
     @function_timer
     def write_data(self, prefix=None):
+        """
+
+        Parameters
+        ----------
+        prefix :
+
+        Returns
+        -------
+
+        """
 
         if prefix == None:
             prefix = self.prefix
@@ -398,6 +429,16 @@ class GridWaterAnalysis(WaterAnalysis):
 
     @function_timer
     def generate_dx_files(self, prefix=None):
+        """
+
+        Parameters
+        ----------
+        prefix :
+
+        Returns
+        -------
+
+        """
 
         if prefix == None:
             prefix = self.prefix
@@ -457,6 +498,12 @@ class GridWaterAnalysis(WaterAnalysis):
                 f.close()
 
     def print_system_summary(self):
+        """
+
+        Returns
+        -------
+
+        """
 
         print("System information:")
         print("\tParameter file: %s\n" % self.topology_file)
@@ -471,6 +518,16 @@ class GridWaterAnalysis(WaterAnalysis):
         print("\tGIST grid spacing: %5.3f A^3\n" % (self.spacing[0]))
 
     def print_calcs_summary(self, num_frames=None):
+        """
+
+        Parameters
+        ----------
+        num_frames :
+
+        Returns
+        -------
+
+        """
 
         if num_frames is None:
             num_frames = self.num_frames
