@@ -109,7 +109,7 @@ Please cite the following when you use this software.
 License
 -------
 
-`SSTMap` is free software and is licensed under the LGPLv2 license.
+`SSTMap` is free software and is licensed under the MIT license.
 
 
 Acknowledgements
