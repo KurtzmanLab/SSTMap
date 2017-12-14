@@ -53,6 +53,12 @@ cd SSTMap
 git checkout tags/v1.0
 python setup.py install
 ```
+When building from the source code, make sure that you manually install dependencies. You can do this by:
+```
+conda config --add channels omnia
+conda install mdtraj parmed
+``` 
+
 Usage
 -----
 
