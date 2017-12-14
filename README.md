@@ -37,7 +37,15 @@ You can install the latest development version from the GitHub repository by exe
 pip install git+git://github.com/kurtzmanlab/sstmap.git@v1.0#egg=sstmap
 ```
 
-You can also download the package manually from GitHub, unzip it, navigate into the directory, and execute the command:
+You can also download the release package manually from GitHub, unzip it, navigate into the directory, and execute the command:
+
+```bash
+https://github.com/KurtzmanLab/SSTMap/archive/v1.0.tar.gz or https://github.com/KurtzmanLab/SSTMap/archive/v1.0.zip
+tar -xvf v1.0.tar.gz or unzip v1.0.zip
+cd SSTMap-1.0
+python setup.py install
+```
+Or you can clone the GitHub repository, navigate into the directory, and execute the command: 
 
 ```bash
 git clone git@github.com:KurtzmanLab/SSTMap.git
