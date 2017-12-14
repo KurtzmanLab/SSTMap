@@ -250,7 +250,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                                                    (binding_site_atom_indices, self.wat_oxygen_atom_ids)))
                 if trj_short.n_frames < 10:
                     sys.exit(
-                        "Clustering required at least 100 frames, current trajectory contains {0:d} frames.".format(
+                        "Clustering requires at least 100 frames, current trajectory contains {0:d} frames.".format(
                             trj_short.n_frames))
                 print("Performing an initial clustering over {0:d} frames.".format(trj_short.n_frames))
                 # Obtain water molecules solvating the binding site
@@ -585,19 +585,21 @@ class SiteWaterAnalysis(WaterAnalysis):
         """
         print_progress_bar(0, self.num_frames)
         topology = md.load_topology(self.topology_file)
+        read_num_frames = 0
         with md.open(self.trajectory) as f:
             for frame_i in xrange(self.start_frame, self.start_frame + self.num_frames):
                 print_progress_bar(frame_i - self.start_frame, self.num_frames)
-                try:
-                    f.seek(frame_i)
-                except IndexError:
+                f.seek(frame_i)
+                trj = f.read_as_traj(topology, n_frames=1, stride=1)
+                if trj.n_frames == 0:
                     print("No more frames to read.")
                     break
                 else:
-                    trj = f.read_as_traj(topology, n_frames=1, stride=1)
                     self._process_frame(trj, frame_i, energy, hbonds, entropy)
-            # if (frame_i - self.start_frame) < self.num_frames:
-            #    self.num_frames = frame_i - self.start_frame
+                    read_num_frames += 1
+            if  read_num_frames < self.num_frames:
+                print("{0:d} frames found in the trajectory, resetting self.num_frames.".format(read_num_frames))
+                self.num_frames = read_num_frames
 
         if entropy:
             self.generate_data_for_entropycalcs(self.start_frame, self.num_frames)

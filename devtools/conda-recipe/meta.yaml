@@ -7,18 +7,18 @@ source:
 requirements:
   build:
     - python
-    - numpy >= 1.1
+    - numpy >= 1.11.3
     - setuptools
     - gcc
 
   run:
     - python 
     - libgcc
-    - numpy
-    - scipy
-    - mdtraj
-    - parmed
-    - matplotlib
+    - numpy >= 1.11.3
+    - scipy >= 1.0.0
+    - mdtraj >= 1.8.0
+    - parmed >= 2.7.3
+    - matplotlib >= 2.0.0
 
 about:
   home: https://github.com/kamran-haider

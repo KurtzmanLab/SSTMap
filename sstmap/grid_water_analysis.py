@@ -278,8 +278,10 @@ class GridWaterAnalysis(WaterAnalysis):
                         distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
                 self.voxeldata[wat[0], 19] += wat_nbrs.shape[0]
                 calc.calculate_energy(wat[1], distance_matrix, e_elec_array, e_lj_array, self.bcoeff)
-                self.voxeldata[wat[0], 13] += np.sum(e_lj_array[:, self.prot_atom_ids])
-                self.voxeldata[wat[0], 13] += np.sum(e_elec_array[:, self.prot_atom_ids])
+
+                if self.prot_atom_ids.shape[0] != 0:
+                    self.voxeldata[wat[0], 13] += np.sum(e_lj_array[:, self.prot_atom_ids])
+                    self.voxeldata[wat[0], 13] += np.sum(e_elec_array[:, self.prot_atom_ids])
                 self.voxeldata[wat[0], 15] += np.sum(
                     e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_lj_array[:, wat[1] + self.water_sites:])
                 self.voxeldata[wat[0], 15] += np.sum(
@@ -355,21 +357,21 @@ class GridWaterAnalysis(WaterAnalysis):
         """
         print_progress_bar(0, self.num_frames)
         topology = md.load_topology(self.topology_file)
+        read_num_frames = 0
         with md.open(self.trajectory) as f:
             for frame_i in xrange(self.start_frame, self.start_frame + self.num_frames):
                 print_progress_bar(frame_i - self.start_frame, self.num_frames)
-                try:
-                    f.seek(frame_i)
-                except IndexError:
+                f.seek(frame_i)
+                trj = f.read_as_traj(topology, n_frames=1, stride=1)
+                if trj.n_frames == 0:
                     print("No more frames to read.")
                     break
                 else:
-                    trj = f.read_as_traj(topology, n_frames=1, stride=1)
                     self._process_frame(trj, frame_i, energy, hbonds, entropy)
-            #if (frame_i - self.start_frame) < self.num_frames:
-            #    self.num_frames = frame_i - self.start_frame
-
-        print(self.num_frames)
+                    read_num_frames += 1
+            if  read_num_frames < self.num_frames:
+                print("{0:d} frames found in the trajectory, resetting self.num_frames.".format(read_num_frames))
+                self.num_frames = read_num_frames
         # Normalize
         for voxel in xrange(self.voxeldata.shape[0]):
             if self.voxeldata[voxel, 4] > 1.0:
@@ -394,7 +396,6 @@ class GridWaterAnalysis(WaterAnalysis):
                 for i in range(19, 35, 2):
                     #self.voxeldata[voxel, i + 1] = self.voxeldata[voxel, i] / self.voxeldata[voxel, 4]
                     self.voxeldata[voxel, i] *= 0.0
-
 
         if entropy:
             self.calculate_entropy(num_frames=self.num_frames)
