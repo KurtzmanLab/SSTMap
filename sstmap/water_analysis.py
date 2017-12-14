@@ -369,21 +369,66 @@ class WaterAnalysis(object):
             energy_lj = np.concatenate((energy_sw_lj, energy_ww_lj), axis=0)
         return energy_lj, energy_elec
 
-    def calculate_hydrogen_bonds(self, traj, water, water_nbrs, solute_nbrs):
+    def calculate_hydrogen_bonds(self, traj, water, nbrs, water_water=True):
         """Calculates hydrogen bonds made by a water molecule with its first shell
         water and solute neighbors.
-        
+
         Parameters
         ----------
         traj : md.trajectory
-            MDTraj trajectory object for which hydrogen bonds are to be calculates. 
+            MDTraj trajectory object for which hydrogen bonds are to be calculates.
+        water : int
+            The index of water oxygen atom
+        nbrs : np.ndarray, int, shape=(N^{ww}_nbr, )
+            Indices of the water oxygen or solute atoms in the first solvation shell of the water molecule.
+        water_water : bool
+            Boolean for whether water-water or solute-water hbonds are desired
+
+        Returns
+        -------
+        hbonds : np.ndarray
+            Array of hydrogen bonds where each hydrogen bond is represented by an array of indices
+            of three participating atoms [Donor, H, Acceptor]
+        """
+        hbond_data = []
+        angle_triplets = []
+        if water_water:
+            for wat_nbr in nbrs:
+                angle_triplets.extend(
+                    [[water, wat_nbr, wat_nbr + 1], [water, wat_nbr, wat_nbr + 2], [wat_nbr, water, water + 1],
+                     [wat_nbr, water, water + 2]])
+        else:
+            for solute_nbr in nbrs:
+                if self.prot_hb_types[solute_nbr] == 1 or self.prot_hb_types[solute_nbr] == 3:
+                    angle_triplets.extend([[solute_nbr, water, water + 1], [solute_nbr, water, water + 2]])
+                if self.prot_hb_types[solute_nbr] == 2 or self.prot_hb_types[solute_nbr] == 3:
+                    for don_H_pair in self.don_H_pair_dict[solute_nbr]:
+                        angle_triplets.extend([[water, solute_nbr, don_H_pair[1]]])
+
+        angle_triplets = np.asarray(angle_triplets)
+        angles = md.compute_angles(traj, angle_triplets)
+        angles[np.isnan(angles)] = 0.0
+        #print(angle_triplets)
+        #print(angles)
+        hbonds = angle_triplets[np.where(angles[0, :] <= ANGLE_CUTOFF_RAD)]
+        return hbonds
+
+    # A potentially faster implementation where mdtraj hb functionality is called only once
+    def calculate_hydrogen_bonds2(self, traj, water, water_nbrs, solute_nbrs):
+        """Calculates hydrogen bonds made by a water molecule with its first shell
+        water and solute neighbors.
+
+        Parameters
+        ----------
+        traj : md.trajectory
+            MDTraj trajectory object for which hydrogen bonds are to be calculates.
         water : int
             The index of water oxygen atom
         water_nbrs : np.ndarray, int, shape=(N^{ww}_nbr, )
             Indices of the water oxygen atoms in the first solvation shell of the water molecule.
         solute_nbrs : np.ndarray, int, shape=(N^{sw}_nbr, )
             Indices of thesolute atoms in the first solvation shell of the water molecule.
-        
+
         Returns
         -------
         (hbonds_ww, hbonds_sw) : tuple
@@ -394,22 +439,23 @@ class WaterAnalysis(object):
         hbond_data = []
         angle_triplets = []
         for wat_nbr in water_nbrs:
-            angle_triplets.extend([[water, wat_nbr, wat_nbr+1], [water, wat_nbr, wat_nbr+2], [wat_nbr, water, water+1], [wat_nbr, water, water+2]])
+            angle_triplets.extend(
+                [[water, wat_nbr, wat_nbr + 1], [water, wat_nbr, wat_nbr + 2], [wat_nbr, water, water + 1],
+                 [wat_nbr, water, water + 2]])
         for solute_nbr in solute_nbrs:
             if self.prot_hb_types[solute_nbr] == 1 or self.prot_hb_types[solute_nbr] == 3:
-                angle_triplets.extend([[solute_nbr, water, water+1], [solute_nbr, water, water+2]])
+                angle_triplets.extend([[solute_nbr, water, water + 1], [solute_nbr, water, water + 2]])
             if self.prot_hb_types[solute_nbr] == 2 or self.prot_hb_types[solute_nbr] == 3:
                 for don_H_pair in self.don_H_pair_dict[solute_nbr]:
                     angle_triplets.extend([[water, solute_nbr, don_H_pair[1]]])
         angle_triplets = np.asarray(angle_triplets)
         angles = md.compute_angles(traj, np.asarray(angle_triplets))
         angles[np.isnan(angles)] = 0.0
-        angles_ww = angles[0, 0:water_nbrs.shape[0]*4]
-        angles_sw = angles[0, water_nbrs.shape[0]*4:]
-        angle_triplets_ww = angle_triplets[:water_nbrs.shape[0]*4]
-        angle_triplets_sw = angle_triplets[water_nbrs.shape[0]*4:]
+        angles_ww = angles[0, 0:water_nbrs.shape[0] * 4]
+        angles_sw = angles[0, water_nbrs.shape[0] * 4:]
+        angle_triplets_ww = angle_triplets[:water_nbrs.shape[0] * 4]
+        angle_triplets_sw = angle_triplets[water_nbrs.shape[0] * 4:]
         hbonds_ww = angle_triplets_ww[np.where(angles_ww <= ANGLE_CUTOFF_RAD)]
         hbonds_sw = angle_triplets_sw[np.where(angles_sw <= ANGLE_CUTOFF_RAD)]
         return (hbonds_ww, hbonds_sw)
-
 
