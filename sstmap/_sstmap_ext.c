@@ -1,29 +1,32 @@
 /*
   sstmap C extension module.
 ##############################################################################
-# SSTMap: A Python library for the calculation of water structure and
+#  SSTMap: A Python library for the calculation of water structure and
 #         thermodynamics on solute surfaces from molecular dynamics
 #         trajectories.
-# Copyright 2016-2017 Lehman College City University of New York
-# and the Authors
+# MIT License
+# Copyright 2016-2017 Lehman College City University of New York and the Authors
 #
-# Authors: Kamran Haider
-# Contributors: Steven Ramsay, Anthony Cruz Balberdy
+# Authors: Kamran Haider, Steven Ramsay, Anthony Cruz Balberdy
 #
-# SSTMap is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as
-# published by the Free Software Foundation, either version 2.1
-# of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with SSTMap. If not, see <http://www.gnu.org/licenses/>.
-##############################################################################
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+###############################################################################
 */
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -190,8 +193,8 @@ PyObject *_sstmap_ext_assign_voxels(PyObject *self, PyObject *args)
                         *(int *)PyArray_GETPTR1(wat_data, 0) = voxel_id;
                         *(int *)PyArray_GETPTR1(wat_data, 1) = wat_id;
                         //printf("wat_data: %d %d %d\n", voxel_id, *(int *)PyArray_GETPTR1(wat_data, 0), *(int *)PyArray_GETPTR1(wat_data, 1));
-                        curr_voxel = PyList_GetItem(frame_data, i_frame);
-                        PyList_Append(curr_voxel, wat_data);
+                        //curr_voxel = PyList_GetItem(frame_data, i_frame);
+                        PyList_Append(frame_data, wat_data);
                         //DECREF?
                     }
                 }
@@ -361,13 +364,12 @@ PyObject *_sstmap_ext_getNNTrEntropy(PyObject *self, PyObject *args)
         int numplane = voxel / addx;
         double nw_total = *(double *)PyArray_GETPTR2(voxel_data, voxel, 4);
         nwtt += nw_total;
-
-        //double W_dens = 1.0 * N_waters_[voxel] / (NFRAME_*Vvox);
-        //gO[voxel] = W_dens / BULK_DENS_;
-        //printf("voxel: %i %i\n", voxel, nw_total);
+        //printf("DEBUG1 voxel %i N_waters %g 1.0*N_waters %g NFRAME_ %i Vvox %g\n", voxel, nw_total, 1.0 * nw_total, num_frames, voxel_vol);
         double voxel_dens = 1.0 * nw_total / (num_frames * voxel_vol);
+        //printf("DEBUG2 voxel %i gO %g rho %g occ %g\n", voxel, voxel_dens/ref_dens, ref_dens, voxel_dens);
+
         *(double *) PyArray_GETPTR2(voxel_data, voxel, 5) += voxel_dens / ref_dens;
-        //printf("DEBUG2 voxel %d gO %g\n", voxel, voxel_dens/ref_dens);
+        //printf("DEBUG2 voxel %d gO %g rho %g occ %g\n", voxel, voxel_dens/ref_dens, ref_dens, voxel_dens);
         PyObject *curr_voxel_coords = PyList_GetItem(voxel_O_coords, voxel);
         PyObject *curr_voxel_quarts = PyList_GetItem(voxel_quarts, voxel);
         for (n0 = 0; n0 < (int) nw_total; n0++)

@@ -119,7 +119,7 @@ def read_gist_cpptraj(cpptraj_gist_summary):
     cpptraj_data = np.loadtxt(cpptraj_gist_summary, skiprows=2, usecols=columns_to_read)
     return cpptraj_data
 
-def test_dx_output(test_dx_filename, ref_dx_filename):
+def test_dx_output(test_dx_filename, ref_dx_filename, test_nwat_array, ref_nwat_array):
     """
     Compare two DX files.
 
@@ -127,13 +127,14 @@ def test_dx_output(test_dx_filename, ref_dx_filename):
     ----------
     test_dx_filename: string
         Location of the test DX file.
-    test_dx_filename: string
+    ref_dx_filename: string
         Location of the reference DX file.
 
     Returns
     -------
 
     """
+    print test_dx_filename, ref_dx_filename
     with open(test_dx_filename, "r") as test:
         lines = test.readlines()
         test_dims = [float(s) for s in lines[0].strip().split()[-3:]]
@@ -153,7 +154,7 @@ def test_dx_output(test_dx_filename, ref_dx_filename):
         ref_spacing = float(lines[2].strip().split()[-1])
         ref_voxel_num = int(lines[6].strip().split()[-3])
         ref_data = []
-        for i in xrange(len(lines[7:])):
+        for i in xrange(len(lines[7:-1])):
             ref_data.extend([float(s) for s in lines[7:][i].strip().split()])
         ref_data = np.asarray(ref_data)
 
@@ -165,9 +166,12 @@ def test_dx_output(test_dx_filename, ref_dx_filename):
         ref_data /= 2.0
     try:
         npt.assert_almost_equal(test_data, ref_data, decimal=3)
+        print "Passed"
     except Exception as e:
         print e
-        print test_dx_filename, ref_dx_filename
+        for i in range(test_data.shape[0]):
+            if abs(test_data[i] - ref_data[i]) >= 0.001:
+                print(i, ref_data[i], ref_nwat_array[i], test_data[i], test_nwat_array[i])
 
 
 def parse_args():
@@ -199,7 +203,7 @@ def run_all_gist_tests(test_dir, ref_dir):
     test_result = {1: "Passed", 0: "Failed"}
     test_dir_path = os.path.abspath(test_dir) + "/"
     ref_dir_path = os.path.abspath(ref_dir) + "/"
-
+    file_dict = {}
     if not os.path.exists(test_dir_path) or not os.path.exists(ref_dir_path):
         raise IOError("%s and/or %s directory not found, please provide correct path." % (test_dir, ref_dir))
     else:
@@ -210,6 +214,13 @@ def run_all_gist_tests(test_dir, ref_dir):
         ref_dx_files = [f for f in ref_dir_files if f.endswith(".dx")]
         ref_dx_files = [f for f in ref_dx_files if f[5:][:-3] in DX_TEST_FILES]
         assert len(test_dx_files) == len(ref_dx_files), "Couldn't obtain all DX files, tests won't run."
+        for f in ref_dx_files:
+            suffix = f[5:]
+            corresponding_test_file = [t for t in test_dx_files if suffix in t]
+            if len(corresponding_test_file) == 0:
+                raise Exception(ValueError, "%s: corresponding test file not found.", f)
+            else:
+                file_dict[f] = corresponding_test_file[0]
         test_data_file = [test_dir_path + f for f in test_dir_files if f.endswith("gist_data.txt")]
         test_data = read_gist_sstmap(test_data_file[0])
         ref_data_file = [ref_dir_path + f for f in ref_dir_files if f.endswith("all.out")]
@@ -235,10 +246,10 @@ def run_all_gist_tests(test_dir, ref_dir):
         print "Checking: %s" % quantities[4]
         result = testcase.test_quantity(4)
         print "%s" % test_result[bool(result)]
-        for index, filename in enumerate(test_dx_files):
-            test_dx_file, ref_dx_file = test_dir_path + filename, ref_dir_path + ref_dx_files[index]
-            test_dx_output(test_dx_file, ref_dx_file)
-
+        for index, filename in enumerate(file_dict.keys()):
+            t = file_dict[filename]
+            test_dx_file, ref_dx_file = test_dir_path + t, ref_dir_path + filename
+            test_dx_output(test_dx_file, ref_dx_file, ref_data[:, 4], test_data[:, 4])
     """
     for quantity_index in xrange(4, 5):
         print "--------------------------------------"

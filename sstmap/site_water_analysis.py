@@ -1,26 +1,30 @@
 ##############################################################################
-# SSTMap: A Python library for the calculation of water structure and
+#  SSTMap: A Python library for the calculation of water structure and
 #         thermodynamics on solute surfaces from molecular dynamics
 #         trajectories.
-# Copyright 2016-2017 Lehman College City University of New York
-# and the Authors
+# MIT License
+# Copyright 2016-2017 Lehman College City University of New York and the Authors
 #
-# Authors: Kamran Haider
-# Contributors: Steven Ramsay, Anthony Cruz Balberdy
+# Authors: Kamran Haider, Steven Ramsay, Anthony Cruz Balberdy
 #
-# SSTMap is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as
-# published by the Free Software Foundation, either version 2.1
-# of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with SSTMap. If not, see <http://www.gnu.org/licenses/>.
-##############################################################################
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+###############################################################################
 """
 This module contains implementations of a parent class for water analysis in
 MD trajectories.
@@ -127,7 +131,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                             "solute_acceptors", "solute_donors"]
 
     @function_timer
-    def initialize_hydration_sites(self):
+    def initialize_hydration_sites(self, clustering_density_cutoff=2):
         """
         Generates hydration sites and initialize data structures for storing hydration site
         information for subsequent calculations. Hydration sites are generated either from
@@ -138,7 +142,8 @@ class SiteWaterAnalysis(WaterAnalysis):
         This function initializes several attributes of SiteWaterAnalysis object, which are
         previously assumed to be set to None.
         """
-        cluster_coords, self.site_waters = self.generate_clusters(self.ligand, self.clustercenter_file)
+
+        cluster_coords, self.site_waters = self.generate_clusters(clustering_density_cutoff, self.ligand, self.clustercenter_file)
         self.hsa_data, self.hsa_dict = self.initialize_site_data(cluster_coords)
         self.is_site_waters_populated = True
 
@@ -176,12 +181,13 @@ class SiteWaterAnalysis(WaterAnalysis):
         return site_array, site_dict
 
     @function_timer
-    def generate_clusters(self, ligand_file, clustercenter_file):
+    def generate_clusters(self, density_factor, ligand_file, clustercenter_file):
         """Generate hydration sites from water molecules found in the binding site
         during the simulation. Clustering is done in two steps; i). An initial clustering over a 10%
         of frames, and ii). A refinement step where all frames are used.
         
         Parameters
+
         ----------
         ligand_file : string
             Name of the PDB file containing atomic coordinates of the ligand,
@@ -214,12 +220,18 @@ class SiteWaterAnalysis(WaterAnalysis):
             An N x 3 numpy array is initialized, where N is the total number of water water oxygen atoms found in the
             HSA region throughout the simulation. The array gets populated during individual frame processing.
         """
+        sphere_radius = md.utils.in_units_of(1.0, "angstroms", "nanometers")
         topology = md.load_topology(self.topology_file)
-        # Obtain binding site solute atoms using ligand atom coordinates
+        if self.non_water_atom_ids.shape[0] == 0:
+            raise Exception(ValueError, "Clustering is supported only for solute-solvent systems, no solute atoms found.")
+
         ligand = md.load_pdb(ligand_file, no_boxchk=True)
         ligand_coords = ligand.xyz[0, :, :]
         binding_site_atom_indices = np.asarray(range(ligand_coords.shape[0]))
-        sphere_radius = md.utils.in_units_of(1.0, "angstroms", "nanometers")
+        # for a bulk water system create an empty binidng site atom list
+        #if self.non_water_atom_ids.shape[0] == 0:
+            #raise Exception(ValueError, "Clustering is supported only for solute-solvent systems, no solute atoms found.")
+        #    binding_site_atom_indices = np.asarray([])
         init_cluster_coords = None
         # Step 1: Initial Clustering if user didn't provide cluster centers
         if clustercenter_file is None:
@@ -245,7 +257,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                 # highly unlikely.
                 coords = trj_short.xyz
                 for i_frame in range(trj_short.n_frames):
-                    for pseudo_index in range(ligand_coords.shape[0]):
+                    for pseudo_index in range(binding_site_atom_indices.shape[0]):
                         coords[i_frame, pseudo_index, :] = ligand_coords[pseudo_index, :]
 
                 haystack = np.setdiff1d(trj_short.topology.select("all"), binding_site_atom_indices)
@@ -259,7 +271,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                 tree = spatial.cKDTree(water_coordinates)
                 nbr_list = tree.query_ball_point(water_coordinates, sphere_radius)
                 nbr_count_list = np.ma.array([len(nbrs) for nbrs in nbr_list], mask=False)
-                cutoff = trj_short.n_frames * 2 * 0.1401
+                cutoff = trj_short.n_frames * density_factor * 0.1401
                 if np.ceil(cutoff) - cutoff <= 0.5:
                     cutoff = np.ceil(cutoff)
                 else:
@@ -336,14 +348,18 @@ class SiteWaterAnalysis(WaterAnalysis):
                                 trj.n_frames))
                     self.num_frames = trj.n_frames
             for i_frame in range(trj.n_frames):
-                for pseudo_index in range(ligand_coords.shape[0]):
+                for pseudo_index in range(binding_site_atom_indices.shape[0]):
                     trj.xyz[i_frame, pseudo_index, :] = ligand_coords[pseudo_index, :]
             haystack = np.setdiff1d(trj.topology.select("all"), binding_site_atom_indices)
             start_point = haystack[0]
-            binding_site_waters = md.compute_neighbors(trj, self.hsa_region_radius,
-                                                       binding_site_atom_indices, haystack_indices=haystack)
+            if binding_site_atom_indices.shape[0] == 0:
+                binding_site_waters = md.compute_neighbors(trj, self.hsa_region_radius,
+                                                           binding_site_atom_indices, haystack_indices=haystack)
+            else:
+                binding_site_waters = md.compute_neighbors(trj, self.hsa_region_radius,
+                                                       binding_site_atom_indices)
             # From the full frame-wise set of waters in the binding site, build two more frame-wise lists
-            # one where each frame has a correct indices of waters and another with a new index which ranges from
+            # one where each frame has a correct index of waters and another with a new index which ranges from
             # 0 to M, where M is the total number of hsa region waters - 1
             start = 0
             for i in range(len(binding_site_waters)):
@@ -572,8 +588,8 @@ class SiteWaterAnalysis(WaterAnalysis):
                 else:
                     trj = f.read_as_traj(topology, n_frames=1, stride=1)
                     self._process_frame(trj, frame_i, energy, hbonds, entropy)
-            if (frame_i - self.start_frame) < self.num_frames:
-                self.num_frames = frame_i - self.start_frame
+            #if (frame_i - self.start_frame) < self.num_frames:
+            #    self.num_frames = frame_i - self.start_frame
 
         if entropy:
             self.generate_data_for_entropycalcs(self.start_frame, self.num_frames)
