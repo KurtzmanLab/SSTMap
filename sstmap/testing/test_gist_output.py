@@ -166,12 +166,12 @@ def test_dx_output(test_dx_filename, ref_dx_filename, test_nwat_array, ref_nwat_
         ref_data /= 2.0
     try:
         npt.assert_almost_equal(test_data, ref_data, decimal=3)
-        print "Passed"
+        print "\tPassed!"
     except Exception as e:
         print e
-        for i in range(test_data.shape[0]):
-            if abs(test_data[i] - ref_data[i]) >= 0.001:
-                print(i, ref_data[i], ref_nwat_array[i], test_data[i], test_nwat_array[i])
+        #for i in range(test_data.shape[0]):
+        #    if abs(test_data[i] - ref_data[i]) >= 0.001:
+        #        print(i, ref_data[i], ref_nwat_array[i], test_data[i], test_nwat_array[i])
 
 
 def parse_args():
@@ -182,8 +182,7 @@ def parse_args():
     args : argparse.Namespace
         The namespace containing the arguments
     """
-    parser = ArgumentParser(
-        description='''Run tests of GIST calculations against validated output.''')
+    parser = ArgumentParser(description='''Run tests of GIST calculations against validated output.''')
 
     parser.add_argument('-t', '--test_gist_summary', required=True, type=str,
                         help='''Summary file of GIST calculation to be tested.''')
@@ -240,12 +239,11 @@ def run_all_gist_tests(test_dir, ref_dir):
         print "Checking grid and voxel placement ...",
         testcase = TestGistOutput(test_data, ref_data)
         result = testcase.test_voxel_number()
-        print test_result[bool(result)]
         result = testcase.test_grid()
-        print test_result[bool(result)]
+        print "\t" + test_result[bool(result)]
         print "Checking: %s" % quantities[4]
         result = testcase.test_quantity(4)
-        print "%s" % test_result[bool(result)]
+        print "\t%s" % test_result[bool(result)]
         for index, filename in enumerate(file_dict.keys()):
             t = file_dict[filename]
             test_dx_file, ref_dx_file = test_dir_path + t, ref_dir_path + filename

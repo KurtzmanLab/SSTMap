@@ -146,6 +146,8 @@ class WaterAnalysis(object):
             if O != "O" or H1 != "H" or H2 != "H":
                 sys.exit("Water molecules in the topology must be organized as Oxygen, Hydrogen, Hydrogen, Virtual-sites.")
         self.non_water_atom_ids = np.setdiff1d(self.all_atom_ids, self.wat_atom_ids)
+        # ions or ligands
+        self.non_prot_atom_ids = np.setdiff1d(self.non_water_atom_ids, self.prot_atom_ids)
         assert (self.wat_atom_ids.shape[0] + self.non_water_atom_ids.shape[0] == self.all_atom_ids.shape[0]), \
             "Failed to partition atom indices in the system correctly!"
         # Obtain non-bonded parameters for the system
