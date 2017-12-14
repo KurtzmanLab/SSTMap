@@ -278,8 +278,8 @@ class GridWaterAnalysis(WaterAnalysis):
                         distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
                 self.voxeldata[wat[0], 19] += wat_nbrs.shape[0]
                 calc.calculate_energy(wat[1], distance_matrix, e_elec_array, e_lj_array, self.bcoeff)
-                self.voxeldata[wat[0], 13] += np.sum(e_lj_array[:, :self.wat_oxygen_atom_ids[0]])
-                self.voxeldata[wat[0], 13] += np.sum(e_elec_array[:, :self.wat_oxygen_atom_ids[0]])
+                self.voxeldata[wat[0], 13] += np.sum(e_lj_array[:, self.prot_atom_ids])
+                self.voxeldata[wat[0], 13] += np.sum(e_elec_array[:, self.prot_atom_ids])
                 self.voxeldata[wat[0], 15] += np.sum(
                     e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_lj_array[:, wat[1] + self.water_sites:])
                 self.voxeldata[wat[0], 15] += np.sum(
@@ -315,21 +315,25 @@ class GridWaterAnalysis(WaterAnalysis):
                     prot_nbrs_all = self.non_water_atom_ids[
                         np.where(distance_matrix[0, :][self.non_water_atom_ids] <= nbr_cutoff_sq)]
                     prot_nbrs_hb = prot_nbrs_all[np.where(self.prot_hb_types[prot_nbrs_all] != 0)]
-                    if wat_nbrs.shape[0] != 0 and prot_nbrs_hb.shape[0] != 0:
-                        # hb_ww, hb_sw = self.calculate_hydrogen_bonds2(coords, wat[1], wat_nbrs, prot_nbrs_hb)
-                        hb_ww, hb_sw = self.calculate_hydrogen_bonds(trj, wat[1], wat_nbrs, prot_nbrs_hb)
+
+                    if wat_nbrs.shape[0] > 0:
+                        hb_ww = self.calculate_hydrogen_bonds(trj, wat[1], wat_nbrs)
                         acc_ww = hb_ww[:, 0][np.where(hb_ww[:, 0] == wat[1])].shape[0]
                         don_ww = hb_ww.shape[0] - acc_ww
-                        acc_sw = hb_sw[:, 0][np.where(hb_sw[:, 0] == wat[1])].shape[0]
-                        don_sw = hb_sw.shape[0] - acc_sw
-                        self.voxeldata[wat[0], 23] += hb_sw.shape[0]
                         self.voxeldata[wat[0], 25] += hb_ww.shape[0]
-                        self.voxeldata[wat[0], 27] += don_sw
-                        self.voxeldata[wat[0], 29] += acc_sw
                         self.voxeldata[wat[0], 31] += don_ww
                         self.voxeldata[wat[0], 33] += acc_ww
                         if wat_nbrs.shape[0] != 0 and hb_ww.shape[0] != 0:
                             self.voxeldata[wat[0], 21] += wat_nbrs.shape[0] / hb_ww.shape[0]
+
+                    if prot_nbrs_hb.shape[0] > 0:
+                        hb_sw = self.calculate_hydrogen_bonds(trj, wat[1], prot_nbrs_hb, water_water=False)
+                        acc_sw = hb_sw[:, 0][np.where(hb_sw[:, 0] == wat[1])].shape[0]
+                        don_sw = hb_sw.shape[0] - acc_sw
+                        self.voxeldata[wat[0], 23] += hb_sw.shape[0]
+                        self.voxeldata[wat[0], 27] += don_sw
+                        self.voxeldata[wat[0], 29] += acc_sw
+
             if entropy:
                 self.calculate_euler_angles(wat, coords[0, :, :])
 
@@ -368,12 +372,7 @@ class GridWaterAnalysis(WaterAnalysis):
         print(self.num_frames)
         # Normalize
         for voxel in xrange(self.voxeldata.shape[0]):
-            if self.voxeldata[voxel, 4] >= 1.0:
-                #self.voxeldata[voxel, 5] = self.voxeldata[voxel, 4]/num_frames
-                #if self.voxeldata[voxel, 5] >= 0.01:
-                #    coords.append(self.voxeldata[voxel, 1:4])
-                #voxel_dens = 1.0 * self.voxeldata[voxel, 4] / (num_frames * self.voxel_vol)
-                #self.voxeldata[voxel, 5] = voxel_dens / self.rho_bulk
+            if self.voxeldata[voxel, 4] > 1.0:
                 self.voxeldata[voxel, 14] = self.voxeldata[voxel, 13] / (self.voxeldata[voxel, 4] * 2.0)
                 self.voxeldata[voxel, 13] /= (self.num_frames * self.voxel_vol * 2.0)
                 self.voxeldata[voxel, 16] = self.voxeldata[voxel, 15] / (self.voxeldata[voxel, 4] * 2.0)
@@ -384,6 +383,18 @@ class GridWaterAnalysis(WaterAnalysis):
                 for i in range(19, 35, 2):
                     self.voxeldata[voxel, i + 1] = self.voxeldata[voxel, i] / self.voxeldata[voxel, 4]
                     self.voxeldata[voxel, i] /= (self.num_frames * self.voxel_vol)
+            else:
+                #self.voxeldata[voxel, 14] = self.voxeldata[voxel, 13] / (self.voxeldata[voxel, 4] * 2.0)
+                self.voxeldata[voxel, 13] *= 0.0
+                #self.voxeldata[voxel, 16] = self.voxeldata[voxel, 15] / (self.voxeldata[voxel, 4] * 2.0)
+                self.voxeldata[voxel, 15] *= 0.0
+                if self.voxeldata[voxel, 19] > 0.0:
+                    #self.voxeldata[voxel, 18] = self.voxeldata[voxel, 17] / (self.voxeldata[voxel, 19] * 2.0)
+                    self.voxeldata[voxel, 17] *= 0.0
+                for i in range(19, 35, 2):
+                    #self.voxeldata[voxel, i + 1] = self.voxeldata[voxel, i] / self.voxeldata[voxel, 4]
+                    self.voxeldata[voxel, i] *= 0.0
+
 
         if entropy:
             self.calculate_entropy(num_frames=self.num_frames)
@@ -548,9 +559,9 @@ class GridWaterAnalysis(WaterAnalysis):
                 Ewwtot += k[15]
 
         nwat_grid *= self.voxel_vol
-        Eswtot *= self.voxel_vol
+        Eswtot *= self.voxel_vol * 2.0
         Ewwtot *= self.voxel_vol
         print("Number of frames processed: %d" % num_frames)
         print("\tAverage number of water molecules over the grid: %d" % nwat_grid)
-        print("\tTotal Solute-Water Energy over the grid: %.6f" % Eswtot)
+        print("\tTotal Solute-Water Energy over the grid: %.6f" % Eswtot )
         print("\tTotal Water-Water Energy over the grid: %.6f" % Ewwtot)
