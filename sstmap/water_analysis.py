@@ -148,6 +148,9 @@ class WaterAnalysis(object):
         self.non_water_atom_ids = np.setdiff1d(self.all_atom_ids, self.wat_atom_ids)
         # ions or ligands
         self.non_prot_atom_ids = np.setdiff1d(self.non_water_atom_ids, self.prot_atom_ids)
+        # if no protein, then set other solute to protein index variable for energy calculation purposes
+        if self.prot_atom_ids.shape[0] == 0:
+            self.prot_atom_ids = self.non_water_atom_ids
         assert (self.wat_atom_ids.shape[0] + self.non_water_atom_ids.shape[0] == self.all_atom_ids.shape[0]), \
             "Failed to partition atom indices in the system correctly!"
         # Obtain non-bonded parameters for the system
@@ -415,7 +418,7 @@ class WaterAnalysis(object):
         hbonds = angle_triplets[np.where(angles[0, :] <= ANGLE_CUTOFF_RAD)]
         return hbonds
 
-    # A potentially faster implementation where mdtraj hb functionality is called only once
+    # A potentially faster implementation where mdtraj hb functionality is called only once for both prot and water
     def calculate_hydrogen_bonds2(self, traj, water, water_nbrs, solute_nbrs):
         """Calculates hydrogen bonds made by a water molecule with its first shell
         water and solute neighbors.

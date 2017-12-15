@@ -342,14 +342,16 @@ class GridWaterAnalysis(WaterAnalysis):
     @function_timer
     def calculate_grid_quantities(self, energy=True, entropy=True, hbonds=True):
         """
+        Performs grid-based solvation thermodynamics and structure calculations by iterating
+        over frames in the trajectory.
 
         Parameters
         ----------
-        energy :
+        energy : bool, optional
+
         entropy :
+
         hbonds :
-        start_frame :
-        num_frames :
 
         Returns
         -------
