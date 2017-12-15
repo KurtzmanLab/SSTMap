@@ -50,15 +50,26 @@ Or you can clone the GitHub repository, navigate into the directory, and execute
 ```bash
 git clone git@github.com:KurtzmanLab/SSTMap.git
 cd SSTMap
+```
+**For the release version:**
+```
 git checkout tags/v1.0
 python setup.py install
 ```
-When building from the source code, make sure that you manually install dependencies. You can do this by:
+**For the developmental version:**
+```
+python setup.py install
+```
+When building from the source code or using the release package, make sure that you manually install dependencies: `mdtraj` and `parmed`. You can do this by:
 ```
 conda config --add channels omnia
 conda install mdtraj parmed
 ``` 
-
+Or using pip:
+```
+pip install ParmEd 
+pip install mdtraj 
+```  
 Usage
 -----
 
