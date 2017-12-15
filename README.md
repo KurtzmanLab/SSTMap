@@ -32,7 +32,7 @@ conda install sstmap
 You can install the latest development version from the GitHub repository by executing
 
 ```
-pip install git+git://github.com/kurtzmanlab/sstmap.git#egg=sstmap
+pip install git+git://github.com/kurtzmanlab/sstmap.git@v1.0#egg=sstmap
 ```
 
 You can also download the package manually from GitHub, unzip it, navigate into the directory, and execute the command:
@@ -40,6 +40,7 @@ You can also download the package manually from GitHub, unzip it, navigate into 
 ```bash
 git clone git@github.com:KurtzmanLab/SSTMap.git
 cd SSTMap
+git checkout tags/v1.0
 python setup.py install
 ```
 Usage
@@ -107,7 +108,7 @@ Please cite the following when you use this software.
 License
 -------
 
-`SSTMap` is free software and is licensed under the LGPLv2 license.
+`SSTMap` is free software and is licensed under the MIT license.
 
 
 Acknowledgements
