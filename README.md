@@ -60,7 +60,7 @@ python setup.py install
 ```
 python setup.py install
 ```
-When building from the source code or using the release package, make sure that you manually install dependencies: `mdtraj` and `parmed`. You can do this by:
+When building from the source code or using the release package, make sure that you manually install the dependencies: `mdtraj` and `parmed`. You can do this by:
 ```
 conda config --add channels omnia
 conda install mdtraj parmed
