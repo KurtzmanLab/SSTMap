@@ -38,17 +38,39 @@ conda install sstmap -c omnia -c solvationtools
 You can install the latest development version from the GitHub repository by executing
 
 ```
-pip install git+git://github.com/kurtzmanlab/sstmap.git#egg=sstmap
+pip install git+git://github.com/kurtzmanlab/sstmap.git@v1.0#egg=sstmap
 ```
 
-You can also download the package manually from GitHub, unzip it, navigate into the package, and execute the command:
+You can also download the release package manually from GitHub, unzip it, navigate into the directory, and execute the command:
 
+```bash
+https://github.com/KurtzmanLab/SSTMap/archive/v1.0.tar.gz or https://github.com/KurtzmanLab/SSTMap/archive/v1.0.zip
+tar -xvf v1.0.tar.gz or unzip v1.0.zip
+cd SSTMap-1.0
+python setup.py install
+```
+Or you can clone the GitHub repository, navigate into the directory, and execute the command: 
+
+```bash
+git clone git@github.com:KurtzmanLab/SSTMap.git
+cd SSTMap
+```
+**For the release version:**
+```
+git checkout tags/v1.0
+python setup.py install
+```
+**For the developmental version:**
 ```
 python setup.py install
 ```
-
-When building from the source code, make sure that you manually install dependencies. You can do this by:
+When building from the source code or using the release package, make sure that you manually install the dependencies: `mdtraj` and `parmed`. You can do this by:
 ```
 conda config --add channels omnia
 conda install mdtraj parmed
 ``` 
+Or using pip:
+```
+pip install ParmEd 
+pip install mdtraj 
+```  
