@@ -1427,10 +1427,33 @@ static PyMethodDef _sstmap_ext_methods[] = {
 
 /* Initialization function for this module
  */
-//PyMODINIT_FUNC
-DL_EXPORT(void) init_sstmap_ext(void) // init function has the same name as module, except with init prefix
+
+#if PY_MAJOR_VERSION >= 3
+    #define MOD_ERROR_VAL NULL
+    #define MOD_SUCCESS_VAL(val) val
+    #define MOD_INIT(name) PyMODINIT_FUNC PyInit_##name(void)
+    #define MOD_DEF(ob, name, doc, methods) \
+            static struct PyModuleDef extmoduledef = { \
+              PyModuleDef_HEAD_INIT, name, doc, -1, methods, }; \
+            ob = PyModule_Create(&extmoduledef);
+#else
+    #define MOD_ERROR_VAL
+    #define MOD_SUCCESS_VAL(val)
+    #define MOD_INIT(name) void init##name(void)
+    #define MOD_DEF(ob, name, doc, methods) \
+            ob = Py_InitModule3(name, methods, doc);
+#endif
+
+MOD_INIT(_sstmap_ext)
 {
-    // we produce name of the module, method table and a doc string
-    Py_InitModule3("_sstmap_ext", _sstmap_ext_methods, "Process GIST calcs.\n");
-    import_array(); // required for Numpy initialization
+    PyObject *m;
+
+    MOD_DEF(m, "_sstmap_ext", "Process GIST calcs.\n", _sstmap_ext_methods)
+    
+    if (m == NULL)
+        return MOD_ERROR_VAL;
+
+    import_array();
+
+    return MOD_SUCCESS_VAL(m);
 }
