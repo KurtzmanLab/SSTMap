@@ -102,7 +102,7 @@ class WaterAnalysis(object):
             self.supporting_file = self.topology_file
             self.comb_rule = requirements[topology_extension][-1]
         else:
-            if topology_extension not in requirements.keys():
+            if topology_extension not in list(requirements.keys()):
                 message = """SSTMap currently does not support %s topology file type.
                 If this is a non-standard force-filed, consider using a PDB file as a topplogy
                 and provide a text file containing non-bonded parameters for each atom in your system.
@@ -247,7 +247,7 @@ class WaterAnalysis(object):
                         acc_list.append(at)
 
         for index, pair in enumerate(dist_pairs):
-            if pair[0] not in self.don_H_pair_dict.keys():
+            if pair[0] not in list(self.don_H_pair_dict.keys()):
                 self.don_H_pair_dict[pair[0]] = [[pair[0], pair[1]]]
             else:
                 self.don_H_pair_dict[pair[0]].append([pair[0], pair[1]])
