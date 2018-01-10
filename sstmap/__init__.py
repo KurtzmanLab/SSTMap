@@ -5,7 +5,7 @@
 # MIT License
 # Copyright 2016-2017 Lehman College City University of New York and the Authors
 #
-# Authors: Kamran Haider, Steven Ramsay, Anthony Cruz Balberdy
+# Authors: Kamran Haider, Steven Ramsey, Anthony Cruz Balberdy, Tom Kurtzman
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
