@@ -470,7 +470,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         trj.xyz *= 10.0
         coords = trj.xyz
         trj.unitcell_lengths *= 10.0
-        pbc = trj.unitcell_lengths
+        uc = trj.unitcell_vectors[0]*10.
         oxygen_pos = coords[0, self.wat_oxygen_atom_ids, :]
 
         # Iterate over each site in the current frame if it has a water present
@@ -488,7 +488,7 @@ class SiteWaterAnalysis(WaterAnalysis):
 
             if wat_O is not None and (energy or hbonds):
                 distance_matrix = np.zeros((self.water_sites, self.all_atom_ids.shape[0]), np.float_)
-                calc.get_pairwise_distances(np.asarray([site_i, wat_O]), self.all_atom_ids, coords, pbc,
+                calc.get_pairwise_distances(np.asarray([site_i, wat_O]), self.all_atom_ids, coords, uc,
                                             distance_matrix)
                 wat_nbrs = self.wat_oxygen_atom_ids[np.where(
                     (distance_matrix[0, :][self.wat_oxygen_atom_ids] <= nbr_cutoff_sq) & (
@@ -755,8 +755,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         for frame_i in range(start_frame, start_frame + num_frames):
             frame = md.load_frame(self.trajectory, frame_i, top=self.topology)
             pos = md.utils.in_units_of(frame.xyz, "nanometers", "angstroms")
-            pbc = md.utils.in_units_of(
-                frame.unitcell_lengths, "nanometers", "angstroms")
+            uc  = trj.unitcell_vectors[0]*10.
             oxygen_pos = pos[0, self.wat_oxygen_atom_ids, :]
             cluster_search_space = NeighborSearch(oxygen_pos, 1.0)
             water_search_space = NeighborSearch(oxygen_pos, 3.5)
@@ -784,7 +783,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                     distance_matrix = np.zeros(
                         (self.water_sites, self.all_atom_ids.shape[0]), np.float_)
                     calc.get_pairwise_distances(np.asarray(
-                        [site_i, wat_O]), self.all_atom_ids, pos, pbc, distance_matrix)
+                        [site_i, wat_O]), self.all_atom_ids, pos, uc, distance_matrix)
                     wat_nbrs = self.wat_oxygen_atom_ids[np.where((distance_matrix[0, :][
                                                                       self.wat_oxygen_atom_ids] <= dist_cutoff) & (
                                                                          distance_matrix[0, :][
@@ -857,8 +856,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         for frame_i in range(start_frame, start_frame + num_frames):
             frame = md.load_frame(self.trajectory, frame_i, top=self.topology)
             pos = md.utils.in_units_of(frame.xyz, "nanometers", "angstroms")
-            pbc = md.utils.in_units_of(
-                frame.unitcell_lengths, "nanometers", "angstroms")
+            uc  = trj.unitcell_vectors[0]*10.
             oxygen_pos = pos[0, self.wat_oxygen_atom_ids, :]
             cluster_search_space = NeighborSearch(oxygen_pos, 1.0)
             water_search_space = NeighborSearch(oxygen_pos, 3.5)
@@ -885,7 +883,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                     distance_matrix = np.zeros(
                         (self.water_sites, self.all_atom_ids.shape[0]), np.float_)
                     calc.get_pairwise_distances(np.asarray(
-                        [site_i, wat_O]), self.all_atom_ids, pos, pbc, distance_matrix)
+                        [site_i, wat_O]), self.all_atom_ids, pos, uc, distance_matrix)
                     energy_lj, energy_elec = self.calculate_energy(
                         distance_matrix)
                     for shell_index, shell in enumerate(shells):
