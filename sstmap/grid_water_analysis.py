@@ -264,7 +264,7 @@ class GridWaterAnalysis(WaterAnalysis):
         nbr_cutoff_sq = 3.5 ** 2
         trj.xyz *= 10.0
         coords = trj.xyz
-        periodic_box = md.utils.in_units_of(trj.unitcell_lengths, "nanometers", "angstroms")
+        uc     = trj.unitcell_vectors[0]*10.
         waters = []
         calc.assign_voxels(trj.xyz, self.dims, self.gridmax, self.origin, waters, self.wat_oxygen_atom_ids)
         for wat in waters:
@@ -272,7 +272,7 @@ class GridWaterAnalysis(WaterAnalysis):
             if energy or hbonds:
                 e_lj_array, e_elec_array = np.copy(self.acoeff), np.copy(self.chg_product)
                 distance_matrix = np.zeros((self.water_sites, self.all_atom_ids.shape[0]))
-                calc.get_pairwise_distances(wat, self.all_atom_ids, coords, periodic_box, distance_matrix)
+                calc.get_pairwise_distances(wat, self.all_atom_ids, coords, uc, distance_matrix)
                 wat_nbrs = self.wat_oxygen_atom_ids[np.where(
                     (distance_matrix[0, :][self.wat_oxygen_atom_ids] <= nbr_cutoff_sq) & (
                         distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
