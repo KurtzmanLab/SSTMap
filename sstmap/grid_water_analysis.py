@@ -129,8 +129,8 @@ class GridWaterAnalysis(WaterAnalysis):
             # it's coords as
             # voxel_quarts[v_count].append(np.zeros(14, dtype="float64"))
             v_count += 1
-        voxel_quarts = [[] for i in xrange(voxel_array.shape[0])]
-        voxel_O_coords = [[] for i in xrange(voxel_array.shape[0])]
+        voxel_quarts = [[] for i in range(voxel_array.shape[0])]
+        voxel_O_coords = [[] for i in range(voxel_array.shape[0])]
         return voxel_array, voxel_quarts, voxel_O_coords
 
     def calculate_euler_angles(self, water, coords):
@@ -288,7 +288,7 @@ class GridWaterAnalysis(WaterAnalysis):
                     e_elec_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(
                     e_elec_array[:, wat[1] + self.water_sites:])
                 e_nbr_list = [np.sum(e_lj_array[:, wat_nbrs + i] + e_elec_array[:, wat_nbrs + i]) for i in
-                              xrange(self.water_sites)]
+                              range(self.water_sites)]
                 self.voxeldata[wat[0], 17] += np.sum(e_nbr_list)
                 """
                 ###DEBUG START###
@@ -361,7 +361,7 @@ class GridWaterAnalysis(WaterAnalysis):
         topology = md.load_topology(self.topology_file)
         read_num_frames = 0
         with md.open(self.trajectory) as f:
-            for frame_i in xrange(self.start_frame, self.start_frame + self.num_frames):
+            for frame_i in range(self.start_frame, self.start_frame + self.num_frames):
                 print_progress_bar(frame_i - self.start_frame, self.num_frames)
                 f.seek(frame_i)
                 trj = f.read_as_traj(topology, n_frames=1, stride=1)
@@ -372,10 +372,10 @@ class GridWaterAnalysis(WaterAnalysis):
                     self._process_frame(trj, frame_i, energy, hbonds, entropy)
                     read_num_frames += 1
             if  read_num_frames < self.num_frames:
-                print("{0:d} frames found in the trajectory, resetting self.num_frames.".format(read_num_frames))
+                print(("{0:d} frames found in the trajectory, resetting self.num_frames.".format(read_num_frames)))
                 self.num_frames = read_num_frames
         # Normalize
-        for voxel in xrange(self.voxeldata.shape[0]):
+        for voxel in range(self.voxeldata.shape[0]):
             if self.voxeldata[voxel, 4] > 1.0:
                 self.voxeldata[voxel, 14] = self.voxeldata[voxel, 13] / (self.voxeldata[voxel, 4] * 2.0)
                 self.voxeldata[voxel, 13] /= (self.num_frames * self.voxel_vol * 2.0)
@@ -441,7 +441,7 @@ class GridWaterAnalysis(WaterAnalysis):
                     f.write(formatted_output_empty_voxels.format(self.voxeldata[k, :]))
                 elif self.voxeldata[k, 4] == 1.0:
                     mask_one_voxel_data = np.zeros(self.voxeldata[k, :].shape[0])
-                    mask_one_voxel_data[range(0, 6) + [7, 8, 11, 12] + range(19, 21)] = self.voxeldata[k, range(0, 6) + [7, 8, 11, 12] + range(19, 21)]
+                    mask_one_voxel_data[list(range(0, 6)) + [7, 8, 11, 12] + list(range(19, 21))] = self.voxeldata[k, list(range(0, 6)) + [7, 8, 11, 12] + list(range(19, 21))]
                     f.write(formatted_output_one_voxels.format(mask_one_voxel_data))
                 else:
                     f.write(formatted_output_occupied_voxels.format(self.voxeldata[k, :]))
@@ -525,16 +525,16 @@ class GridWaterAnalysis(WaterAnalysis):
         """
 
         print("System information:")
-        print("\tParameter file: %s\n" % self.topology_file)
-        print("\tTrajectory: %s\n" % self.trajectory)
-        print("\tFrames: %d, Total Atoms: %d, Waters: %d, Solute Atoms: %d\n" \
+        print(("\tParameter file: %s\n" % self.topology_file))
+        print(("\tTrajectory: %s\n" % self.trajectory))
+        print(("\tFrames: %d, Total Atoms: %d, Waters: %d, Solute Atoms: %d\n" \
               % (self.num_frames, self.all_atom_ids.shape[0], self.wat_oxygen_atom_ids.shape[0],
-                 self.non_water_atom_ids.shape[0]))
+                 self.non_water_atom_ids.shape[0])))
         # print "\tWater Model: %s\n"
         print("Grid information:")
-        print("\tGIST grid center: %5.3f %5.3f %5.3f\n" % (self.center[0], self.center[1], self.center[2]))
-        print("\tGIST grid dimensions: %i %i %i\n" % (self.dims[0], self.dims[1], self.dims[2]))
-        print("\tGIST grid spacing: %5.3f A^3\n" % (self.spacing[0]))
+        print(("\tGIST grid center: %5.3f %5.3f %5.3f\n" % (self.center[0], self.center[1], self.center[2])))
+        print(("\tGIST grid dimensions: %i %i %i\n" % (self.dims[0], self.dims[1], self.dims[2])))
+        print(("\tGIST grid spacing: %5.3f A^3\n" % (self.spacing[0])))
 
     def print_calcs_summary(self, num_frames=None):
         """
@@ -564,7 +564,7 @@ class GridWaterAnalysis(WaterAnalysis):
         nwat_grid *= self.voxel_vol
         Eswtot *= self.voxel_vol * 2.0
         Ewwtot *= self.voxel_vol
-        print("Number of frames processed: %d" % num_frames)
-        print("\tAverage number of water molecules over the grid: %d" % nwat_grid)
-        print("\tTotal Solute-Water Energy over the grid: %.6f" % Eswtot )
-        print("\tTotal Water-Water Energy over the grid: %.6f" % Ewwtot)
+        print(("Number of frames processed: %d" % num_frames))
+        print(("\tAverage number of water molecules over the grid: %d" % nwat_grid))
+        print(("\tTotal Solute-Water Energy over the grid: %.6f" % Eswtot ))
+        print(("\tTotal Water-Water Energy over the grid: %.6f" % Ewwtot))
