@@ -52,7 +52,7 @@ class TestGistOutput():
             #npt.assert_equal(self.test_data.shape, self.ref_data.shape)
             npt.assert_almost_equal(self.test_data[:, 1:4], self.ref_data[:, 1:4], decimal=3)
         except Exception as e:
-            print e
+            print(e)
             passed = False
 
         return passed
@@ -68,7 +68,7 @@ class TestGistOutput():
         try:
             npt.assert_equal(self.test_data.shape, self.ref_data.shape)
         except Exception as e:
-            print e
+            print(e)
             passed = False
 
         return passed
@@ -87,7 +87,7 @@ class TestGistOutput():
         try:
             npt.assert_array_almost_equal(self.test_data[:, quantity_index], self.ref_data[:, quantity_index], decimal=2)
         except Exception as e:
-            print e
+            print(e)
             passed = False
 
         return passed
@@ -134,7 +134,7 @@ def test_dx_output(test_dx_filename, ref_dx_filename, test_nwat_array, ref_nwat_
     -------
 
     """
-    print test_dx_filename, ref_dx_filename
+    print(test_dx_filename, ref_dx_filename)
     with open(test_dx_filename, "r") as test:
         lines = test.readlines()
         test_dims = [float(s) for s in lines[0].strip().split()[-3:]]
@@ -142,7 +142,7 @@ def test_dx_output(test_dx_filename, ref_dx_filename, test_nwat_array, ref_nwat_
         test_spacing = float(lines[2].strip().split()[-1])
         test_voxel_num = int(lines[6].strip().split()[-3])
         test_data = []
-        for i in xrange(len(lines[7:])):
+        for i in range(len(lines[7:])):
             
             test_data.extend([float(s) for s in lines[7:][i].strip().split()])
         test_data = np.asarray(test_data)
@@ -154,7 +154,7 @@ def test_dx_output(test_dx_filename, ref_dx_filename, test_nwat_array, ref_nwat_
         ref_spacing = float(lines[2].strip().split()[-1])
         ref_voxel_num = int(lines[6].strip().split()[-3])
         ref_data = []
-        for i in xrange(len(lines[7:-1])):
+        for i in range(len(lines[7:-1])):
             ref_data.extend([float(s) for s in lines[7:][i].strip().split()])
         ref_data = np.asarray(ref_data)
 
@@ -166,9 +166,9 @@ def test_dx_output(test_dx_filename, ref_dx_filename, test_nwat_array, ref_nwat_
         ref_data /= 2.0
     try:
         npt.assert_almost_equal(test_data, ref_data, decimal=3)
-        print "\tPassed!"
+        print("\tPassed!")
     except Exception as e:
-        print e
+        print(e)
         #for i in range(test_data.shape[0]):
         #    if abs(test_data[i] - ref_data[i]) >= 0.001:
         #        print(i, ref_data[i], ref_nwat_array[i], test_data[i], test_nwat_array[i])
@@ -226,7 +226,7 @@ def run_all_gist_tests(test_dir, ref_dir):
         ref_data = read_gist_cpptraj(ref_data_file[0])
         assert test_data.shape == ref_data.shape, "GIST columns/rows in summary files are not equal, tests won't run"
         diff_nwat = []
-        for row in xrange(test_data.shape[0]):
+        for row in range(test_data.shape[0]):
             if test_data[row, 4] <= 1:
                 test_data[row, 6:14] *= 0.0
             # record voxels with different water number but exclude them for tests
@@ -236,14 +236,14 @@ def run_all_gist_tests(test_dir, ref_dir):
                     test_data[row, 4:] *= 0.0
                     ref_data[row, 4:] *= 0.0
         # Run tests
-        print "Checking grid and voxel placement ...",
+        print("Checking grid and voxel placement ...", end=' ')
         testcase = TestGistOutput(test_data, ref_data)
         result = testcase.test_voxel_number()
         result = testcase.test_grid()
-        print "\t" + test_result[bool(result)]
-        print "Checking: %s" % quantities[4]
+        print("\t" + test_result[bool(result)])
+        print("Checking: %s" % quantities[4])
         result = testcase.test_quantity(4)
-        print "\t%s" % test_result[bool(result)]
+        print("\t%s" % test_result[bool(result)])
         for index, filename in enumerate(file_dict.keys()):
             t = file_dict[filename]
             test_dx_file, ref_dx_file = test_dir_path + t, ref_dir_path + filename

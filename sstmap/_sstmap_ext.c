@@ -37,6 +37,113 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <gsl/gsl_linalg.h>
+
+
+void invert_matrix(float *matrix){
+
+    // Using GSL for matrix inversion
+    // See also https://lists.gnu.org/archive/html/help-gsl/2008-11/msg00001.html
+
+    double temp_matrix[9] = { (double) *(matrix + 0), (double) *(matrix + 1), (double) *(matrix + 2),
+                              (double) *(matrix + 3), (double) *(matrix + 4), (double) *(matrix + 5),
+                              (double) *(matrix + 6), (double) *(matrix + 7), (double) *(matrix + 8) };
+    double inva[9];
+
+    gsl_matrix_view m   = gsl_matrix_view_array(temp_matrix,3,3);
+    gsl_matrix_view inv = gsl_matrix_view_array(inva,3,3);
+    gsl_permutation *p  = gsl_permutation_alloc (3);
+
+    int s;
+    gsl_linalg_LU_decomp (&m.matrix, p, &s);    
+    gsl_linalg_LU_invert (&m.matrix, p, &inv.matrix);
+
+    *(matrix + 0) = (float) gsl_matrix_get(&inv.matrix, 0, 0);
+    *(matrix + 1) = (float) gsl_matrix_get(&inv.matrix, 0, 1);
+    *(matrix + 2) = (float) gsl_matrix_get(&inv.matrix, 0, 2);
+    *(matrix + 3) = (float) gsl_matrix_get(&inv.matrix, 1, 0);
+    *(matrix + 4) = (float) gsl_matrix_get(&inv.matrix, 1, 1);
+    *(matrix + 5) = (float) gsl_matrix_get(&inv.matrix, 1, 2);
+    *(matrix + 6) = (float) gsl_matrix_get(&inv.matrix, 2, 0);
+    *(matrix + 7) = (float) gsl_matrix_get(&inv.matrix, 2, 1);
+    *(matrix + 8) = (float) gsl_matrix_get(&inv.matrix, 2, 2);
+
+    //printf("DEBUG: %10.8f %10.8f %10.8f\n", *(matrix + 0), *(matrix +1), *(matrix + 2));
+    //printf("DEBUG: %10.8f %10.8f %10.8f\n", *(matrix + 3), *(matrix +4), *(matrix + 5));
+    //printf("DEBUG: %10.8f %10.8f %10.8f\n", *(matrix + 6), *(matrix +7), *(matrix + 8));
+
+    gsl_permutation_free (p);
+}
+
+
+void matrix_vector_product(float *matrix, float *vector, float *product){
+
+    *(product + 0) = *(matrix + 0) * *(vector + 0) + *(matrix + 1) * *(vector + 1) + *(matrix + 2) * *(vector + 2);
+    *(product + 1) = *(matrix + 3) * *(vector + 0) + *(matrix + 4) * *(vector + 1) + *(matrix + 5) * *(vector + 2);
+    *(product + 2) = *(matrix + 6) * *(vector + 0) + *(matrix + 7) * *(vector + 1) + *(matrix + 8) * *(vector + 2);
+
+}
+
+
+float dist_mic_tric_squared(float *x1, float *x2, float *x3, float *y1, float *y2, float *y3, float *uc_vec, float *inv_uc_vec) {
+
+    /* distance calculation for mic in non-orthorombic unit cells using brute force
+    */
+
+    float x[3]; x[0]=*x1; x[1]=*x2; x[2]=*x3; // << real space position vector 
+    float y[3]; y[0]=*y1; y[1]=*y2; y[2]=*y3; // << real space position vector 
+    //printf("DEBUG: X %6.3f %6.3f %6.3f\n", x[0], x[1], x[2] );
+    //printf("DEBUG: Y %6.3f %6.3f %6.3f\n", y[0], y[1], y[2] );
+    
+    float x_f[3] = {0,0,0}; matrix_vector_product(inv_uc_vec, &x[0], &x_f[0]);// frac space position vector
+    float y_f[3] = {0,0,0}; matrix_vector_product(inv_uc_vec, &y[0], &y_f[0]);// frac space position vector
+    //printf("DEBUG: x_f(?|?|?) %6.3f %6.3f %6.3f\n", x_f[0], x_f[1], x_f[2] ); 
+    //printf("DEBUG: y_f(?|?|?) %6.3f %6.3f %6.3f\n", y_f[0], y_f[1], y_f[2] );
+
+    //translate back to (0|0|0) cell
+    x_f[0] = x_f[0] - floor(x_f[0]);
+    x_f[1] = x_f[1] - floor(x_f[1]);
+    x_f[2] = x_f[2] - floor(x_f[2]);
+    y_f[0] = y_f[0] - floor(y_f[0]);
+    y_f[1] = y_f[1] - floor(y_f[1]);
+    y_f[2] = y_f[2] - floor(y_f[2]);
+    //printf("DEBUG: x_f(0|0|0) %6.3f %6.3f %6.3f\n", x_f[0], x_f[1], x_f[2] ); 
+    //printf("DEBUG: y_f(0|0|0) %6.3f %6.3f %6.3f\n", y_f[0], y_f[1], y_f[2] );
+
+    // n_dist2 stores the closest squared distance, t_dist2 stores the most recent
+    // squared distance
+    float x_r[3] = {0,0,0}; matrix_vector_product(uc_vec, &x_f[0], &x_r[0]);
+    float y_r[3] = {0,0,0}; matrix_vector_product(uc_vec, &y_f[0], &y_r[0]);
+    float n_dist2, t_dist2;
+    n_dist2 = pow(x_r[0]-y_r[0], 2) + pow(x_r[1]-y_r[1], 2) + pow(x_r[2]-y_r[2], 2);
+    //printf ("DEBUG: nearest %10.7f\n", nearest);
+
+    int i,j,k;
+    float nc[3]  = {-1,0,1};
+    float t_y_f[3];
+
+    for (i=0; i<3; i++) {
+        t_y_f[0] = y_f[0] + nc[i];
+
+        for (j=0; j<3; j++) {
+            t_y_f[1] = y_f[1] + nc[j];
+
+            for (k=0; k<3; k++) {
+                t_y_f[2] = y_f[2] + nc[k];
+
+                //printf("DEBUG: d_f %6.3f %6.3f %6.3f\n", d_f[0], d_f[1], d_f[2]);
+                // x_f is our reference point, y_f is tested in all 27 neighboring cells
+                matrix_vector_product(uc_vec, &t_y_f[0], &y_r[0]);
+                t_dist2 = pow(x_r[0]-y_r[0], 2) + pow(x_r[1]-y_r[1], 2) + pow(x_r[2]-y_r[2], 2);
+                if (t_dist2 <= n_dist2) n_dist2 = t_dist2;
+
+            }
+        }
+    }
+
+    return n_dist2;
+
+}
 
 
 double dist_mic(double x1, double x2, double x3, double y1, double y2, double y3, double b1, double b2, double b3) {
@@ -60,23 +167,23 @@ double dist_mic(double x1, double x2, double x3, double y1, double y2, double y3
     return 1.0/(sqrt((dx*dx) +(dy*dy) + (dz*dz)));
     }
 
-double dist_mic_squared(double x1, double x2, double x3, double y1, double y2, double y3, double b1, double b2, double b3) {
+double dist_mic_squared(float *x1, float *x2, float *x3, float *y1, float *y2, float *y3, float *b1, float *b2, float *b3) {
     /* Method for obtaining inter atom distance using minimum image convention
      */
     //printf("x1: %f, x2: %f, x3: %f\n", x1, x2, x3);
     //printf("y1: %f, y2: %f, y3: %f\n", y1, y2, y3);
     double dx, dy, dz;
-    dx = x1-y1;
-    dy = x2-y2;
-    dz = x3-y3;
+    dx = *x1-*y1;
+    dy = *x2-*y2;
+    dz = *x3-*y3;
     //printf("dx: %f, dy: %f, dz: %f\n", dx, dy, dz);
     //printf("bx: %f, by: %f, bz: %f\n", b1/2.0, b2/2.0, b3/2.0);
-    if (dx > b1/2.0) dx -= b1;
-    else if (dx < -b1/2.0) dx += b1;
-    if (dy > b2/2.0) dy -= b2;
-    else if (dy < -b2/2.0) dy += b2;
-    if (dz > b3/2.0) dz -= b3;
-    else if (dz < -b3/2.0) dz += b3;
+    if (dx > *b1/2.0) dx -= *b1;
+    else if (dx < -*b1/2.0) dx += *b1;
+    if (dy > *b2/2.0) dy -= *b2;
+    else if (dy < -*b2/2.0) dy += *b2;
+    if (dz > *b3/2.0) dz -= *b3;
+    else if (dz < -*b3/2.0) dz += *b3;
     //printf("dist = %f", sqrt(pow(dx, 2) + pow(dy, 2) + pow(dz, 2)));
     return (dx*dx) + (dy*dy) + (dz*dz);
     }
@@ -206,8 +313,8 @@ PyObject *_sstmap_ext_assign_voxels(PyObject *self, PyObject *args)
 
 PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
 {
-    PyArrayObject *wat, *target_at_ids, *coords, *periodic_box, *dist_array;
-    float *b_x, *b_y, *b_z;
+    PyArrayObject *wat, *target_at_ids, *coords, *uc, *dist_array;
+    float uc_vec[9], inv_uc_vec[9]; // << This is unit cell matrix and reciprocal unit cell
     int wat_sites, wat_atom, wat_atom_id;
     int num_target_at, target_at, target_at_id;
     int frame = 0;
@@ -215,11 +322,13 @@ PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
     float *wat_x, *wat_y, *wat_z;
     float *target_at_x, *target_at_y, *target_at_z;
 
+    int is_ortho = 0;
+
     if (!PyArg_ParseTuple(args, "O!O!O!O!O!",
         &PyArray_Type, &wat,
         &PyArray_Type, &target_at_ids,
         &PyArray_Type, &coords,
-        &PyArray_Type, &periodic_box,
+        &PyArray_Type, &uc,
         &PyArray_Type, &dist_array
         ))
     {
@@ -227,15 +336,42 @@ PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
     }
     // do distance calc here
         // retrieve unit cell lengths for this frame
-    b_x = (float *) PyArray_GETPTR2(periodic_box, 0, 0);
-    b_y = (float *) PyArray_GETPTR2(periodic_box, 0, 1);
-    b_z = (float *) PyArray_GETPTR2(periodic_box, 0, 2);
-    //printf("Unit cell dimensions: %f %f %f\n", *b_x, *b_y, *b_z);
+    uc_vec[0] = *(float *) PyArray_GETPTR2(uc, 0, 0);
+    uc_vec[1] = *(float *) PyArray_GETPTR2(uc, 0, 1);
+    uc_vec[2] = *(float *) PyArray_GETPTR2(uc, 0, 2);
+    uc_vec[3] = *(float *) PyArray_GETPTR2(uc, 1, 0);
+    uc_vec[4] = *(float *) PyArray_GETPTR2(uc, 1, 1);
+    uc_vec[5] = *(float *) PyArray_GETPTR2(uc, 1, 2);
+    uc_vec[6] = *(float *) PyArray_GETPTR2(uc, 2, 0);
+    uc_vec[7] = *(float *) PyArray_GETPTR2(uc, 2, 1);
+    uc_vec[8] = *(float *) PyArray_GETPTR2(uc, 2, 2);
+
+    if ( uc_vec[1] < 0.000001 && uc_vec[1] > -0.000001 &&
+         uc_vec[2] < 0.000001 && uc_vec[2] > -0.000001 &&
+         uc_vec[3] < 0.000001 && uc_vec[3] > -0.000001 &&
+         uc_vec[5] < 0.000001 && uc_vec[5] > -0.000001 &&
+         uc_vec[6] < 0.000001 && uc_vec[6] > -0.000001 &&
+         uc_vec[7] < 0.000001 && uc_vec[7] > -0.000001 ) is_ortho = 1;
+
+    if ( !is_ortho ) {
+
+        memcpy( inv_uc_vec, uc_vec, sizeof(inv_uc_vec));
+
+        invert_matrix(&inv_uc_vec[0]);
+
+        //printf("Unit cell: %f %f %f\n", uc_vec[0], uc_vec[1], uc_vec[2]);
+        //printf("Unit cell: %f %f %f\n", uc_vec[3], uc_vec[4], uc_vec[5]);
+        //printf("Unit cell: %f %f %f\n", uc_vec[6], uc_vec[7], uc_vec[8]);
+        //printf("Inv. unit cell: %f %f %f\n", inv_uc_vec[0], inv_uc_vec[1], inv_uc_vec[2]);
+        //printf("Inv. unit cell: %f %f %f\n", inv_uc_vec[3], inv_uc_vec[4], inv_uc_vec[5]);
+        //printf("Inv. unit cell: %f %f %f\n", inv_uc_vec[6], inv_uc_vec[7], inv_uc_vec[8]);
+        //printf("\n");
+
+    }
 
     wat_sites = PyArray_DIM(dist_array, 0);
 
     num_target_at = PyArray_DIM(target_at_ids, 0);
-
 
     for (wat_atom = 0; wat_atom < wat_sites; wat_atom++)
     {
@@ -253,7 +389,14 @@ PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
             //printf("Iterator: %d, atom id: %d\n", target_at, target_at_id);
             //printf("Water atom coords %f %f %f\n", *wat_x, *wat_y, *wat_z);
             //printf("Target atom coords %f %f %f\n", *target_at_x, *target_at_y, *target_at_z);
-            d = dist_mic_squared(*wat_x, *wat_y, *wat_z, *target_at_x, *target_at_y, *target_at_z, *b_x, *b_y, *b_z);
+            if ( is_ortho ) {
+                //printf("Using dist_mic_squared routine.\n");
+                d  = dist_mic_squared(wat_x, wat_y, wat_z, target_at_x, target_at_y, target_at_z, &uc_vec[0], &uc_vec[4], &uc_vec[8]);
+            }
+            else {
+                //printf("Using dist_mic_tric_squared routine.\n");
+                d  = dist_mic_tric_squared(wat_x, wat_y, wat_z, target_at_x, target_at_y, target_at_z, &uc_vec[0], &inv_uc_vec[0]);
+            }
             //printf("Distance between %d and %d = %3.2f\n", wat_atom_id, target_at_id, d);
             *(double *)PyArray_GETPTR2(dist_array, wat_atom, target_at) += d;
         }
@@ -1427,10 +1570,33 @@ static PyMethodDef _sstmap_ext_methods[] = {
 
 /* Initialization function for this module
  */
-//PyMODINIT_FUNC
-DL_EXPORT(void) init_sstmap_ext(void) // init function has the same name as module, except with init prefix
+
+#if PY_MAJOR_VERSION >= 3
+    #define MOD_ERROR_VAL NULL
+    #define MOD_SUCCESS_VAL(val) val
+    #define MOD_INIT(name) PyMODINIT_FUNC PyInit_##name(void)
+    #define MOD_DEF(ob, name, doc, methods) \
+            static struct PyModuleDef extmoduledef = { \
+              PyModuleDef_HEAD_INIT, name, doc, -1, methods, }; \
+            ob = PyModule_Create(&extmoduledef);
+#else
+    #define MOD_ERROR_VAL
+    #define MOD_SUCCESS_VAL(val)
+    #define MOD_INIT(name) void init##name(void)
+    #define MOD_DEF(ob, name, doc, methods) \
+            ob = Py_InitModule3(name, methods, doc);
+#endif
+
+MOD_INIT(_sstmap_ext)
 {
-    // we produce name of the module, method table and a doc string
-    Py_InitModule3("_sstmap_ext", _sstmap_ext_methods, "Process GIST calcs.\n");
-    import_array(); // required for Numpy initialization
+    PyObject *m;
+
+    MOD_DEF(m, "_sstmap_ext", "Process GIST calcs.\n", _sstmap_ext_methods)
+    
+    if (m == NULL)
+        return MOD_ERROR_VAL;
+
+    import_array();
+
+    return MOD_SUCCESS_VAL(m);
 }

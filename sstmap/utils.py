@@ -57,8 +57,8 @@ def function_timer(function):
         t0 = time.time()
         result = function(*args, **kwargs)
         t1 = time.time()
-        print ("Total time running %s: %2.2f seconds" %
-               (function.__name__, t1-t0))
+        print(("Total time running %s: %2.2f seconds" %
+               (function.__name__, t1-t0)))
         return result
     return function_timer
 
@@ -87,7 +87,7 @@ def print_progress_bar (count, total):
     sys.stdout.write('Progress |%s| %s%s Done.\r' % (bar, percents, '%'))
     sys.stdout.flush()
     if count == total: 
-        print
+        print()
 
 
 
@@ -148,7 +148,7 @@ def plot_enbr(data_dir, site_indices=None, nbr_norm=False, ref_data=None, ref_nb
             ref_enbr *= ref_nbrs
 
     for index, site_i in enumerate(enbr.keys()):
-        print("Generating Enbr plot for: ", site_i, enbr_files[index])
+        print(("Generating Enbr plot for: ", site_i, enbr_files[index]))
         # Get x and p_x for current site
         site_enbr = enbr[site_i]*0.5
         x_low, x_high = -5.0, 3.0
@@ -239,7 +239,7 @@ def plot_rtheta(data_dir, site_indices=None):
 
     integ_counts = 16.3624445886
     for index, site_i in enumerate(rtheta_data.keys()):
-        print("Generating r_theta plot for: ", site_i, rtheta_files[index])
+        print(("Generating r_theta plot for: ", site_i, rtheta_files[index]))
         fig = plt.figure()
         ax = fig.gca(projection='3d')
         theta = rtheta_data[site_i][:, 0]

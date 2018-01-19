@@ -12,10 +12,15 @@
 
 using namespace std;
 
-
-extern "C" {
-    DL_EXPORT(void) init_sstmap_entropy();
-}
+#if PY_MAJOR_VERSION >= 3
+    extern "C" {
+        PyMODINIT_FUNC PyInit__sstmap_entropy(void);
+    }
+#else
+    extern "C" {
+        DL_EXPORT(void) init_sstmap_entropy();
+    }
+#endif
 
 /*
 struct water {
@@ -845,14 +850,31 @@ static PyMethodDef _sstmap_entropy_methods[] = {
 
 /* Initialization function for the module (*must* be called initflp) */
 
-DL_EXPORT(void) init_sstmap_entropy(void)
+#if PY_MAJOR_VERSION >= 3                                                                                                                                                                                                                                                
+    #define MOD_ERROR_VAL NULL
+    #define MOD_SUCCESS_VAL(val) val
+    #define MOD_INIT(name) PyMODINIT_FUNC PyInit_##name(void)
+    #define MOD_DEF(ob, name, doc, methods) \
+            static struct PyModuleDef moduledef = { \
+              PyModuleDef_HEAD_INIT, name, doc, -1, methods, }; \
+            ob = PyModule_Create(&moduledef);
+#else
+    #define MOD_ERROR_VAL
+    #define MOD_SUCCESS_VAL(val)
+    #define MOD_INIT(name) void init##name(void)
+    #define MOD_DEF(ob, name, doc, methods) \
+            ob = Py_InitModule3(name, methods, doc);
+#endif
+
+MOD_INIT(_sstmap_entropy)
 {
-    PyObject *m;
+        PyObject *m; 
 
-    /* Initialize the type of the new type object here; doing it here
-     * is required for portability to Windows without requiring C++. */
-    //Flp_Type.ob_type = &PyType_Type;
-
-    /* Create the module and add the functions */
-    m = Py_InitModule("_sstmap_entropy", _sstmap_entropy_methods);
+        MOD_DEF(m, "_sstmap_entropy", "Entropy calculation rutine.\n", _sstmap_entropy_methods)
+                    
+        if (m == NULL)
+            return MOD_ERROR_VAL;
+        
+        return MOD_SUCCESS_VAL(m);
 }
+
