@@ -1,18 +1,18 @@
 package:
   name: sstmap
-  version: v1.0
+  version: v1.1_dev
 source:
   path: ../../
 
 requirements:
   build:
-    - python
+    - python >=2.7
     - numpy >=1.11.3
     - setuptools
     - gcc
 
   run:
-    - python 
+    - python >=2.7
     - libgcc
     - numpy >=1.11.3
     - scipy >=1.0.0

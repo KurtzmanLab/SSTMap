@@ -6,7 +6,7 @@ import numpy
 extensions = []
 extensions.append(Extension('_sstmap_ext',
                             sources=['sstmap/_sstmap_ext.c'],
-                            include_dirs=[numpy.get_include()],
+                            include_dirs=[numpy.get_include(), "/mdcalc/Kamran_stuff/Old_Downloads/gsl-2.1/"],
                             extra_link_args=['-lgsl','-lgslcblas']))
 extensions.append(Extension('_sstmap_entropy',
                             sources=['sstmap/_sstmap_entropy.cpp', 'sstmap/kdhsa102.cpp'],
@@ -20,7 +20,7 @@ setup(name='sstmap',
       author='Kamran Haider',
       author_email='kamranhaider.mb@gmail.com',
       description='SSTMap: A computational tool for studying structure and thermodynamics of water molecules on solute surfaces',
-      version='1.0',
+      version='1.1_dev',
       license='LGPLv2.1+',
       url='https://github.com/KurtzmanLab/SSTMap',
       platforms=['Linux', 'Mac OS X', 'Windows'],

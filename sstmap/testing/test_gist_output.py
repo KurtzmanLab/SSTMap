@@ -236,7 +236,7 @@ def run_all_gist_tests(test_dir, ref_dir):
                     test_data[row, 4:] *= 0.0
                     ref_data[row, 4:] *= 0.0
         # Run tests
-        print("Checking grid and voxel placement ...", end=' ')
+        print("Checking grid and voxel placement ...")
         testcase = TestGistOutput(test_data, ref_data)
         result = testcase.test_voxel_number()
         result = testcase.test_grid()
