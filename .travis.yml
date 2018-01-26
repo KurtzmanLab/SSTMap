@@ -5,8 +5,10 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
-    packages:
-      - libgsl0ldbl
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libgsl0ldbl
 
 branches:
   only:
@@ -15,8 +17,6 @@ branches:
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update && brew install md5sha1sum && brew install gsl; fi
   - source devtools/travis-ci/install_miniconda.sh
-  - conda config --add channels omnia
-  - conda config --add channels solvationtools
 
 script:
   conda build --quiet devtools/conda-recipe
