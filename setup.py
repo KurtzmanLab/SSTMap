@@ -6,7 +6,7 @@ import numpy
 extensions = []
 extensions.append(Extension('_sstmap_ext',
                             sources=['sstmap/_sstmap_ext.c'],
-                            include_dirs=[numpy.get_include(), "/mdcalc/Kamran_stuff/Old_Downloads/gsl-2.1/"],
+                            include_dirs=[numpy.get_include()],
                             extra_link_args=['-lgsl','-lgslcblas']))
 extensions.append(Extension('_sstmap_entropy',
                             sources=['sstmap/_sstmap_entropy.cpp', 'sstmap/kdhsa102.cpp'],
