@@ -4,20 +4,19 @@ sudo: false
 addons:
   apt:
     sources:
-    - ubuntu-toolchain-r-test
+      - ubuntu-toolchain-r-test
     packages:
-    - gsl
+      - libgsl0ldbl
 
 branches:
   only:
     - v1.1_dev
 
-
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update && brew install gsl; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update && brew install md5sha1sum && brew install gsl; fi
   - source devtools/travis-ci/install_miniconda.sh
   - conda config --add channels omnia
-  - conda install numpy scipy matplotlib
+  - conda config --add channels solvationtools
 
 script:
   conda build --quiet devtools/conda-recipe
