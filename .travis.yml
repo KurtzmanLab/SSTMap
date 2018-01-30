@@ -19,9 +19,9 @@ install:
 
 script:
   conda config --add channels omnia --add channels conda-forge
+  conda build --quiet devtools/conda-recipe
 
 os:
-  - osx
   - linux
 
 global:

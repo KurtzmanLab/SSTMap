@@ -1,6 +1,6 @@
 package:
   name: sstmap
-  version: v1.1_dev
+  version: 1.1.0
 source:
   path: ../../
 
@@ -14,11 +14,11 @@ requirements:
   run:
     - python >=2.7
     - libgcc
-    - numpy >=1.11.3
-    - scipy >=1.0.0
-    - mdtraj >=1.8.0
-    - parmed >=2.7.3
-    - matplotlib >=2.0.0
+    - numpy
+    - scipy
+    - mdtraj
+    - parmed
+    - matplotlib
 
 about:
   home: https://github.com/kamran-haider

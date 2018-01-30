@@ -1,9 +1,11 @@
+#!/bin/bash
 pushd .
 cd $HOME
 
+if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then MINICONDA=Miniconda3-latest-MacOSX-x86_64.sh; fi
+if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then MINICONDA=Miniconda3-latest-Linux-x86_64.sh;  fi
+
 # Install Miniconda
-MINICONDA=Miniconda2-latest-Linux-x86_64.sh
-MINICONDA_HOME=$HOME/miniconda
 MINICONDA_MD5=$(curl -s https://repo.continuum.io/miniconda/ | grep -A3 $MINICONDA | sed -n '4p' | sed -n 's/ *<td>\(.*\)<\/td> */\1/p')
 wget -q http://repo.continuum.io/miniconda/$MINICONDA
 if [[ $MINICONDA_MD5 != $(md5sum $MINICONDA | cut -d ' ' -f 1) ]]; then
@@ -20,3 +22,5 @@ conda install --yes conda-build anaconda-client
 
 # Restore original directory
 popd
+
+
