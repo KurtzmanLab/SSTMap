@@ -27,7 +27,7 @@ script:
 
 os:
   - osx
-#  - linux
+  - linux
 
 global:
 
