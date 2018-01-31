@@ -1568,8 +1568,6 @@ static PyMethodDef _sstmap_ext_methods[] = {
     {NULL, NULL, 0, NULL}
 };
 
-/* Initialization function for this module
- */
 
 #if PY_MAJOR_VERSION >= 3
     #define MOD_ERROR_VAL NULL
@@ -1586,6 +1584,9 @@ static PyMethodDef _sstmap_ext_methods[] = {
     #define MOD_DEF(ob, name, doc, methods) \
             ob = Py_InitModule3(name, methods, doc);
 #endif
+
+/* Initialization function for this module
+ */
 
 MOD_INIT(_sstmap_ext)
 {
