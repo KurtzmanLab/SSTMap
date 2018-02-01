@@ -1,6 +1,6 @@
 package:
   name: sstmap
-  version: {{ environ['VERSION'] }}
+  version: 1.1.0
 
 source:
   path: ../../
@@ -20,6 +20,10 @@ requirements:
     - mdtraj
     - parmed
     - matplotlib
+
+test:
+  imports:
+    - sstmap
 
 about:
   home: https://github.com/kamran-haider
