@@ -23,7 +23,20 @@ install:
   - conda config --add channels conda-forge # hightest priority
 
 script:
-  conda build --quiet devtools/conda-recipe
+  # adapted from pymbar
+  # Add org channel
+  - conda config --add channels ${ORGNAME}
+  # Create a test environment
+  - conda create --quiet --yes -n test python=$python
+  # Activate the test environment
+  - source activate test
+  # Build recipie
+  - conda build devtools/conda-recipe
+  # Install locally-built package
+  - conda install --yes --quiet --use-local ${PACKAGENAME}
+  #- conda install --yes --quiet pip nose nose-timer
+  # Test the package
+  #- cd devtools && nosetests $PACKAGENAME --nocapture --verbosity=2 --with-doctest --with-timer && cd ..
 
 os:
 #  - osx
