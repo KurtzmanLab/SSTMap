@@ -40,3 +40,7 @@ env:
 #    - python=3.4  CONDA_PY=34
 #    - python=3.5  CONDA_PY=35
 #    - python=3.6  CONDA_PY=36
+
+after_success:
+  - echo "after_success"
+  - source devtools/travis-ci/after_success.sh;
