@@ -42,5 +42,4 @@ env:
 #    - python=3.6  CONDA_PY=36
 
 after_success:
-  - echo "after_success"
-  - source devtools/travis-ci/after_success.sh;
+  - source devtools/travis-ci/deploy_anaconda.sh
