@@ -1,15 +1,13 @@
 from setuptools import setup, Extension, find_packages
 import numpy
 
-version = "1.1.0"
-released = False
-__version__ = version
+__version__ = "1.1.0"
 
 # define the extension module
 extensions = []
 extensions.append(Extension('_sstmap_ext',
                             sources=['sstmap/_sstmap_ext.c'],
-                            include_dirs=[numpy.get_include(), "/usr/local/Cellar/gsl/2.4/include"],
+                            include_dirs=[numpy.get_include(), "/usr/local/Cellar/"],
                             extra_link_args=['-lgsl','-lgslcblas']))
 extensions.append(Extension('_sstmap_entropy',
                             sources=['sstmap/_sstmap_entropy.cpp', 'sstmap/kdhsa102.cpp'],
@@ -26,7 +24,7 @@ setup(name='sstmap',
       version=__version__,
       license='MIT',
       url='https://github.com/KurtzmanLab/SSTMap',
-      platforms=['Linux', 'Mac OS X', 'Windows'],
+      platforms=['Linux', 'Mac OS X',],
       packages=find_packages(),
       ext_modules=extensions,
       zip_safe=False,
