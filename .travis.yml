@@ -20,7 +20,7 @@ branches:
 install:
   - source devtools/travis-ci/install_miniconda.sh
   - export PYTHONUNBUFFERED=true
-  - export PATH=$HOME/travis/miniconda3/bin:$PATH
+  - export PATH=$HOME/miniconda/bin:$PATH
   - conda config --add channels omnia
   - conda config --add channels conda-forge # hightest priority
 
