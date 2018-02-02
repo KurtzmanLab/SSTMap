@@ -7,7 +7,7 @@ __version__ = "1.1.0"
 extensions = []
 extensions.append(Extension('_sstmap_ext',
                             sources=['sstmap/_sstmap_ext.c'],
-                            include_dirs=[numpy.get_include(), "/usr/local/Cellar/"],
+                            include_dirs=[numpy.get_include(), "/usr/local/Cellar/gsl/"],
                             extra_link_args=['-lgsl','-lgslcblas']))
 extensions.append(Extension('_sstmap_entropy',
                             sources=['sstmap/_sstmap_entropy.cpp', 'sstmap/kdhsa102.cpp'],

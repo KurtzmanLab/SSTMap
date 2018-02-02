@@ -7,8 +7,8 @@ ls
 ls */
 FILES=*/${PACKAGENAME}*.tar.bz2
 for filename in $FILES; do
-    anaconda -t $CONDA_UPLOAD_TOKEN remove --force ${ORGNAME}/${PACKAGENAME}-dev/${filename}
-    anaconda -t $CONDA_UPLOAD_TOKEN upload --force -u ${ORGNAME} -p ${PACKAGENAME}-dev ${filename}
+    anaconda -t $CONDA_UPLOAD_TOKEN remove --force ${ORGNAME}/${PACKAGENAME}/${filename}
+    anaconda -t $CONDA_UPLOAD_TOKEN upload --force -u ${ORGNAME} -p ${PACKAGENAME} ${filename}
 done
 popd
 
