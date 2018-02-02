@@ -1,4 +1,8 @@
 #!/bin/bash
+# Temporarily change directory to $HOME to install software
+pushd .
+cd $HOME
+
 # Install Miniconda
 MINICONDA=Miniconda2-latest-Linux-x86_64.sh
 MINICONDA_HOME=$HOME/miniconda
