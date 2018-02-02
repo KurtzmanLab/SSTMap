@@ -19,6 +19,8 @@ branches:
 
 install:
   - source devtools/travis-ci/install_miniconda.sh
+  - export PYTHONUNBUFFERED=true
+  - export PATH=$HOME/travis/miniconda3/bin:$PATH
   - conda config --add channels omnia
   - conda config --add channels conda-forge # hightest priority
 
@@ -42,10 +44,6 @@ os:
 #  - osx
   - linux
 
-global:
-
-  - PACKAGENAME="sstmap"
-  - ORGNAME="solvationtools"
 
 env:
   matrix:
@@ -53,6 +51,10 @@ env:
 #    - python=3.4  CONDA_PY=34
 #    - python=3.5  CONDA_PY=35
 #    - python=3.6  CONDA_PY=36
+  global:
+
+    - PACKAGENAME="sstmap"
+    - ORGNAME="solvationtools"
 
 after_success:
   - source devtools/travis-ci/deploy_anaconda.sh
