@@ -1,4 +1,6 @@
-language: generic
+# Credits: Adapted from https://github.com/choderalab/pymbar/.travis.yml
+# with some modifications
+language: C
 sudo: false
 
 addons:
@@ -15,17 +17,16 @@ before_install:
 
 branches:
   only:
-    - master
+    - v1.1_dev
 
 install:
   - source devtools/travis-ci/install_miniconda.sh
   - export PYTHONUNBUFFERED=true
   - export PATH=$HOME/miniconda/bin:$PATH
-  - conda config --add channels omnia
   - conda config --add channels conda-forge # hightest priority
+  - conda config --add channels omnia
 
 script:
-  # adapted from pymbar
   # Add org channel
   - conda config --add channels ${ORGNAME}
   # Create a test environment
@@ -48,7 +49,7 @@ os:
 env:
   matrix:
     - python=2.7  CONDA_PY=27
-#    - python=3.4  CONDA_PY=34
+    - python=3.4  CONDA_PY=34
     - python=3.5  CONDA_PY=35
     - python=3.6  CONDA_PY=36
   global:
