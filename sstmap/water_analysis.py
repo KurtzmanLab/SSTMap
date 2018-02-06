@@ -39,7 +39,9 @@ of Water Structure on Protein Active Site Surfaces. J Phys Chem B. 120:8743-8756
 ##############################################################################
 # Imports
 ##############################################################################
+import numpy as np
 import parmed as pmd
+import mdtraj as md
 from parmed.charmm import CharmmParameterSet
 from sstmap.utils import *
 
@@ -102,7 +104,7 @@ class WaterAnalysis(object):
             self.supporting_file = self.topology_file
             self.comb_rule = requirements[topology_extension][-1]
         else:
-            if topology_extension not in requirements.keys():
+            if topology_extension not in list(requirements.keys()):
                 message = """SSTMap currently does not support %s topology file type.
                 If this is a non-standard force-filed, consider using a PDB file as a topplogy
                 and provide a text file containing non-bonded parameters for each atom in your system.
@@ -247,7 +249,7 @@ class WaterAnalysis(object):
                         acc_list.append(at)
 
         for index, pair in enumerate(dist_pairs):
-            if pair[0] not in self.don_H_pair_dict.keys():
+            if pair[0] not in list(self.don_H_pair_dict.keys()):
                 self.don_H_pair_dict[pair[0]] = [[pair[0], pair[1]]]
             else:
                 self.don_H_pair_dict[pair[0]].append([pair[0], pair[1]])
@@ -464,3 +466,35 @@ class WaterAnalysis(object):
         hbonds_sw = angle_triplets_sw[np.where(angles_sw <= ANGLE_CUTOFF_RAD)]
         return (hbonds_ww, hbonds_sw)
 
+
+    def water_nbr_orientations(self, traj, water, nbrs):
+        """Calculates hydrogen bonds made by a water molecule with its first shell
+        water and solute neighbors.
+
+        Parameters
+        ----------
+        traj : md.trajectory
+            MDTraj trajectory object for which hydrogen bonds are to be calculates.
+        water : int
+            The index of water oxygen atom
+        nbrs : np.ndarray, int, shape=(N^{ww}_nbr, )
+            Indices of the water oxygen or solute atoms in the first solvation shell of the water molecule.
+        water_water : bool
+            Boolean for whether water-water or solute-water hbonds are desired
+
+        Returns
+        -------
+        hbonds : np.ndarray
+            Array of hydrogen bonds where each hydrogen bond is represented by an array of indices
+            of three participating atoms [Donor, H, Acceptor]
+        """
+        angle_triplets = []
+        for wat_nbr in nbrs:
+            angle_triplets.extend(
+                [[water, wat_nbr, wat_nbr + 1], [water, wat_nbr, wat_nbr + 2], [wat_nbr, water, water + 1],
+                 [wat_nbr, water, water + 2]])
+        angle_triplets = np.asarray(angle_triplets)
+        angles = md.compute_angles(traj, angle_triplets)
+        angles[np.isnan(angles)] = 0.0
+        wat_orientations = [np.rad2deg(np.min(angles[0, i*4:(i*4)+4])) for i in range(nbrs.shape[0])]
+        return wat_orientations

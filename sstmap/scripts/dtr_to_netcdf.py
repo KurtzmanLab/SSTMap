@@ -27,7 +27,7 @@ def main():
     args = parse_args()
     print("Reading in trajectory ...")
     traj = md.load_dtr(args.input_traj, top=args.input_parm)
-    print traj
+    print(traj)
     print("Outputting NETCDF ...")
     traj.save_netcdf(args.output_prefix + "_converted.nc")
     print("Outputting PDB file of frame 1 ...")
