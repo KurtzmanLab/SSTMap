@@ -31,7 +31,7 @@ test:
     - sstmap
 
 about:
-  home: https://github.com/kamran-haider
-  license: GNU Lesser General Public License v2 or later (LGPLv2+)
+  home: https://github.com/KurtzmanLab/SSTMap
+  license: MIT
   summary: Python tools for analysis of water molecules in MD trajectories.
 
