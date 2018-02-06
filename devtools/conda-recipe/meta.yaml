@@ -9,7 +9,7 @@ source:
 requirements:
   build:
     - python
-    - numpy 1.11,*
+    - numpy 1.11.*
     - setuptools
     - gcc
     - toolchain
