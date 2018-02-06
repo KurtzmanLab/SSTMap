@@ -21,6 +21,7 @@ requirements:
     - scipy
     - mdtraj 1.9.1
     - parmed
+    - matplotlib
 
 test:
   commands:
