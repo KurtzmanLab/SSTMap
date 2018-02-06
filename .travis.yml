@@ -13,7 +13,7 @@ addons:
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install md5sha1sum; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y libgsl0ldbl; fi
+#  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y libgsl0ldbl; fi
 #  && brew install gsl
 branches:
   only:
@@ -42,8 +42,8 @@ script:
   #- cd devtools && nosetests $PACKAGENAME --nocapture --verbosity=2 --with-doctest --with-timer && cd ..
 
 os:
-  - osx
-#  - linux
+#  - osx
+  - linux
 
 
 env:
