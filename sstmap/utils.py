@@ -30,22 +30,14 @@ import sys
 import os
 import time
 from functools import wraps
-import _sstmap_ext as calc
 
 import numpy as np
 from scipy import stats
-import mdtraj as md
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-from matplotlib import rcParams
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from matplotlib import cm
-
-#rcParams['font.family'] = 'serif'
-#rcParams['font.serif'] = ['Cambria Math'] + rcParams['font.serif']
 
 ##############################################################################
 # Utilities
@@ -403,7 +395,6 @@ def write_watpdb_from_list(coords, filename, water_id_list, full_water_res=False
                 #pdb_lines.append(ter_line)
     #pdb_lines.append("END")
     #np.savetxt(filename + ".pdb", np.asarray(pdb_lines), fmt="%s")
-
 
 
 def write_watpdb_from_coords(filename, coords, full_water_res=False):
