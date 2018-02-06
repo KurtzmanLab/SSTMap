@@ -41,8 +41,8 @@ script:
   #- cd devtools && nosetests $PACKAGENAME --nocapture --verbosity=2 --with-doctest --with-timer && cd ..
 
 os:
-  - osx
-#  - linux
+#  - osx
+  - linux
 
 
 env:
