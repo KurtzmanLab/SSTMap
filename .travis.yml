@@ -1,44 +1,60 @@
-language: python
+language: generic
 sudo: false
 
-# Setup anaconda
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gsl-bin
+      - libgsl0-dev
+
 before_install:
-  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-  - chmod +x miniconda.sh
-  - ./miniconda.sh -b
-  - export PATH=$HOME/miniconda2/bin:$PATH
-  - conda update --yes -q conda
-  - conda config --set always_yes true
-  - conda config --set anaconda_upload no
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install md5sha1sum && brew install gsl; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y libgsl0ldbl; fi
+
+branches:
+  only:
+    - v1.1_dev
 
 install:
-  - conda install -q python=$TRAVIS_PYTHON_VERSION pip requests conda-build jinja2 anaconda-client 
-  # install additional packages with conda and pip
-  - conda build conda-recipe # this assumes that the conda recipe folder is called conda-recipe and is at the current workind dir
-  - conda install --yes --use-local sstmap
-# add test scripts here
-# also add conda install of dependencies i.e., conda config --add channels omnia
-#script:
+  - source devtools/travis-ci/install_miniconda.sh
+  - export PYTHONUNBUFFERED=true
+  - export PATH=$HOME/miniconda/bin:$PATH
+  - conda config --add channels omnia
+  - conda config --add channels conda-forge # hightest priority
+
+script:
+  # adapted from pymbar
+  # Add org channel
+  - conda config --add channels ${ORGNAME}
+  # Create a test environment
+  - conda create --quiet --yes -n test python=$python
+  # Activate the test environment
+  - source activate test
+  # Build recipie
+  - conda build devtools/conda-recipe
+  # Install locally-built package
+  - conda install --yes --quiet --use-local ${PACKAGENAME}
+  #- conda install --yes --quiet pip nose nose-timer
+  # Test the package
+  #- cd devtools && nosetests $PACKAGENAME --nocapture --verbosity=2 --with-doctest --with-timer && cd ..
+
 os:
   - osx
-  - linux
-
-global:
-  - PACKAGENAME="sstmap"
-
-after_success:
-# Change permissions for Anaconda deployment script
-  - chmod +x ./deploy_anaconda.sh
-
-deploy:
- # Deploy to Anaconda.org
-  - provider: script
-    script: ./deploy_anaconda.sh
-    on:
-      tags: true
-    skip_cleanup: true
+#  - linux
 
 
 env:
-  - CONDA_PY=2.7
+  matrix:
+    - python=2.7  CONDA_PY=27
+#    - python=3.4  CONDA_PY=34
+#    - python=3.5  CONDA_PY=35
+#    - python=3.6  CONDA_PY=36
+  global:
 
+    - PACKAGENAME="sstmap"
+    - ORGNAME="solvationtools"
+
+after_success:
+  - source devtools/travis-ci/deploy_anaconda.sh
