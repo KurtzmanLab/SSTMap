@@ -1,5 +1,6 @@
 #!/bin/bash
-# Temporarily change directory to $HOME to install software
+# Credits: Adapted from https://github.com/choderalab/pymbar/blob/master/devtools/travis-ci/install.sh
+# with some modifications
 pushd .
 cd $HOME
 

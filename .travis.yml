@@ -1,3 +1,5 @@
+# Credits: Adapted from https://github.com/choderalab/pymbar/.travis.yml
+# with some modifications
 language: C
 sudo: false
 
@@ -25,7 +27,6 @@ install:
   - conda config --add channels omnia
 
 script:
-  # adapted from pymbar
   # Add org channel
   - conda config --add channels ${ORGNAME}
   # Create a test environment
@@ -41,8 +42,8 @@ script:
   #- cd devtools && nosetests $PACKAGENAME --nocapture --verbosity=2 --with-doctest --with-timer && cd ..
 
 os:
-#  - osx
-  - linux
+  - osx
+#  - linux
 
 
 env:
