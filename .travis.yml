@@ -27,7 +27,7 @@ install:
 script:
   # adapted from pymbar
   # Add org channel
-  - conda config --add channels ${ORGNAME}
+  # - conda config --add channels ${ORGNAME}
   # Create a test environment
   - conda create --quiet --yes -n test python=$python
   # Activate the test environment
