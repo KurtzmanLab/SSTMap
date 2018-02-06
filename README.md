@@ -1,4 +1,4 @@
-[![Build Status]([![Build Status](https://travis-ci.org/kamran-haider/SSTMap.svg?branch=v1.1_dev)](https://travis-ci.org/kamran-haider/SSTMap))
+[![Build Status](https://travis-ci.org/kamran-haider/SSTMap.svg?branch=v1.1_dev)](https://travis-ci.org/kamran-haider/SSTMap)
 [![Anaconda-Server Badge](https://anaconda.org/solvationtools/sstmap/badges/installer/conda.svg)](https://conda.anaconda.org/solvationtools)
 [![Anaconda-Server Badge](https://anaconda.org/solvationtools/sstmap/badges/downloads.svg)](https://anaconda.org/solvationtools/sstmap)
 [![DOI for Citing SSTMap](https://img.shields.io/badge/DOI-10.1021%2Fj.jctc.2017.11.021-blue.svg)](http://doi.org/10.1021/acs.jctc.7b00592)

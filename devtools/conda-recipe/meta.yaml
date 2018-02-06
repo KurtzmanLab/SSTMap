@@ -13,13 +13,14 @@ requirements:
     - setuptools
     - gcc
     - toolchain
+    - libgcc
 
   run:
     - python
     - libgcc
     - numpy
     - scipy
-    - mdtraj
+    - mdtraj 1.9.1
     - parmed
     - matplotlib
 
