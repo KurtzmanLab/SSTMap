@@ -7,14 +7,10 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
-#    packages:
-#      - gsl-bin
-#      - libgsl0-dev
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install md5sha1sum; fi
-#  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y libgsl0ldbl; fi
-#  && brew install gsl
+
 branches:
   only:
     - v1.1_dev
@@ -38,20 +34,20 @@ script:
   # Install locally-built package
   - conda install --yes --quiet --use-local ${PACKAGENAME}
   #- conda install --yes --quiet pip nose nose-timer
-  # Test the package
+  # Test the package (will do this once unit tests are ready)
   #- cd devtools && nosetests $PACKAGENAME --nocapture --verbosity=2 --with-doctest --with-timer && cd ..
 
 os:
-#  - osx
+  - osx
   - linux
 
 
 env:
   matrix:
-#    - python=2.7  CONDA_PY=27
-#    - python=3.4  CONDA_PY=34
+    - python=2.7  CONDA_PY=27
+    - python=3.4  CONDA_PY=34
     - python=3.5  CONDA_PY=35
-#    - python=3.6  CONDA_PY=36
+    - python=3.6  CONDA_PY=36
   global:
 
     - PACKAGENAME="sstmap"
