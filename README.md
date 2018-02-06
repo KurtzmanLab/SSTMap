@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/KurtzmanLab/SSTMap.svg?branch=master)](https://travis-ci.org/KurtzmanLab/SSTMap)
+[![Build Status]([![Build Status](https://travis-ci.org/kamran-haider/SSTMap.svg?branch=v1.1_dev)](https://travis-ci.org/kamran-haider/SSTMap))
 [![Anaconda-Server Badge](https://anaconda.org/solvationtools/sstmap/badges/installer/conda.svg)](https://conda.anaconda.org/solvationtools)
 [![Anaconda-Server Badge](https://anaconda.org/solvationtools/sstmap/badges/downloads.svg)](https://anaconda.org/solvationtools/sstmap)
 [![DOI for Citing SSTMap](https://img.shields.io/badge/DOI-10.1021%2Fj.jctc.2017.11.021-blue.svg)](http://doi.org/10.1021/acs.jctc.7b00592)
@@ -32,14 +32,14 @@ conda install sstmap
 You can install the latest development version from the GitHub repository by executing
 
 ```
-pip install git+git://github.com/kurtzmanlab/sstmap.git@v1.0#egg=sstmap
+pip install git+git://github.com/kurtzmanlab/sstmap.git@1.1.0#egg=sstmap
 ```
 
 You can also download the release package manually from GitHub, unzip it, navigate into the directory, and execute the command:
 
 ```bash
-https://github.com/KurtzmanLab/SSTMap/archive/v1.0.tar.gz or https://github.com/KurtzmanLab/SSTMap/archive/v1.0.zip
-tar -xvf v1.0.tar.gz or unzip v1.0.zip
+https://github.com/KurtzmanLab/SSTMap/archive/1.1.0.tar.gz or https://github.com/KurtzmanLab/SSTMap/archive/1.1.0.zip
+tar -xvf 1.1.0.tar.gz or unzip 1.0.0.zip
 cd SSTMap-1.0
 python setup.py install
 ```
@@ -51,7 +51,7 @@ cd SSTMap
 ```
 **For the release version:**
 ```
-git checkout tags/v1.0
+git checkout tags/1.1.0
 python setup.py install
 ```
 **For the developmental version:**
@@ -111,6 +111,7 @@ Co-Developers
 -------------
 * Steven Ramsey <vpsramsey@gmail.com>
 * Anthony Cruz Balberdi <anthonycruzpr@gmail.com>
+* Tobias Wulsdorf <tobias.wulsdorf@pharmazie.uni-marburg.de>
 
 Principal Investigators
 ---------------------
@@ -121,13 +122,14 @@ References
 ----------
 Please cite the following when you use this software.  
 
-[1] Crystal N. Nguyen, Michael K. Gilson, Tom Young. Structure and Thermodynamics of Molecular Hydration via Grid Inhomogeneous Solvation Theory. eprint arXiv:1108.4876, (2011).
+[1] Haider K, Cruz A, Ramsey S, Gilson M. and Kurtzman T. Solvation Structure and Thermodynamic Mapping (SSTMap): An Open-Source, Flexible Package for the Analysis of Water in Molecular Dynamics Trajectories. J. Chem. Theory Comput. (10.1021/acs.jctc.7b00592) 2017.
+[2] Crystal N. Nguyen, Michael K. Gilson, Tom Young. Structure and Thermodynamics of Molecular Hydration via Grid Inhomogeneous Solvation Theory. eprint arXiv:1108.4876, (2011).
 
-[2] Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson. Grid inhomogeneous solvation theory: hydration structure and thermodynamics of the miniature receptor cucurbit[7]uril. J. Chem. Phys. 137, 044101 (2012)
+[3] Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson. Grid inhomogeneous solvation theory: hydration structure and thermodynamics of the miniature receptor cucurbit[7]uril. J. Chem. Phys. 137, 044101 (2012)
 
-[3] Haider K, Wickstrom L, Ramsey S, Gilson MK and Kurtzman T. Enthalpic Breakdown of Water Structure on Protein Active Site Surfaces. J Phys Chem B. 120:8743-8756, (2016). http://dx.doi.org/10.1021/acs.jpcb.6b01094.
+[4] Haider K, Wickstrom L, Ramsey S, Gilson MK and Kurtzman T. Enthalpic Breakdown of Water Structure on Protein Active Site Surfaces. J Phys Chem B. 120:8743-8756, (2016). http://dx.doi.org/10.1021/acs.jpcb.6b01094.
 
-[4] Themis Lazaridis. Inhomogeneous Fluid Approach to Solvation Thermodynamics. 1. Theory. The Journal of Physical Chemistry B 102 (18), 3531-3541, (1998). DOI: 10.1021/jp9723574
+[5] Themis Lazaridis. Inhomogeneous Fluid Approach to Solvation Thermodynamics. 1. Theory. The Journal of Physical Chemistry B 102 (18), 3531-3541, (1998). DOI: 10.1021/jp9723574
 
 
 License
