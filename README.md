@@ -3,8 +3,7 @@
 [![Anaconda-Server Badge](https://anaconda.org/solvationtools/sstmap/badges/downloads.svg)](https://anaconda.org/solvationtools/sstmap)
 [![DOI for Citing SSTMap](https://img.shields.io/badge/DOI-10.1021%2Fj.jctc.2017.11.021-blue.svg)](http://doi.org/10.1021/acs.jctc.7b00592)
 
-Welcome to SSTMap Release version 1.0
-.
+Welcome to SSTMap Release version 1.1.0
 Thank you for using SSTMap, we've gone through a great deal of work trying to ensure compatibility with various operating systems and MD packages though we have not covered all the possible combinations.  If you run into a bug, please report it on the issues and we will work to quickly resolve it.
 
 Thank you,
