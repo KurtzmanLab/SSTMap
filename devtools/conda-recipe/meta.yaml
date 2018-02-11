@@ -21,7 +21,7 @@ requirements:
     - libgcc
     - numpy
     - scipy
-    - mdtraj 1.9.1
+    - mdtraj
     - parmed
     - matplotlib
     - gsl
