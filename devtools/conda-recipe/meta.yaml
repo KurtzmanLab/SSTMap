@@ -14,7 +14,7 @@ requirements:
     - gcc
     - toolchain
     - libgcc
-    - gsl
+    - gsl 22.0.0
     - libopenblas
 
   run:
@@ -25,7 +25,7 @@ requirements:
     - mdtraj
     - parmed
     - matplotlib
-    - gsl
+    - gsl 22.0.0
     - libopenblas
 
 test:
