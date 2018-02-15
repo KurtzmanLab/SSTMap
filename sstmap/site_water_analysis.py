@@ -38,7 +38,7 @@ import subprocess
 import shutil
 import numpy as np
 from scipy import spatial
-
+import mdtraj as md
 from sstmap.utils import *
 from sstmap.water_analysis import WaterAnalysis
 import _sstmap_ext as calc
