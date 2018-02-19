@@ -135,6 +135,7 @@ class WaterAnalysis(object):
         self.all_atom_ids = self.topology.select("all")
         self.prot_atom_ids = self.topology.select("protein")
         self.wat_atom_ids = self.topology.select("water")
+        self.set_neighbors("water and name O")
         if self.wat_atom_ids.shape[0] == 0:
             self.wat_atom_ids = self.topology.select(super_wat_select_exp)
         assert (self.wat_atom_ids.shape[0] != 0), \
@@ -166,6 +167,21 @@ class WaterAnalysis(object):
         self.prot_hb_types = np.zeros(len(self.non_water_atom_ids), dtype=np.int_)
         self.solute_acc_ids, self.solute_don_ids, self.solute_acc_don_ids = self.assign_hb_types()
         print("Done.")
+
+
+    def set_neighbors(self, mask):
+        """Method for setting atoms that should be used during shell-wise breakdown
+        of energies in HSA and first shell neighbor count in GIST.
+
+        Parameters
+        ----------
+        mask : Charmm-style atom selection mask
+
+        """
+
+        self.neighbor_ids   = self.topology.select(mask)
+        self.wat_nbrs_shell = np.zeros(self.neighbor_ids.shape[0], dtype=np.int)
+
 
     @function_timer
     def assign_hb_types(self):
