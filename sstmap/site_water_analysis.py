@@ -544,8 +544,8 @@ class SiteWaterAnalysis(WaterAnalysis):
 
                 if hbonds:
                     hbtot = 0
-                    prot_nbrs_all = self.non_water_atom_ids[
-                        np.where(distance_matrix[0, :][self.non_water_atom_ids] <= nbr_cutoff_sq)]
+                    prot_nbrs_all = self.prot_atom_ids[
+                        np.where(distance_matrix[0, :][self.prot_atom_ids] <= nbr_cutoff_sq)]
                     prot_nbrs_hb = prot_nbrs_all[np.where(self.prot_hb_types[prot_nbrs_all] != 0)]
                     if wat_nbrs.shape[0] > 0:
                         hb_ww = self.calculate_hydrogen_bonds(trj, wat_O, wat_nbrs)

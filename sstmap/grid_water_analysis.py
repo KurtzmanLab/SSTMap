@@ -290,32 +290,10 @@ class GridWaterAnalysis(WaterAnalysis):
                 e_nbr_list = [np.sum(e_lj_array[:, wat_nbrs + i] + e_elec_array[:, wat_nbrs + i]) for i in
                               range(self.water_sites)]
                 self.voxeldata[wat[0], 17] += np.sum(e_nbr_list)
-                """
-                ###DEBUG START###
-                elj_sw = np.sum(e_lj_array[:, :self.wat_oxygen_atom_ids[0]])
-                eelec_sw = np.sum(e_elec_array[:, :self.wat_oxygen_atom_ids[0]])
-                elj_ww = np.sum(e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_lj_array[:, wat[1] + 1:])
-                eelec_ww = np.sum(e_elec_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_elec_array[:, wat[1] + self.water_sites:])
-                e_nbr_list = [np.sum(e_lj_array[:, wat_nbrs + i] + e_elec_array[:, wat_nbrs + i]) for i in xrange(self.water_sites)]
-                enbr = np.sum(e_nbr_list)
-                print "Calc: ", elj_sw, eelec_sw, elj_ww, eelec_ww, enbr
-                distance_matrix = np.sqrt(distance_matrix)
-                energy_lj, energy_elec = self.calculate_energy(distance_matrix)
-                test_1 = np.sum(energy_lj[:self.wat_oxygen_atom_ids[0]:])
-                test_2 = np.sum(energy_elec[:, self.non_water_atom_ids])
-                test_3 = np.nansum(energy_lj[self.wat_oxygen_atom_ids[0]:])
-                test_4 = np.sum(energy_elec[:, self.wat_atom_ids[0]:wat[1]]) + np.sum(energy_elec[:, wat[1] + self.water_sites:])
-                test_5 = 0.0
-                test_5 += np.sum(energy_lj[self.wat_oxygen_atom_ids[0]:][(wat_nbrs - self.wat_oxygen_atom_ids[0]) / self.water_sites])
-                for i in range(self.water_sites):
-                    test_5 += np.sum(energy_elec[:, wat_nbrs + i])
-                print "Ref: ", test_1, test_2, test_3, test_4, test_5
-                ###DEBUG END###
-                """
                 # H-bond calculations
                 if hbonds:
-                    prot_nbrs_all = self.non_water_atom_ids[
-                        np.where(distance_matrix[0, :][self.non_water_atom_ids] <= nbr_cutoff_sq)]
+                    prot_nbrs_all = self.prot_atom_ids[
+                        np.where(distance_matrix[0, :][self.prot_atom_ids] <= nbr_cutoff_sq)]
                     prot_nbrs_hb = prot_nbrs_all[np.where(self.prot_hb_types[prot_nbrs_all] != 0)]
 
                     if wat_nbrs.shape[0] > 0:
