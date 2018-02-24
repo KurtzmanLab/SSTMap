@@ -294,6 +294,7 @@ class GridWaterAnalysis(WaterAnalysis):
                 if hbonds:
                     prot_nbrs_all = self.prot_atom_ids[
                         np.where(distance_matrix[0, :][self.prot_atom_ids] <= nbr_cutoff_sq)]
+                    print(prot_nbrs_all)
                     prot_nbrs_hb = prot_nbrs_all[np.where(self.prot_hb_types[prot_nbrs_all] != 0)]
 
                     if wat_nbrs.shape[0] > 0:
