@@ -28,12 +28,12 @@ requirements:
     - gsl 2.2.1
     - libopenblas
 
-test:
-  commands:
-    - run_gist -h
-    - run_hsa -h
-  imports:
-    - sstmap
+#test:
+#  commands:
+#    - run_gist -h
+#    - run_hsa -h
+#  imports:
+#    - sstmap
 
 about:
   home: https://github.com/KurtzmanLab/SSTMap
