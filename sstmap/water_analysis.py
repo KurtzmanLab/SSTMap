@@ -80,7 +80,7 @@ class WaterAnalysis(object):
     dynamics trajectories.
     """
 
-    def __init__(self, topology_file, trajectory, supporting_file=None, rho_bulk=0.0334):
+    def __init__(self, topology_file, trajectory, supporting_file=None):
         """Initialize WaterAnalysis object for a trajectory and
         corresponding topology file.
         
@@ -93,8 +93,6 @@ class WaterAnalysis(object):
         supporting_file : None, optional
             Filename of additional file containing non-bonded parameters for
             every particle in the system. Default: None
-        rho_bulk : float
-            Reference bulk water density to be used in calculations. Default: None
         """
         # Check sanity checks on files
         if not os.path.exists(topology_file) or not os.path.exists(trajectory):
@@ -168,8 +166,8 @@ class WaterAnalysis(object):
         # Assign a hydrogen bond to atoms
         print("Assigning hydrogen bond types ...")
         self.don_H_pair_dict = {}
-        self.prot_hb_types = np.zeros(len(self.non_water_atom_ids), dtype=np.int_)
-        #self.prot_hb_types = np.zeros(len(self.prot_atom_ids), dtype=np.int_)
+        #self.prot_hb_types = np.zeros(len(self.non_water_atom_ids), dtype=np.int_)
+        self.prot_hb_types = np.zeros(len(self.prot_atom_ids), dtype=np.int_)
 
         self.solute_acc_ids, self.solute_don_ids, self.solute_acc_don_ids = self.assign_hb_types()
         print("Done.")

@@ -47,12 +47,13 @@ class GridWaterAnalysis(WaterAnalysis):
     def __init__(self, topology_file, trajectory, start_frame=0, num_frames=0,
                  supporting_file=None, ligand_file=None,
                  grid_center=None, grid_dimensions=[20, 20, 20],
-                 grid_resolution=[0.5, 0.5, 0.5], rho_bulk=None, prefix="test"):
+                 grid_resolution=[0.5, 0.5, 0.5], rho_bulk=0.0334, prefix="test"):
 
         print("Initializing ...")
         self.start_frame = start_frame
         self.num_frames = num_frames
-        super(GridWaterAnalysis, self).__init__(topology_file, trajectory, supporting_file, rho_bulk)
+        self.rho_bulk = float(rho_bulk)
+        super(GridWaterAnalysis, self).__init__(topology_file, trajectory, supporting_file)
 
         self.grid_dims = np.asarray(grid_dimensions, int)
         self.resolution = grid_resolution[0]
