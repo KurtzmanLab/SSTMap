@@ -1,7 +1,7 @@
 ---
 layout: post
 author: Steven Ramsey
-title: [SSTMap Github Repository] (https://github.com/KurtzmanLab/SSTMap/tree/master)
+title: SSTMap Github Repository
 date: 2018-02-26
 published: true
 ---
