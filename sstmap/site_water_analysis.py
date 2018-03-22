@@ -515,8 +515,11 @@ class SiteWaterAnalysis(WaterAnalysis):
                         np.sum(e_lj_array[:, nbr:nbr + self.water_sites] + e_elec_array[:, nbr:nbr + self.water_sites])
                         for nbr in wat_nbrs]
 
-                    e_lj_sw = np.sum(e_lj_array[:, self.prot_atom_ids])
-                    e_elec_sw = np.sum(e_elec_array[:, self.prot_atom_ids])
+                    #e_lj_sw = np.sum(e_lj_array[:, self.prot_atom_ids])
+                    #e_elec_sw = np.sum(e_elec_array[:, self.prot_atom_ids])
+                    e_lj_sw = np.sum(e_lj_array[:, self.non_water_atom_ids])
+                    e_elec_sw = np.sum(e_elec_array[:, self.non_water_atom_ids])
+
                     e_lj_ww = np.sum(
                         e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat_O]) + np.sum(
                         e_lj_array[:, wat_O + self.water_sites:])

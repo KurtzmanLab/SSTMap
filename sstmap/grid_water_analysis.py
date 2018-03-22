@@ -325,8 +325,11 @@ class GridWaterAnalysis(WaterAnalysis):
                 calc.calculate_energy(wat[1], distance_matrix, e_elec_array, e_lj_array, self.bcoeff)
 
                 if self.prot_atom_ids.shape[0] != 0:
-                    self.voxeldata[wat[0], 13] += np.sum(e_lj_array[:, self.prot_atom_ids])
-                    self.voxeldata[wat[0], 13] += np.sum(e_elec_array[:, self.prot_atom_ids])
+                    #self.voxeldata[wat[0], 13] += np.sum(e_lj_array[:, self.prot_atom_ids])
+                    #self.voxeldata[wat[0], 13] += np.sum(e_elec_array[:, self.prot_atom_ids])
+                    self.voxeldata[wat[0], 13] += np.sum(e_lj_array[:, self.non_water_atom_ids])
+                    self.voxeldata[wat[0], 13] += np.sum(e_elec_array[:, self.non_water_atom_ids])
+
                 self.voxeldata[wat[0], 15] += np.sum(
                     e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_lj_array[:, wat[1] + self.water_sites:])
                 self.voxeldata[wat[0], 15] += np.sum(
