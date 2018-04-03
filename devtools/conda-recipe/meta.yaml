@@ -9,29 +9,31 @@ source:
 requirements:
   build:
     - python
-    - numpy 1.11.*
+    - numpy 1.14.0
     - setuptools
     - gcc
     - toolchain
     - libgcc
-    - gsl
+    - gsl 2.2.1
+    - libopenblas
 
   run:
     - python
     - libgcc
     - numpy
     - scipy
-    - mdtraj 1.9.1
+    - mdtraj
     - parmed
     - matplotlib
-    - gsl
+    - gsl 2.2.1
+    - libopenblas
 
-test:
-  commands:
-    - run_gist -h
-    - run_hsa -h
-  imports:
-    - sstmap
+#test:
+#  commands:
+#    - run_gist -h
+#    - run_hsa -h
+#  imports:
+#    - sstmap
 
 about:
   home: https://github.com/KurtzmanLab/SSTMap
