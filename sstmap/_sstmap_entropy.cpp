@@ -844,7 +844,7 @@ static PyMethodDef _sstmap_entropy_methods[] = {
         "Run 6dimprobable"
 
     },
-    {NULL, NULL}       /* sentinel */
+    {NULL, NULL, NULL}       /* sentinel */
 };
 
 

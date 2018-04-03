@@ -17,3 +17,5 @@ clean:
 	rm -f bruteclust
 	rm -f kdhsa102
 	rm -f 6dimprobable
+
+test: pytest -m tests

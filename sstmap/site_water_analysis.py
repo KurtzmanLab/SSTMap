@@ -35,7 +35,7 @@ MD trajectories.
 
 
 import subprocess
-import shutil
+import shutil, sys
 import numpy as np
 from scipy import spatial
 import mdtraj as md
@@ -243,19 +243,18 @@ class SiteWaterAnalysis(WaterAnalysis):
                 f.seek(self.start_frame)
                 # read all frames if no frames specified by user
                 if self.num_frames is None:
-                    trj_short = f.read_as_traj(topology, stride=clustering_stride,
-                                               atom_indices=np.concatenate(
-                                                   (binding_site_atom_indices, self.wat_oxygen_atom_ids)))
+                    trj_short = f.read_as_traj(topology,
+                            atom_indices=np.concatenate(
+                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)))[self.start_frame::clustering_stride]
                 else:
-                    trj_short = f.read_as_traj(topology, n_frames=self.num_frames,
-                                               stride=clustering_stride,
-                                               atom_indices=np.concatenate(
-                                                   (binding_site_atom_indices, self.wat_oxygen_atom_ids)))
+                    trj_short = f.read_as_traj(topology,
+                            atom_indices=np.concatenate(
+                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)))[self.start_frame:self.num_frames:clustering_stride]
+                    print(trj_short.n_frames)
                 if trj_short.n_frames < 10:
-                    sys.exit(
-                        "Clustering requires at least 100 frames, current trajectory contains {0:d} frames.".format(
+                    sys.exit("Clustering requires at least 100 frames, current trajectory contains {0:d} frames.".format(
                             trj_short.n_frames))
-                print(("Performing an initial clustering over {0:d} frames.".format(trj_short.n_frames)))
+                print("Performing an initial clustering over {0:d} frames.".format(trj_short.n_frames))
                 # Obtain water molecules solvating the binding site
                 # FIXME: This is a workaround to use MDTraj compute_neighbor function xyz coordinates of the trajectory are
                 # modified such that first n atoms coordinates are switched to n atoms of ligand coordinates.
@@ -360,7 +359,7 @@ class SiteWaterAnalysis(WaterAnalysis):
             haystack = np.setdiff1d(trj.topology.select("all"), binding_site_atom_indices)
             start_point = haystack[0]
             binding_site_waters = md.compute_neighbors(trj, self.hsa_region_radius,
-                                                        binding_site_atom_indices, haystack_indices=haystack)
+                                                       binding_site_atom_indices, haystack_indices=haystack)
             # From the full frame-wise set of waters in the binding site, build two more frame-wise lists
             # one where each frame has a correct index of waters and another with a new index which ranges from
             # 0 to M, where M is the total number of hsa region waters - 1
@@ -501,8 +500,8 @@ class SiteWaterAnalysis(WaterAnalysis):
                     e_lj_array, e_elec_array = np.copy(self.acoeff), np.copy(self.chg_product)
                     calc.calculate_energy(wat_O, distance_matrix, e_elec_array, e_lj_array, self.bcoeff)
 
-                    e_lj_sw = np.sum(e_lj_array[:, self.prot_atom_ids])
-                    e_elec_sw = np.sum(e_elec_array[:, self.prot_atom_ids])
+                    e_lj_sw = np.sum(e_lj_array[:, self.non_water_atom_ids])
+                    e_elec_sw = np.sum(e_elec_array[:, self.non_water_atom_ids])
 
                     e_lj_ww_left = e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat_O]
                     e_lj_ww_right = e_lj_array[:, wat_O + self.water_sites:]
@@ -514,11 +513,6 @@ class SiteWaterAnalysis(WaterAnalysis):
                     e_nbr_list = [
                         np.sum(e_lj_array[:, nbr:nbr + self.water_sites] + e_elec_array[:, nbr:nbr + self.water_sites])
                         for nbr in wat_nbrs]
-
-                    #e_lj_sw = np.sum(e_lj_array[:, self.prot_atom_ids])
-                    #e_elec_sw = np.sum(e_elec_array[:, self.prot_atom_ids])
-                    e_lj_sw = np.sum(e_lj_array[:, self.non_water_atom_ids])
-                    e_elec_sw = np.sum(e_elec_array[:, self.non_water_atom_ids])
 
                     e_lj_ww = np.sum(
                         e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat_O]) + np.sum(
@@ -651,7 +645,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                                         energy_lr_breakdown, angular_structure,
                                         shell_radii, r_theta_cutoff)
                     read_num_frames += 1
-            if  read_num_frames < self.num_frames:
+            if read_num_frames < self.num_frames:
                 print(("{0:d} frames found in the trajectory, resetting self.num_frames.".format(read_num_frames)))
                 self.num_frames = read_num_frames
 

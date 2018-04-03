@@ -166,9 +166,7 @@ class WaterAnalysis(object):
         # Assign a hydrogen bond to atoms
         print("Assigning hydrogen bond types ...")
         self.don_H_pair_dict = {}
-        #self.prot_hb_types = np.zeros(len(self.non_water_atom_ids), dtype=np.int_)
-        self.prot_hb_types = np.zeros(len(self.prot_atom_ids), dtype=np.int_)
-
+        self.prot_hb_types = np.zeros(len(self.all_atom_ids), dtype=np.int_)
         self.solute_acc_ids, self.solute_don_ids, self.solute_acc_don_ids = self.assign_hb_types()
         print("Done.")
 
