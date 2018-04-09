@@ -396,7 +396,7 @@ class GridWaterAnalysis(WaterAnalysis):
                     print("No more frames to read.")
                     break
                 else:
-                    self._process_frame(trj, frame_i, energy, hbonds, entropy)
+                    self._process_frame(trj, energy, hbonds, entropy)
                     read_num_frames += 1
             if read_num_frames < self.num_frames:
                 print(("{0:d} frames found in the trajectory, resetting self.num_frames.".format(read_num_frames)))
