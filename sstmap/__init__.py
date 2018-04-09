@@ -35,12 +35,17 @@ Please reference the following if you use this code in your research:
 [1] Haider K, Wickstrom L, Ramsey S, Gilson MK and Kurtzman T. Enthalpic Breakdown 
 of Water Structure on Protein Active Site Surfaces. J Phys Chem B. 120:8743-8756, 
 2016. http://dx.doi.org/10.1021/acs.jpcb.6b01094.
+[2] Haider K, Cruz A, Ramsey S, Gilson MK, and Kurtzman T. Solvation Structure and 
+Thermodynamic Mapping (SSTMap): An open-source, flexible package for the analysis
+of water in molecular dynamics trajectories. JCTC 14(1):418-425, 2017. 
+http://dx.doi.org/10.1021/acs.jctc.7b00592.
 """
 
 __author__ = "Kamran Haider, Anthony Cruz, Steven Ramsey, Tobias Wulsdorf, Tom Kurtzman"
 __license__ = "MIT"
 __maintainer__ = "Kamran Haider"
 __email__ = "kamranhaider.mb@gmail.com"
+__version__ = 1.1.1
 
 
 from sstmap import site_water_analysis, grid_water_analysis, utils
