@@ -13,7 +13,7 @@ before_install:
 
 branches:
   only:
-    - v1.1_dev
+    - master
 
 install:
   - source devtools/travis-ci/install_miniconda.sh
