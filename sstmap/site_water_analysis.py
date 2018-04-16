@@ -735,7 +735,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         write_watpdb_from_coords("probable_configs", a, full_water_res=True)
         # extract entropy data and put into summary data
         if os.path.isfile(trans_dat) and os.path.isfile(orient_dat):
-            trans_ent, orient_ent = -1.0 * np.loadtxt(trans_dat), np.loadtxt(orient_dat)
+            trans_ent, orient_ent = np.loadtxt(trans_dat), np.loadtxt(orient_dat)
             if trans_ent.shape[0] == self.hsa_data.shape[0] and orient_ent.shape[0] == self.hsa_data.shape[0]:
                 self.hsa_data[:, 14] += trans_ent
                 self.hsa_data[:, 15] += orient_ent
@@ -792,22 +792,27 @@ class SiteWaterAnalysis(WaterAnalysis):
 
     @function_timer
     def write_calculation_summary(self):
-        """Summary
+        """Write a summary of calculations in the form of a table of hydration sites and the average of the
+        calculated quantities.
+
 
         Returns
         -------
         TYPE
             Description
         """
+        skip_quantities = ["f_enc"]
         with open(self.prefix + "_hsa_summary.txt", "w") as f:
             header = " ".join(self.data_titles) + "\n"
             f.write(header)
 
             # format first six columns
             formatted_output = "{0[0]:.0f} {0[1]:.2f} {0[2]:.2f} {0[3]:.2f} {0[4]:.0f} {0[5]:.2f} "
+
             # format site energetic, entropic and structural data
             for quantity_i in range(6, len(self.data_titles) - 2):
-                formatted_output += "{0[%d]:.6f} " % quantity_i
+                if self.data_titles[quantity_i] not in skip_quantities:
+                    formatted_output += "{0[%d]:.6f} " % quantity_i
             # format solute acceptors and donors
             formatted_output += "{1} {2}\n"
             for site_i in range(self.hsa_data.shape[0]):
@@ -824,10 +829,10 @@ class SiteWaterAnalysis(WaterAnalysis):
     @function_timer
     def write_data(self):
         """
-        TODO: output energy quantities scaled by half
         """
+
         skip_write_data = ["x", "y", "z", "nwat", "occupancy", "gO",
-                           "TSsw_trans", "TSsw_orient", "TStot", "solute_acceptors", "solute_donors"]
+                           "TSsw_trans", "TSsw_orient", "TStot", "f_enc", "solute_acceptors", "solute_donors"]
         # create directory to store detailed data for individual columns in HSA
         directory = self.prefix + "_hsa_data"
         if not os.path.exists(directory):
