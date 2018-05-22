@@ -492,3 +492,95 @@ def write_watpdb_from_coords(filename, coords, full_water_res=False):
         f.write("".join(pdb_lines))
     
     """
+
+class GISTFields:
+    data_titles = ['index', 'x', 'y', 'z',
+                  'N_wat', 'g_O', 'g_H',
+                  'TS_tr_dens', 'TS_tr_norm',
+                  'TS_or_dens', 'TS_or_norm',
+                  'dTSsix-dens', 'dTSsix_norm',
+                  'E_sw_dens', 'E_sw_norm', 'E_ww_dens', 'Eww_norm',
+                  'E_ww_nbr_dens', 'E_ww_nbr_norm',
+                  'N_nbr_dens', 'N_nbr_norm',
+                  'f_hb_dens', 'f_hb_norm',
+                  'N_hb_sw_dens', 'N_hb_sw_norm', 'N_hb_ww_dens', 'N_hb_ww_norm',
+                  'N_don_sw_dens', 'N_don_sw_norm', 'N_acc_sw_dens', 'N_acc_sw_norm',
+                  'N_don_ww_dens', 'N_don_ww_norm', 'N_acc_ww_dens', 'N_acc_ww_norm']
+    index = 0
+    x = 1
+    y = 2
+    z = 3
+    N_wat = 4
+    g_O = 5
+    g_H = 6
+    TS_tr_dens = 7
+    TS_tr_norm = 8
+    TS_or_dens = 9
+    TS_or_norm = 10
+    dTSsix_dens = 11
+    dTSsix_norm = 12
+    E_sw_dens = 13
+    E_sw_norm = 14
+    E_ww_dens = 15
+    Eww_norm = 16
+    E_ww_nbr_dens = 17
+    E_ww_nbr_norm = 18
+    N_nbr_dens = 19
+    N_nbr_norm = 20
+    f_hb_dens = 21
+    f_hb_norm = 22
+    N_hb_sw_dens = 23
+    N_hb_sw_norm = 24
+    N_hb_ww_dens = 25
+    N_hb_ww_norm = 26
+    N_don_sw_dens = 27
+    N_don_sw_norm = 28
+    N_acc_sw_dens = 29
+    N_acc_sw_norm = 30
+    N_don_ww_dens = 31
+    N_don_ww_norm = 32
+    N_acc_ww_dens = 33
+    N_acc_ww_norm = 34
+
+class HSAFields:
+    data_titles = ['index', 'x', 'y', 'z',
+                  'N_wat', 'g_O', 'g_H',
+                  'TS_tr_dens', 'TS_tr_norm',
+                  'TS_or_dens', 'TS_or_norm',
+                  'dTSsix-dens', 'dTSsix_norm',
+                  'E_sw_dens', 'E_sw_norm', 'E_ww_dens', 'Eww_norm',
+                  'E_ww_nbr_dens', 'E_ww_nbr_norm',
+                  'N_nbr_dens', 'N_nbr_norm',
+                  'f_hb_dens', 'f_hb_norm',
+                  'N_hb_sw_dens', 'N_hb_sw_norm', 'N_hb_ww_dens', 'N_hb_ww_norm',
+                  'N_don_sw_dens', 'N_don_sw_norm', 'N_acc_sw_dens', 'N_acc_sw_norm',
+                  'N_don_ww_dens', 'N_don_ww_norm', 'N_acc_ww_dens', 'N_acc_ww_norm']
+    index = 0
+    x = 1
+    y = 2
+    z = 3
+    nwat = 4
+    occupancy = 5
+    Esw = 6
+    EswLJ = 7
+    EswElec = 8
+    Eww = 9
+    EwwLJ = 10
+    EwwElec = 11
+    Etot = 12
+    Ewwnbr = 13
+    TSsw_trans = 14
+    TSsw_orient = 15
+    TStot = 16
+    Nnbrs = 17
+    Nhbww = 18
+    Nhbsw = 19
+    Nhbtot = 20
+    f_hb_ww = 21
+    f_enc = 22
+    Acc_ww = 23
+    Don_ww = 24
+    Acc_sw = 25
+    Don_sw = 26
+    solute_acceptors = 27
+    solute_donors = 28
