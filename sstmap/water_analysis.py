@@ -68,8 +68,8 @@ requirements = {
                    "are present in the directory where calculations are being run. To get a list of .itp files being "
                    "used by gromacs topology file, type $grep #include ", "lorentz-bertholot"],
     "pdb": ["txt", "Please provide a text file containing non-bonded parameters for your system.", "geometric"],
+    "h5": ["txth5", "Please provide a text file containing non-bonded parameters for your system.", "lorentz-bertholot"],
     }
-
 
 ##############################################################################
 # WaterAnalysis class definition
@@ -99,7 +99,6 @@ class WaterAnalysis(object):
             raise IOError("File %s or %s does not exist." % (topology_file, trajectory))
         self.topology_file = topology_file
         self.trajectory = trajectory
-
         # Check if correct supporting file is provided.
         self.supporting_file = supporting_file
         topology_extension = self.topology_file.split(".")[-1]
@@ -121,7 +120,11 @@ class WaterAnalysis(object):
                 self.comb_rule = requirements[topology_extension][-1]
 
         # Create Parmed topology object and perform sanity check on PBC's in the trajectory
-        first_frame = md.load_frame(self.trajectory, 0, top=self.topology_file)
+        if self.topology_file.endswith(".h5"):
+            print("topology ends with h5")
+            first_frame = md.load_frame(self.trajectory, 0)
+        else:
+            first_frame = md.load_frame(self.trajectory, 0, top=self.topology_file)
         assert first_frame.unitcell_lengths is not None, "Could not detect unit cell information."
         self.topology = first_frame.topology
 
@@ -300,6 +303,12 @@ class WaterAnalysis(object):
             for v in nb_data[:, 1:]:
                 vdw.append(v)
             chg = np.asarray(chg)
+        elif self.supporting_file.endswith(".txth5"):
+            nb_data = np.loadtxt(self.supporting_file)
+            for c in nb_data[:, 0]:
+                chg.append(c)
+            for v in nb_data[:, 1:]:
+                vdw.append(v)
 
         elif self.topology_file.endswith(".psf"):
             parmed_topology_object = pmd.load_file(self.topology_file)
