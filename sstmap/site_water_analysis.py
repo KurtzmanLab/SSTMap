@@ -226,7 +226,8 @@ class SiteWaterAnalysis(WaterAnalysis):
             HSA region throughout the simulation. The array gets populated during individual frame processing.
         """
         sphere_radius = md.utils.in_units_of(1.0, "angstroms", "nanometers")
-        topology = md.load_topology(self.topology_file)
+        if not self.topology_file.endswith(".h5"):
+            topology = md.load_topology(self.topology_file)
         if self.non_water_atom_ids.shape[0] == 0:
             raise Exception(ValueError,
                             "Clustering is supported only for solute-solvent systems, no solute atoms found.")
@@ -243,12 +244,20 @@ class SiteWaterAnalysis(WaterAnalysis):
                 f.seek(self.start_frame)
                 # read all frames if no frames specified by user
                 if self.num_frames is None:
-                    trj_short = f.read_as_traj(topology,
+                    if not self.trajectory.endswith(".h5"):
+                        trj_short = f.read_as_traj(topology,
                             atom_indices=np.concatenate(
                             (binding_site_atom_indices, self.wat_oxygen_atom_ids)))[self.start_frame::clustering_stride]
+                    else:
+                        trj_short = f.read_as_traj(atom_indices=np.concatenate(
+                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)))[self.start_frame::clustering_stride]
                 else:
-                    trj_short = f.read_as_traj(topology,
+                    if not self.trajectory.endswith(".h5"):
+                        trj_short = f.read_as_traj(topology,
                             atom_indices=np.concatenate(
+                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)))[self.start_frame:self.num_frames:clustering_stride]
+                    else:
+                        trj_short = f.read_as_traj(atom_indices=np.concatenate(
                             (binding_site_atom_indices, self.wat_oxygen_atom_ids)))[self.start_frame:self.num_frames:clustering_stride]
                     print(trj_short.n_frames)
                 if trj_short.n_frames < 10:
@@ -343,11 +352,20 @@ class SiteWaterAnalysis(WaterAnalysis):
         with md.open(self.trajectory) as f:
             f.seek(self.start_frame)
             if self.num_frames is None:
-                trj = f.read_as_traj(topology, stride=1,
+                if not self.trajectory.endswith(".h5"):
+                    trj = f.read_as_traj(topology, stride=1,
                                      atom_indices=np.concatenate((binding_site_atom_indices, self.wat_oxygen_atom_ids)))
-                self.num_frames = trj.n_frames
+                    self.num_frames = trj.n_frames
+                else:
+                    trj = f.read_as_traj(stride=1,
+                            atom_indices=np.concatenate((binding_site_atom_indices, self.wat_oxygen_atom_ids)))
+                    self.num_frames = trj.n_frames
             else:
-                trj = f.read_as_traj(topology, n_frames=self.num_frames, stride=1,
+                if not self.trajectory.endswith(".h5"):
+                    trj = f.read_as_traj(topology, n_frames=self.num_frames, stride=1,
+                                     atom_indices=np.concatenate((binding_site_atom_indices, self.wat_oxygen_atom_ids)))
+                else:
+                    trj = f.read_as_traj(n_frames=self.num_frames, stride=1,
                                      atom_indices=np.concatenate((binding_site_atom_indices, self.wat_oxygen_atom_ids)))
                 if trj.n_frames < self.num_frames:
                     print(("Warning: {0:d} frames found in the trajectory, resetting self.num_frames.".format(
@@ -613,7 +631,8 @@ class SiteWaterAnalysis(WaterAnalysis):
             This function updates hydration site data structures to store the results of calculations.
         """
         print_progress_bar(0, self.num_frames)
-        topology = md.load_topology(self.topology_file)
+        if not self.trajectory.endswith(".h5"):
+            topology = md.load_topology(self.topology_file)
         read_num_frames = 0
         if energy_lr_breakdown:
             if shell_radii is None:
@@ -636,7 +655,11 @@ class SiteWaterAnalysis(WaterAnalysis):
             for frame_i in range(self.start_frame, self.start_frame + self.num_frames):
                 print_progress_bar(frame_i - self.start_frame, self.num_frames)
                 f.seek(frame_i)
-                trj = f.read_as_traj(topology, n_frames=1, stride=1)
+                if not self.trajectory.endswith(".h5"):
+                    trj = f.read_as_traj(topology, n_frames=1, stride=1)
+                else:
+                    trj = f.read_as_traj(n_frames=1, stride=1)
+
                 if trj.n_frames == 0:
                     print("No more frames to read.")
                     break

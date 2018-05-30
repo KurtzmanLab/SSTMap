@@ -385,13 +385,17 @@ class GridWaterAnalysis(WaterAnalysis):
 
         """
         print_progress_bar(0, self.num_frames)
-        topology = md.load_topology(self.topology_file)
+        if not self.topology_file.endswith(".h5"):
+            topology = md.load_topology(self.topology_file)
         read_num_frames = 0
         with md.open(self.trajectory) as f:
             for frame_i in range(self.start_frame, self.start_frame + self.num_frames):
                 print_progress_bar(frame_i - self.start_frame, self.num_frames)
                 f.seek(frame_i)
-                trj = f.read_as_traj(topology, n_frames=1, stride=1)
+                if not self.trajectory.endswith(".h5"):
+                    trj = f.read_as_traj(topology, n_frames=1, stride=1)
+                else:
+                    trj = f.read_as_traj(n_frames=1, stride=1)
                 if trj.n_frames == 0:
                     print("No more frames to read.")
                     break
@@ -444,7 +448,7 @@ class GridWaterAnalysis(WaterAnalysis):
             prefix = self.prefix
         print("Writing voxel data ...")
         with open(prefix + "_gist_data.txt", "w") as f:
-            gist_header = "voxel x y z nwat gO dTStr-dens dTStr-norm dTSor-dens dTSor-norm dTSsix-dens dTSsix-norm Esw-dens Esw-norm Eww-dens Eww-norm Eww-nbr-dens Eww-nbr-norm Nnbr-dens Nnbr-norm fHB-dens fHB-norm Nhbsw_dens Nhbsw_norm Nhbww_dens Nhbww_norm Ndonsw_dens Ndonsw_norm Naccsw_dens Naccsw_norm Ndonww_dens Ndonww_norm Naccww_dens Naccww_norm\n"
+            gist_header = "voxel x y z nwat gO gH dTStr-dens dTStr-norm dTSor-dens dTSor-norm dTSsix-dens dTSsix-norm Esw-dens Esw-norm Eww-dens Eww-norm Eww-nbr-dens Eww-nbr-norm Nnbr-dens Nnbr-norm fHB-dens fHB-norm Nhbsw_dens Nhbsw_norm Nhbww_dens Nhbww_norm Ndonsw_dens Ndonsw_norm Naccsw_dens Naccsw_norm Ndonww_dens Ndonww_norm Naccww_dens Naccww_norm\n"
             f.write(gist_header)
             formatted_output_occupied_voxels = "{0[0]:.0f} {0[1]:.3f} {0[2]:.3f} {0[3]:.3f} {0[4]:.0f} {0[5]:.6f} "
             formatted_output_one_voxels = formatted_output_occupied_voxels
@@ -504,7 +508,7 @@ class GridWaterAnalysis(WaterAnalysis):
         data_keys = gist_header.strip("\n").split()
 
         for data_field, title in enumerate(data_keys):
-            if data_field > 4 and data_field % 2 == 1 and title != "gH":
+            if data_field > 4 and data_field % 2 == 1 or title == "gH":
                 f = open(prefix + "_" + title + ".dx", 'w')
                 f.write(dx_header)
                 dx_file_objects.append(f)
