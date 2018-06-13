@@ -792,6 +792,8 @@ class SiteWaterAnalysis(WaterAnalysis):
                             self.hsa_data[site_i, quantity_i] = np.sum(self.hsa_dict[site_i][quantity_i]) / n_wat
                     if self.data_titles[quantity_i] in ["solute_acceptors", "solute_donors"]:
                         self.hsa_dict[site_i][quantity_i] = np.unique(self.hsa_dict[site_i][quantity_i])
+                    if self.data_titles[quantity_i] in ["f_enc"]:
+                        self.hsa_data[site_i, quantity_i] = None
                 if self.energy_ww_lr_breakdown is not None:
                     self.energy_ww_lr_breakdown[site_i] = [(shell_e / n_wat) * 0.5 for shell_e in self.energy_ww_lr_breakdown[site_i]]
 
@@ -824,7 +826,6 @@ class SiteWaterAnalysis(WaterAnalysis):
         TYPE
             Description
         """
-        skip_quantities = ["f_enc"]
         with open(self.prefix + "_hsa_summary.txt", "w") as f:
             header = " ".join(self.data_titles) + "\n"
             f.write(header)
@@ -834,8 +835,7 @@ class SiteWaterAnalysis(WaterAnalysis):
 
             # format site energetic, entropic and structural data
             for quantity_i in range(6, len(self.data_titles) - 2):
-                if self.data_titles[quantity_i] not in skip_quantities:
-                    formatted_output += "{0[%d]:.6f} " % quantity_i
+                formatted_output += "{0[%d]:.6f} " % quantity_i
             # format solute acceptors and donors
             formatted_output += "{1} {2}\n"
             for site_i in range(self.hsa_data.shape[0]):
