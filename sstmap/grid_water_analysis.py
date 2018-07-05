@@ -448,7 +448,7 @@ class GridWaterAnalysis(WaterAnalysis):
             prefix = self.prefix
         print("Writing voxel data ...")
         with open(prefix + "_gist_data.txt", "w") as f:
-            gist_header = "voxel x y z nwat gO gH dTStr-dens dTStr-norm dTSor-dens dTSor-norm dTSsix-dens dTSsix-norm Esw-dens Esw-norm Eww-dens Eww-norm Eww-nbr-dens Eww-nbr-norm Nnbr-dens Nnbr-norm fHB-dens fHB-norm Nhbsw_dens Nhbsw_norm Nhbww_dens Nhbww_norm Ndonsw_dens Ndonsw_norm Naccsw_dens Naccsw_norm Ndonww_dens Ndonww_norm Naccww_dens Naccww_norm\n"
+            gist_header = "voxel x y z nwat gO dTStr-dens dTStr-norm dTSor-dens dTSor-norm dTSsix-dens dTSsix-norm Esw-dens Esw-norm Eww-dens Eww-norm Eww-nbr-dens Eww-nbr-norm Nnbr-dens Nnbr-norm fHB-dens fHB-norm Nhbsw_dens Nhbsw_norm Nhbww_dens Nhbww_norm Ndonsw_dens Ndonsw_norm Naccsw_dens Naccsw_norm Ndonww_dens Ndonww_norm Naccww_dens Naccww_norm\n"
             f.write(gist_header)
             formatted_output_occupied_voxels = "{0[0]:.0f} {0[1]:.3f} {0[2]:.3f} {0[3]:.3f} {0[4]:.0f} {0[5]:.6f} "
             formatted_output_one_voxels = formatted_output_occupied_voxels
@@ -508,7 +508,7 @@ class GridWaterAnalysis(WaterAnalysis):
         data_keys = gist_header.strip("\n").split()
 
         for data_field, title in enumerate(data_keys):
-            if data_field > 4 and data_field % 2 == 1 or title == "gH":
+            if data_field > 4 and data_field % 2 == 1 and title != "gH":
                 f = open(prefix + "_" + title + ".dx", 'w')
                 f.write(dx_header)
                 dx_file_objects.append(f)
