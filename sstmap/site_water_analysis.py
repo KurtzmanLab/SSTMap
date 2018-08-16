@@ -247,7 +247,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                     if not self.trajectory.endswith(".h5"):
                         trj_short = f.read_as_traj(topology,
                             atom_indices=np.concatenate(
-                                (binding_site_atom_indices, self.wat_oxygen_atom_ids)), stride=clustering_stride)
+                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)), stride=clustering_stride)
                     else:
                         trj_short = f.read_as_traj(atom_indices=np.concatenate(
                             (binding_site_atom_indices, self.wat_oxygen_atom_ids)), stride=clustering_stride)
