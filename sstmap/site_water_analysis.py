@@ -247,19 +247,18 @@ class SiteWaterAnalysis(WaterAnalysis):
                     if not self.trajectory.endswith(".h5"):
                         trj_short = f.read_as_traj(topology,
                             atom_indices=np.concatenate(
-                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)))[self.start_frame::clustering_stride]
+                                (binding_site_atom_indices, self.wat_oxygen_atom_ids)), stride=clustering_stride)
                     else:
                         trj_short = f.read_as_traj(atom_indices=np.concatenate(
-                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)))[self.start_frame::clustering_stride]
+                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)), stride=clustering_stride)
                 else:
                     if not self.trajectory.endswith(".h5"):
                         trj_short = f.read_as_traj(topology,
                             atom_indices=np.concatenate(
-                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)))[self.start_frame:self.num_frames:clustering_stride]
+                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)), n_frames=self.num_frames, stride=clustering_stride)
                     else:
                         trj_short = f.read_as_traj(atom_indices=np.concatenate(
-                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)))[self.start_frame:self.num_frames:clustering_stride]
-                    print(trj_short.n_frames)
+                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)), n_frames=self.num_frames, stride=clustering_stride)
                 if trj_short.n_frames < 10:
                     sys.exit("Clustering requires at least 100 frames, current trajectory contains {0:d} frames.".format(
                             trj_short.n_frames))

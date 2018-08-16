@@ -45,7 +45,7 @@ __author__ = "Kamran Haider, Anthony Cruz, Steven Ramsey, Tobias Wulsdorf, Tom K
 __license__ = "MIT"
 __maintainer__ = "Kamran Haider"
 __email__ = "kamranhaider.mb@gmail.com"
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 
 
 from sstmap import site_water_analysis, grid_water_analysis, utils
