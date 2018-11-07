@@ -37,6 +37,7 @@ MD trajectories.
 import subprocess
 import shutil
 import numpy as np
+import mdtraj as md
 from scipy import spatial
 
 from sstmap.utils import *
@@ -44,6 +45,7 @@ from sstmap.water_analysis import WaterAnalysis
 import _sstmap_ext as calc
 import _sstmap_entropy as ext1
 import _sstmap_probableconfig as ext2
+
 
 
 ##############################################################################
@@ -469,6 +471,31 @@ class SiteWaterAnalysis(WaterAnalysis):
 
         site_waters_copy = list(self.site_waters)
         nbr_cutoff_sq = 3.5 ** 2
+        nbr_cutoff_index = -1
+        nbr_cutoff_found = False
+        shell_radii_copy = list()
+        # We assume that shell_radii contains squared radii
+        if type(shell_radii) == type(None):
+            shell_radii_copy.append([nbr_cutoff_sq])
+            nbr_cutoff_index = 0
+        else:
+            for shell in shell_radii:
+                shell_radii_copy.append(shell)
+            shell_radii_copy.sort()
+            # The shell nbr_cutoff_sq will be found at shell_radii[nbr_cutoff_index].
+            # Make sure nbr_cutoff_sq is in shell_radii and we know nbr_cutoff_index
+            for radius_i, radius in enumerate(shell_radii_copy):
+                if radius > nbr_cutoff_sq-0.0001 \
+                and radius < nbr_cutoff_sq+0.0001:
+                    nbr_cutoff_index = radius_i
+                    nbr_cutoff_found = True
+            if nbr_cutoff_index == -1:
+                shell_radii_copy.append(nbr_cutoff_sq)
+                shell_radii_copy.sort()
+                for radius_i, radius in enumerate(shell_radii_copy):
+                    if radius > nbr_cutoff_sq-0.0001 \
+                    and radius < nbr_cutoff_sq+0.0001:
+                        nbr_cutoff_index = radius_i
         # TODO: Use a robust unit conversion approach
         trj.xyz *= 10.0
         coords = trj.xyz
@@ -476,6 +503,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         uc = trj.unitcell_vectors[0]*10.
 
         # Iterate over each site in the current frame if it has a water present
+        distance_matrix = np.zeros((self.water_sites, self.all_atom_ids.shape[0]))
         for site_i in range(self.hsa_data.shape[0]):
             wat_O = None
             if self.is_site_waters_populated:
@@ -489,12 +517,23 @@ class SiteWaterAnalysis(WaterAnalysis):
                         self.hsa_data[site_i, 4] += 1
 
             if wat_O is not None and (energy or hbonds):
-                distance_matrix = np.zeros((self.water_sites, self.all_atom_ids.shape[0]), np.float_)
-                calc.get_pairwise_distances(np.asarray([site_i, wat_O]), self.all_atom_ids, coords, uc,
-                                            distance_matrix)
-                wat_nbrs = self.wat_oxygen_atom_ids[np.where(
-                    (distance_matrix[0, :][self.wat_oxygen_atom_ids] <= nbr_cutoff_sq) & (
-                            distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
+                ### The self.neighbor_ids array contains atom indices of all atoms that should
+                ### be considered as potential neighbors. Valid_neighbors has same shape as 
+                ### self.neighbor_ids and is False at the position where index wat occures in
+                ### self.neighbor_ids, otherwise it is True. neighbor_ids stores the indices of
+                ### the actual neighbor candidates that will be commited to get_pairwise_distances
+                ### routine and has length of self.neighbor_ids-1. wat_nbrs_shell is of length neighbor_ids
+                ### and holds the shell_index of each neighbor candidate atom (0:first shell, 1: second shell,
+                ### ...,S: >highest shell). shell_radii_copy is an ordered (ascending) array
+                ### with all S neighbor shell radii.
+                valid_neighbors = np.ones(self.neighbor_ids.shape[0], dtype=bool)
+                valid_neighbors[np.where(self.neighbor_ids==wat_O)] = False
+                neighbor_ids   = self.neighbor_ids[valid_neighbors]
+                wat_nbrs_shell = self.wat_nbrs_shell[valid_neighbors]
+                calc.get_pairwise_distances(np.asarray([site_i, wat_O]), self.all_atom_ids,
+                                            np.array(shell_radii_copy), neighbor_ids, wat_nbrs_shell,
+                                            coords, uc, distance_matrix, 0)
+                wat_nbrs = neighbor_ids[np.where(wat_nbrs_shell<(nbr_cutoff_index+1))]
                 self.hsa_dict[site_i][17].append(wat_nbrs.shape[0])
                 if energy:
                     e_lj_array, e_elec_array = np.copy(self.acoeff), np.copy(self.chg_product)
@@ -509,7 +548,6 @@ class SiteWaterAnalysis(WaterAnalysis):
                     e_elec_ww_left = e_elec_array[:, self.wat_oxygen_atom_ids[0]:wat_O]
                     e_elec_ww_right = e_elec_array[:, wat_O + self.water_sites:]
                     e_elec_ww = np.sum(e_elec_ww_left) + np.sum(e_elec_ww_right)
-
                     e_nbr_list = [
                         np.sum(e_lj_array[:, nbr:nbr + self.water_sites] + e_elec_array[:, nbr:nbr + self.water_sites])
                         for nbr in wat_nbrs]
@@ -533,14 +571,27 @@ class SiteWaterAnalysis(WaterAnalysis):
                     self.hsa_dict[site_i][13].extend(e_nbr_list)  # print(e_lj_sw/2.0)
 
                     if energy_lr_breakdown:
-                        for s in range(1, len(shell_radii)):
-                            wat_nbrs = self.wat_oxygen_atom_ids[np.where(
-                                (distance_matrix[0, :][self.wat_oxygen_atom_ids] <= shell_radii[s]) & (
-                                        distance_matrix[0, :][self.wat_oxygen_atom_ids] > shell_radii[s - 1]))]
-                            e_nbr_list = [
-                                np.sum(e_lj_array[:, nbr:nbr + self.water_sites] + e_elec_array[:, nbr:nbr + self.water_sites])
-                                for nbr in wat_nbrs]
-                            self.energy_ww_lr_breakdown[site_i][s - 1] += sum(e_nbr_list)
+                        if nbr_cutoff_found:
+                            self.energy_ww_lr_breakdown[site_i][nbr_cutoff_index] += sum(e_nbr_list)
+                        shift = 0
+                        for radius_i, radius in enumerate(shell_radii_copy):
+                            if radius_i == nbr_cutoff_index:
+                                continue
+                            wat_nbrs_shell_i = neighbor_ids[np.where(wat_nbrs_shell==radius_i)]
+                            if not nbr_cutoff_found \
+                            and radius_i == nbr_cutoff_index+1:
+                                wat_nbrs_shell_i = np.concatenate((wat_nbrs_shell_i, wat_nbrs))
+                                shift = 1
+                            if wat_nbrs_shell_i.shape[0] > 0:
+                                e_nbr_list = [
+                                    np.sum(e_lj_array[:, nbr:nbr + self.water_sites] + e_elec_array[:, nbr:nbr + self.water_sites])
+                                    for nbr in wat_nbrs_shell_i]
+                                self.energy_ww_lr_breakdown[site_i][radius_i-shift] += sum(e_nbr_list)
+
+                    ### Might be usefull for API to have the neighbors and shell
+                    ### indices available at all time.
+                    self.wat_nbrs_shell[valid_neighbors] = wat_nbrs_shell
+                    self.neighbor_ids[valid_neighbors]   = neighbor_ids
 
                 if hbonds:
                     hbtot = 0
@@ -620,11 +671,13 @@ class SiteWaterAnalysis(WaterAnalysis):
         if energy_lr_breakdown:
             if shell_radii is None:
                 shell_radii = [3.5, 5.5, 8.5]
-            else:
-                assert len(shell_radii) == 3, "Water-water energy decomposition supported only upto 3 solvation shells." \
-                                              "Please provide outer radii for three shells."
+            #else:
+            #    assert len(shell_radii) == 3, "Water-water energy decomposition supported only upto 3 solvation shells." \
+            #                                  "Please provide outer radii for three shells."
+            ### We assume that this is sorted, right?
+            ### Otherwise _process_frame should give strange restults.
             shell_radii = [i**2 for i in shell_radii]
-            shell_radii.insert(0, 0.0)
+            ### What about interactions > shell_radii[-1] ?
             self.energy_ww_lr_breakdown = [[0.0 for s in shell_radii] for i in range(self.hsa_data.shape[0])]
 
         if angular_structure:
@@ -849,16 +902,30 @@ class SiteWaterAnalysis(WaterAnalysis):
 
     @function_timer
     def write_energy_ww_breakdown(self):
+        """
+        Note: Output is mean water-water interaction energy
+              with all water molecules in within a shell
+              normalized on number of water molecules in
+              hydration site.
+              Whereas the Ewwnbr quantity in the HSA output
+              is the first shell (within 3.5 Ang) mean water-
+              water interaction energy normliazed on number
+              of water molecules in hydration site AND number
+              of water molecules in first shell.
+        """
+        n_shells = len(self.energy_ww_lr_breakdown[0])
         if self.energy_ww_lr_breakdown is not None:
             with open(self.prefix + "_energy_ww_by_shell.txt", "w") as f:
-                header = " ".join(["index", "shell_1", "shell_2", "shell_3"]) + "\n"
-                f.write(header)
-                # format first six columns
-                formatted_output = "{0:.0f} {1[0]:.3f} {1[1]:.3f} {1[2]:.3f}\n"
-                # format site energetic, entropic and structural data
+                f.write("index ")
+                for shell_i in range(n_shells):
+                    f.write("shell_%d " %shell_i)
+                f.write("\n")
                 for site_i in range(self.hsa_data.shape[0]):
-                    site_data_line = formatted_output.format(site_i, self.energy_ww_lr_breakdown[site_i])
-                    f.write(site_data_line)
+                    f.write("%d " %site_i)
+                    for shell in self.energy_ww_lr_breakdown[site_i]:
+                        f.write("%6.3f " %shell)
+                    f.write("\n")
+                f.write("\n")
 
 
     def write_angular_structure_distribution(self):
