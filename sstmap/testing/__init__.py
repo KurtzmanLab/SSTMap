@@ -33,7 +33,7 @@ of Water Structure on Protein Active Site Surfaces. J Phys Chem B. 120:8743-8756
 """
 
 __author__ = "Kamran Haider"
-__license__ = "LGPL 2.1"
+__license__ = "MIT"
 __maintainer__ = "Kamran Haider"
 __email__ = "kamranhaider.mb@gmail.com"
 

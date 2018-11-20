@@ -35,11 +35,11 @@ MD trajectories.
 
 
 import subprocess
-import shutil
+import shutil, sys
 import numpy as np
 import mdtraj as md
 from scipy import spatial
-
+import mdtraj as md
 from sstmap.utils import *
 from sstmap.water_analysis import WaterAnalysis
 import _sstmap_ext as calc
@@ -62,7 +62,7 @@ class SiteWaterAnalysis(WaterAnalysis):
     @function_timer
     def __init__(self, topology_file, trajectory, start_frame=0, num_frames=None,
                  supporting_file=None, ligand_file=None, hsa_region_radius=5.0, clustercenter_file=None,
-                 rho_bulk=None, prefix="hsa"):
+                 rho_bulk=0.0334, prefix="hsa"):
         """Initialize a SiteWaterAnalysis object for site-based solvation structure
         and thermodynamic calculations.
 
@@ -100,7 +100,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         print("Initializing ...")
         self.start_frame = start_frame
         self.num_frames = num_frames
-        super(SiteWaterAnalysis, self).__init__(topology_file, trajectory, supporting_file, rho_bulk)
+        super(SiteWaterAnalysis, self).__init__(topology_file, trajectory, supporting_file)
 
         self.prefix = prefix
         self.site_waters = None
@@ -110,6 +110,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         if self.num_frames == 0:
             sys.exit("Number of frames = %d, no calculations will be performed" % self.num_frames)
 
+        self.rho_bulk = float(rho_bulk)
         self.ligand = ligand_file
         self.clustercenter_file = clustercenter_file
         self.hsa_region_radius = hsa_region_radius * 0.1
@@ -227,7 +228,8 @@ class SiteWaterAnalysis(WaterAnalysis):
             HSA region throughout the simulation. The array gets populated during individual frame processing.
         """
         sphere_radius = md.utils.in_units_of(1.0, "angstroms", "nanometers")
-        topology = md.load_topology(self.topology_file)
+        if not self.topology_file.endswith(".h5"):
+            topology = md.load_topology(self.topology_file)
         if self.non_water_atom_ids.shape[0] == 0:
             raise Exception(ValueError,
                             "Clustering is supported only for solute-solvent systems, no solute atoms found.")
@@ -244,19 +246,25 @@ class SiteWaterAnalysis(WaterAnalysis):
                 f.seek(self.start_frame)
                 # read all frames if no frames specified by user
                 if self.num_frames is None:
-                    trj_short = f.read_as_traj(topology, stride=clustering_stride,
-                                               atom_indices=np.concatenate(
-                                                   (binding_site_atom_indices, self.wat_oxygen_atom_ids)))
+                    if not self.trajectory.endswith(".h5"):
+                        trj_short = f.read_as_traj(topology,
+                            atom_indices=np.concatenate(
+                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)), stride=clustering_stride)
+                    else:
+                        trj_short = f.read_as_traj(atom_indices=np.concatenate(
+                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)), stride=clustering_stride)
                 else:
-                    trj_short = f.read_as_traj(topology, n_frames=self.num_frames,
-                                               stride=clustering_stride,
-                                               atom_indices=np.concatenate(
-                                                   (binding_site_atom_indices, self.wat_oxygen_atom_ids)))
+                    if not self.trajectory.endswith(".h5"):
+                        trj_short = f.read_as_traj(topology,
+                            atom_indices=np.concatenate(
+                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)), n_frames=self.num_frames, stride=clustering_stride)
+                    else:
+                        trj_short = f.read_as_traj(atom_indices=np.concatenate(
+                            (binding_site_atom_indices, self.wat_oxygen_atom_ids)), n_frames=self.num_frames, stride=clustering_stride)
                 if trj_short.n_frames < 10:
-                    sys.exit(
-                        "Clustering requires at least 100 frames, current trajectory contains {0:d} frames.".format(
+                    sys.exit("Clustering requires at least 100 frames, current trajectory contains {0:d} frames.".format(
                             trj_short.n_frames))
-                print(("Performing an initial clustering over {0:d} frames.".format(trj_short.n_frames)))
+                print("Performing an initial clustering over {0:d} frames.".format(trj_short.n_frames))
                 # Obtain water molecules solvating the binding site
                 # FIXME: This is a workaround to use MDTraj compute_neighbor function xyz coordinates of the trajectory are
                 # modified such that first n atoms coordinates are switched to n atoms of ligand coordinates.
@@ -345,11 +353,20 @@ class SiteWaterAnalysis(WaterAnalysis):
         with md.open(self.trajectory) as f:
             f.seek(self.start_frame)
             if self.num_frames is None:
-                trj = f.read_as_traj(topology, stride=1,
+                if not self.trajectory.endswith(".h5"):
+                    trj = f.read_as_traj(topology, stride=1,
                                      atom_indices=np.concatenate((binding_site_atom_indices, self.wat_oxygen_atom_ids)))
-                self.num_frames = trj.n_frames
+                    self.num_frames = trj.n_frames
+                else:
+                    trj = f.read_as_traj(stride=1,
+                            atom_indices=np.concatenate((binding_site_atom_indices, self.wat_oxygen_atom_ids)))
+                    self.num_frames = trj.n_frames
             else:
-                trj = f.read_as_traj(topology, n_frames=self.num_frames, stride=1,
+                if not self.trajectory.endswith(".h5"):
+                    trj = f.read_as_traj(topology, n_frames=self.num_frames, stride=1,
+                                     atom_indices=np.concatenate((binding_site_atom_indices, self.wat_oxygen_atom_ids)))
+                else:
+                    trj = f.read_as_traj(n_frames=self.num_frames, stride=1,
                                      atom_indices=np.concatenate((binding_site_atom_indices, self.wat_oxygen_atom_ids)))
                 if trj.n_frames < self.num_frames:
                     print(("Warning: {0:d} frames found in the trajectory, resetting self.num_frames.".format(
@@ -361,7 +378,7 @@ class SiteWaterAnalysis(WaterAnalysis):
             haystack = np.setdiff1d(trj.topology.select("all"), binding_site_atom_indices)
             start_point = haystack[0]
             binding_site_waters = md.compute_neighbors(trj, self.hsa_region_radius,
-                                                        binding_site_atom_indices, haystack_indices=haystack)
+                                                       binding_site_atom_indices, haystack_indices=haystack)
             # From the full frame-wise set of waters in the binding site, build two more frame-wise lists
             # one where each frame has a correct index of waters and another with a new index which ranges from
             # 0 to M, where M is the total number of hsa region waters - 1
@@ -539,8 +556,8 @@ class SiteWaterAnalysis(WaterAnalysis):
                     e_lj_array, e_elec_array = np.copy(self.acoeff), np.copy(self.chg_product)
                     calc.calculate_energy(wat_O, distance_matrix, e_elec_array, e_lj_array, self.bcoeff)
 
-                    e_lj_sw = np.sum(e_lj_array[:, self.prot_atom_ids])
-                    e_elec_sw = np.sum(e_elec_array[:, self.prot_atom_ids])
+                    e_lj_sw = np.sum(e_lj_array[:, self.non_water_atom_ids])
+                    e_elec_sw = np.sum(e_elec_array[:, self.non_water_atom_ids])
 
                     e_lj_ww_left = e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat_O]
                     e_lj_ww_right = e_lj_array[:, wat_O + self.water_sites:]
@@ -552,8 +569,6 @@ class SiteWaterAnalysis(WaterAnalysis):
                         np.sum(e_lj_array[:, nbr:nbr + self.water_sites] + e_elec_array[:, nbr:nbr + self.water_sites])
                         for nbr in wat_nbrs]
 
-                    e_lj_sw = np.sum(e_lj_array[:, self.prot_atom_ids])
-                    e_elec_sw = np.sum(e_elec_array[:, self.prot_atom_ids])
                     e_lj_ww = np.sum(
                         e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat_O]) + np.sum(
                         e_lj_array[:, wat_O + self.water_sites:])
@@ -595,8 +610,8 @@ class SiteWaterAnalysis(WaterAnalysis):
 
                 if hbonds:
                     hbtot = 0
-                    prot_nbrs_all = self.non_water_atom_ids[
-                        np.where(distance_matrix[0, :][self.non_water_atom_ids] <= nbr_cutoff_sq)]
+                    prot_nbrs_all = self.prot_atom_ids[
+                        np.where(distance_matrix[0, :][self.prot_atom_ids] <= nbr_cutoff_sq)]
                     prot_nbrs_hb = prot_nbrs_all[np.where(self.prot_hb_types[prot_nbrs_all] != 0)]
                     if wat_nbrs.shape[0] > 0:
                         hb_ww = self.calculate_hydrogen_bonds(trj, wat_O, wat_nbrs)
@@ -666,7 +681,8 @@ class SiteWaterAnalysis(WaterAnalysis):
             This function updates hydration site data structures to store the results of calculations.
         """
         print_progress_bar(0, self.num_frames)
-        topology = md.load_topology(self.topology_file)
+        if not self.trajectory.endswith(".h5"):
+            topology = md.load_topology(self.topology_file)
         read_num_frames = 0
         if energy_lr_breakdown:
             if shell_radii is None:
@@ -691,7 +707,11 @@ class SiteWaterAnalysis(WaterAnalysis):
             for frame_i in range(self.start_frame, self.start_frame + self.num_frames):
                 print_progress_bar(frame_i - self.start_frame, self.num_frames)
                 f.seek(frame_i)
-                trj = f.read_as_traj(topology, n_frames=1, stride=1)
+                if not self.trajectory.endswith(".h5"):
+                    trj = f.read_as_traj(topology, n_frames=1, stride=1)
+                else:
+                    trj = f.read_as_traj(n_frames=1, stride=1)
+
                 if trj.n_frames == 0:
                     print("No more frames to read.")
                     break
@@ -700,7 +720,7 @@ class SiteWaterAnalysis(WaterAnalysis):
                                         energy_lr_breakdown, angular_structure,
                                         shell_radii, r_theta_cutoff)
                     read_num_frames += 1
-            if  read_num_frames < self.num_frames:
+            if read_num_frames < self.num_frames:
                 print(("{0:d} frames found in the trajectory, resetting self.num_frames.".format(read_num_frames)))
                 self.num_frames = read_num_frames
 
@@ -790,7 +810,7 @@ class SiteWaterAnalysis(WaterAnalysis):
         write_watpdb_from_coords("probable_configs", a, full_water_res=True)
         # extract entropy data and put into summary data
         if os.path.isfile(trans_dat) and os.path.isfile(orient_dat):
-            trans_ent, orient_ent = -1.0 * np.loadtxt(trans_dat), np.loadtxt(orient_dat)
+            trans_ent, orient_ent = np.loadtxt(trans_dat), np.loadtxt(orient_dat)
             if trans_ent.shape[0] == self.hsa_data.shape[0] and orient_ent.shape[0] == self.hsa_data.shape[0]:
                 self.hsa_data[:, 14] += trans_ent
                 self.hsa_data[:, 15] += orient_ent
@@ -824,6 +844,8 @@ class SiteWaterAnalysis(WaterAnalysis):
                             self.hsa_data[site_i, quantity_i] = np.sum(self.hsa_dict[site_i][quantity_i]) / n_wat
                     if self.data_titles[quantity_i] in ["solute_acceptors", "solute_donors"]:
                         self.hsa_dict[site_i][quantity_i] = np.unique(self.hsa_dict[site_i][quantity_i])
+                    if self.data_titles[quantity_i] in ["f_enc"]:
+                        self.hsa_data[site_i, quantity_i] = None
                 if self.energy_ww_lr_breakdown is not None:
                     self.energy_ww_lr_breakdown[site_i] = [(shell_e / n_wat) * 0.5 for shell_e in self.energy_ww_lr_breakdown[site_i]]
 
@@ -847,7 +869,9 @@ class SiteWaterAnalysis(WaterAnalysis):
 
     @function_timer
     def write_calculation_summary(self):
-        """Summary
+        """Write a summary of calculations in the form of a table of hydration sites and the average of the
+        calculated quantities.
+
 
         Returns
         -------
@@ -860,6 +884,7 @@ class SiteWaterAnalysis(WaterAnalysis):
 
             # format first six columns
             formatted_output = "{0[0]:.0f} {0[1]:.2f} {0[2]:.2f} {0[3]:.2f} {0[4]:.0f} {0[5]:.2f} "
+
             # format site energetic, entropic and structural data
             for quantity_i in range(6, len(self.data_titles) - 2):
                 formatted_output += "{0[%d]:.6f} " % quantity_i
@@ -879,10 +904,10 @@ class SiteWaterAnalysis(WaterAnalysis):
     @function_timer
     def write_data(self):
         """
-        TODO: output energy quantities scaled by half
         """
+
         skip_write_data = ["x", "y", "z", "nwat", "occupancy", "gO",
-                           "TSsw_trans", "TSsw_orient", "TStot", "solute_acceptors", "solute_donors"]
+                           "TSsw_trans", "TSsw_orient", "TStot", "f_enc", "solute_acceptors", "solute_donors"]
         # create directory to store detailed data for individual columns in HSA
         directory = self.prefix + "_hsa_data"
         if not os.path.exists(directory):

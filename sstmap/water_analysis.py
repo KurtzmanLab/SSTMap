@@ -31,9 +31,16 @@ molecular dynamics simulation trajectories. The data and methods in this class
 are common to site-based and grid-based analysis classes.
 
 Please reference the following if you use this code in your research:
-[1] Haider K, Wickstrom L, Ramsey S, Gilson MK and Kurtzman T. Enthalpic Breakdown 
-of Water Structure on Protein Active Site Surfaces. J Phys Chem B. 120:8743-8756, 
-2016. http://dx.doi.org/10.1021/acs.jpcb.6b01094.
+
+[1] Haider K, Cruz A, Ramsey S, Gilson M. and Kurtzman T. Solvation Structure and Thermodynamic Mapping (SSTMap): An
+Open-Source, Flexible Package for the Analysis of Water in Molecular Dynamics Trajectories. J. Chem. Theory Comput.
+(10.1021/acs.jctc.7b00592) 2017.
+[2] Crystal N. Nguyen, Michael K. Gilson, Tom Young. Structure and Thermodynamics of Molecular Hydration via Grid
+Inhomogeneous Solvation Theory. eprint arXiv:1108.4876, (2011).
+[3] Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson. Grid inhomogeneous solvation theory: hydration
+structure and thermodynamics of the miniature receptor cucurbit[7]uril. J. Chem. Phys. 137, 044101 (2012)
+[4] Haider K, Wickstrom L, Ramsey S, Gilson MK and Kurtzman T. Enthalpic Breakdown of Water Structure on Protein Active
+Site Surfaces. J Phys Chem B. 120:8743-8756, (2016). http://dx.doi.org/10.1021/acs.jpcb.6b01094.
 """
 
 ##############################################################################
@@ -61,8 +68,8 @@ requirements = {
                    "are present in the directory where calculations are being run. To get a list of .itp files being "
                    "used by gromacs topology file, type $grep #include ", "lorentz-bertholot"],
     "pdb": ["txt", "Please provide a text file containing non-bonded parameters for your system.", "geometric"],
+    "h5": ["txth5", "Please provide a text file containing non-bonded parameters for your system.", "lorentz-bertholot"],
     }
-
 
 ##############################################################################
 # WaterAnalysis class definition
@@ -73,7 +80,7 @@ class WaterAnalysis(object):
     dynamics trajectories.
     """
 
-    def __init__(self, topology_file, trajectory, supporting_file=None, rho_bulk=None):
+    def __init__(self, topology_file, trajectory, supporting_file=None):
         """Initialize WaterAnalysis object for a trajectory and
         corresponding topology file.
         
@@ -86,15 +93,12 @@ class WaterAnalysis(object):
         supporting_file : None, optional
             Filename of additional file containing non-bonded parameters for
             every particle in the system. Default: None
-        rho_bulk : float
-            Reference bulk water density to be used in calculations. Default: None
         """
         # Check sanity checks on files
         if not os.path.exists(topology_file) or not os.path.exists(trajectory):
             raise IOError("File %s or %s does not exist." % (topology_file, trajectory))
         self.topology_file = topology_file
         self.trajectory = trajectory
-
         # Check if correct supporting file is provided.
         self.supporting_file = supporting_file
         topology_extension = self.topology_file.split(".")[-1]
@@ -116,14 +120,13 @@ class WaterAnalysis(object):
                 self.comb_rule = requirements[topology_extension][-1]
 
         # Create Parmed topology object and perform sanity check on PBC's in the trajectory
-        first_frame = md.load_frame(self.trajectory, 0, top=self.topology_file)
+        if self.topology_file.endswith(".h5"):
+            print("topology ends with h5")
+            first_frame = md.load_frame(self.trajectory, 0)
+        else:
+            first_frame = md.load_frame(self.trajectory, 0, top=self.topology_file)
         assert first_frame.unitcell_lengths is not None, "Could not detect unit cell information."
         self.topology = first_frame.topology
-
-        # Assign reference density
-        self.rho_bulk = rho_bulk
-        if self.rho_bulk is None:
-            self.rho_bulk = 0.0334
 
         # Create index arrays for iteration over groups of atoms and perform some sanity checks on system topology
         super_wat_select_exp = ""
@@ -156,15 +159,18 @@ class WaterAnalysis(object):
             self.prot_atom_ids = self.non_water_atom_ids
         assert (self.wat_atom_ids.shape[0] + self.non_water_atom_ids.shape[0] == self.all_atom_ids.shape[0]), \
             "Failed to partition atom indices in the system correctly!"
+
         # Obtain non-bonded parameters for the system
         print("Obtaining non-bonded parameters for the system ...")
         self.chg_product, self.acoeff, self.bcoeff = self.generate_nonbonded_params()
         assert self.chg_product.shape == self.acoeff.shape == self.bcoeff.shape, \
             "Mismatch in non-bonded parameter matrices, exiting."
         print("Done.")
+
+        # Assign a hydrogen bond to atoms
         print("Assigning hydrogen bond types ...")
         self.don_H_pair_dict = {}
-        self.prot_hb_types = np.zeros(len(self.non_water_atom_ids), dtype=np.int_)
+        self.prot_hb_types = np.zeros(len(self.all_atom_ids), dtype=np.int_)
         self.solute_acc_ids, self.solute_don_ids, self.solute_acc_don_ids = self.assign_hb_types()
         print("Done.")
 
@@ -313,6 +319,12 @@ class WaterAnalysis(object):
             for v in nb_data[:, 1:]:
                 vdw.append(v)
             chg = np.asarray(chg)
+        elif self.supporting_file.endswith(".txth5"):
+            nb_data = np.loadtxt(self.supporting_file)
+            for c in nb_data[:, 0]:
+                chg.append(c)
+            for v in nb_data[:, 1:]:
+                vdw.append(v)
 
         elif self.topology_file.endswith(".psf"):
             parmed_topology_object = pmd.load_file(self.topology_file)
@@ -360,37 +372,6 @@ class WaterAnalysis(object):
             raise Exception("Couldn't assign vdw params")
         return chg_product, acoeff, bcoeff
 
-    def calculate_energy(self, distance_matrix):
-        """Calculates total interaction energy of a water molecule with the rest of the
-        system from the distance matrix and non-bonded parameter attributes of the WaterAnalysis object.
-        
-        Parameters
-        ----------
-        distance_matrix : np.ndarray, float, shape=(K, N)
-            A matrix of inter-atomic distance, where K is the number of partciles in
-            the water molecule and N is the total number of atoms in the system
-
-        Returns
-        -------
-        energy_lj : np.ndarray, float, shape=(1, N_lj)
-            Array of lennard-Jones interaction energies of the water oxygen against all solute
-            particles and water oxygen atoms (N_lj) 
-        energy_elec : np.ndarray, float, shape=(K, N)
-            Array of electrostatic interaction energies of the water molecule against all atoms
-            in the system.        
-        """
-        with np.errstate(invalid='ignore', divide='ignore'):
-            wat_wat_dist_6 = distance_matrix[0, :][self.wat_oxygen_atom_ids] ** -6
-            wat_solute_dist_6 = distance_matrix[0, :][self.non_water_atom_ids] ** -6
-            wat_wat_dist_12 = distance_matrix[0, :][self.wat_oxygen_atom_ids] ** -12
-            wat_solute_dist_12 = distance_matrix[0, :][self.non_water_atom_ids] ** -12
-            energy_sw_lj = (self.solute_water_acoeff * wat_solute_dist_12) + (self.solute_water_bcoeff*wat_solute_dist_6)
-            energy_ww_lj = (self.water_water_acoeff * wat_wat_dist_12) + (self.water_water_bcoeff*wat_wat_dist_6)
-            water_chg = self.chg[self.wat_atom_ids[0:self.water_sites]].reshape(self.water_sites, 1)
-            energy_elec = water_chg*np.tile(self.chg[self.all_atom_ids], (self.water_sites, 1))
-            energy_elec *= distance_matrix ** -1
-            energy_lj = np.concatenate((energy_sw_lj, energy_ww_lj), axis=0)
-        return energy_lj, energy_elec
 
     def calculate_hydrogen_bonds(self, traj, water, nbrs, water_water=True):
         """Calculates hydrogen bonds made by a water molecule with its first shell
@@ -402,7 +383,7 @@ class WaterAnalysis(object):
             MDTraj trajectory object for which hydrogen bonds are to be calculates.
         water : int
             The index of water oxygen atom
-        nbrs : np.ndarray, int, shape=(N^{ww}_nbr, )
+        nbrs : np.ndarray
             Indices of the water oxygen or solute atoms in the first solvation shell of the water molecule.
         water_water : bool
             Boolean for whether water-water or solute-water hbonds are desired
@@ -431,61 +412,13 @@ class WaterAnalysis(object):
         angle_triplets = np.asarray(angle_triplets)
         angles = md.compute_angles(traj, angle_triplets)
         angles[np.isnan(angles)] = 0.0
-        #print(angle_triplets)
-        #print(angles)
         hbonds = angle_triplets[np.where(angles[0, :] <= ANGLE_CUTOFF_RAD)]
         return hbonds
 
-    # A potentially faster implementation where mdtraj hb functionality is called only once for both prot and water
-    def calculate_hydrogen_bonds2(self, traj, water, water_nbrs, solute_nbrs):
-        """Calculates hydrogen bonds made by a water molecule with its first shell
-        water and solute neighbors.
-
-        Parameters
-        ----------
-        traj : md.trajectory
-            MDTraj trajectory object for which hydrogen bonds are to be calculates.
-        water : int
-            The index of water oxygen atom
-        water_nbrs : np.ndarray, int, shape=(N^{ww}_nbr, )
-            Indices of the water oxygen atoms in the first solvation shell of the water molecule.
-        solute_nbrs : np.ndarray, int, shape=(N^{sw}_nbr, )
-            Indices of thesolute atoms in the first solvation shell of the water molecule.
-
-        Returns
-        -------
-        (hbonds_ww, hbonds_sw) : tuple
-            A tuple consisting of two np.ndarray objects for water-water and solute-water
-            hydrogen bonds. A hydrogen bond is represented by an array of indices
-            of three atom particpating in the hydrogen bond, [Donor, H, Acceptor]
-        """
-        hbond_data = []
-        angle_triplets = []
-        for wat_nbr in water_nbrs:
-            angle_triplets.extend(
-                [[water, wat_nbr, wat_nbr + 1], [water, wat_nbr, wat_nbr + 2], [wat_nbr, water, water + 1],
-                 [wat_nbr, water, water + 2]])
-        for solute_nbr in solute_nbrs:
-            if self.prot_hb_types[solute_nbr] == 1 or self.prot_hb_types[solute_nbr] == 3:
-                angle_triplets.extend([[solute_nbr, water, water + 1], [solute_nbr, water, water + 2]])
-            if self.prot_hb_types[solute_nbr] == 2 or self.prot_hb_types[solute_nbr] == 3:
-                for don_H_pair in self.don_H_pair_dict[solute_nbr]:
-                    angle_triplets.extend([[water, solute_nbr, don_H_pair[1]]])
-        angle_triplets = np.asarray(angle_triplets)
-        angles = md.compute_angles(traj, np.asarray(angle_triplets))
-        angles[np.isnan(angles)] = 0.0
-        angles_ww = angles[0, 0:water_nbrs.shape[0] * 4]
-        angles_sw = angles[0, water_nbrs.shape[0] * 4:]
-        angle_triplets_ww = angle_triplets[:water_nbrs.shape[0] * 4]
-        angle_triplets_sw = angle_triplets[water_nbrs.shape[0] * 4:]
-        hbonds_ww = angle_triplets_ww[np.where(angles_ww <= ANGLE_CUTOFF_RAD)]
-        hbonds_sw = angle_triplets_sw[np.where(angles_sw <= ANGLE_CUTOFF_RAD)]
-        return (hbonds_ww, hbonds_sw)
-
 
     def water_nbr_orientations(self, traj, water, nbrs):
-        """Calculates hydrogen bonds made by a water molecule with its first shell
-        water and solute neighbors.
+        """Calculates orientations of the neighboring water molecules of a given water molecule. The orientation is
+        defined as the miniumum of four possible Donor-H-Acceptor angles.
 
         Parameters
         ----------
@@ -495,15 +428,13 @@ class WaterAnalysis(object):
             The index of water oxygen atom
         nbrs : np.ndarray, int, shape=(N^{ww}_nbr, )
             Indices of the water oxygen or solute atoms in the first solvation shell of the water molecule.
-        water_water : bool
-            Boolean for whether water-water or solute-water hbonds are desired
 
         Returns
         -------
-        hbonds : np.ndarray
-            Array of hydrogen bonds where each hydrogen bond is represented by an array of indices
-            of three participating atoms [Donor, H, Acceptor]
+        wat_orientations : np.ndarray
+            Array of angles between the given and each one of its neighbors
         """
+
         angle_triplets = []
         for wat_nbr in nbrs:
             angle_triplets.extend(

@@ -47,12 +47,42 @@ class GridWaterAnalysis(WaterAnalysis):
     def __init__(self, topology_file, trajectory, start_frame=0, num_frames=0,
                  supporting_file=None, ligand_file=None,
                  grid_center=None, grid_dimensions=[20, 20, 20],
-                 grid_resolution=[0.5, 0.5, 0.5], rho_bulk=None, prefix="test"):
+                 grid_resolution=[0.5, 0.5, 0.5], rho_bulk=0.0334, prefix="test"):
+        """
+        Initialize an instance of grid-based solvation analysis calculations.
+
+        Parameters
+        ----------
+        topology_file : str
+            File name of system topology.
+        trajectory : str
+            File name of molecular dynamics trajectory.
+        start_frame : int, optional
+            Index of the frame to begin calculations from. Default=0
+        num_frames : int, optional
+            Total number of frames to be processed. Default=0
+        supporting_file : str, optional
+            File name of supporting files for parsing system topology. Default=None
+        ligand_file : str, optional
+            PDB File containing ligand atom. Default=None
+        grid_center : list, optional
+            List containing x, y and z coordinates of the center of grid. Default=None
+        grid_dimensions : list, optional
+            List containing dimensions of grid in each direction, by default a cubic grid of
+            20 points in each direction is used.
+        grid_resolution : list, option
+            Spacing of grid points, by default a grid spacing of 0.5 Angstrom is used.
+        rho_bulk : float, optional
+            Reference water density, if None, 0.0334 molecules per angstrom cubed is used.
+        prefix : str, optional
+            String to be used as a prefix for the output file names, if None, "test" is used.
+        """
 
         print("Initializing ...")
         self.start_frame = start_frame
         self.num_frames = num_frames
-        super(GridWaterAnalysis, self).__init__(topology_file, trajectory, supporting_file, rho_bulk)
+        self.rho_bulk = float(rho_bulk)
+        super(GridWaterAnalysis, self).__init__(topology_file, trajectory, supporting_file)
 
         self.grid_dims = np.asarray(grid_dimensions, int)
         self.resolution = grid_resolution[0]
@@ -81,53 +111,62 @@ class GridWaterAnalysis(WaterAnalysis):
 
     def initialize_grid(self, center, resolution, dimensions):
         """
+        Initialize grid data structure.
+
         Parameters
         ----------
-        center : TYPE
-            DESCRIPTION
-
+        center : list
+            List containing x, y and z coordinates of the center of grid.
+        resolution : list
+            Spacing of grid points in each direction.
+        dimensions : list
+            List containing dimensions of grid in each direction.
         """
+
         # set grid center, res and dimension
-        # self.center = np.array(center,dtype=np.float_)
-        # self.dims = np.array(dimensions)
-        # self.spacing = np.array(resolution,dtype=np.float_)
         print("Initializing ...")
         self.center = np.array(center, dtype=np.float_)
         self.dims = np.array(dimensions, dtype=np.int_)
         self.spacing = np.array(resolution, dtype=np.float_)
-        self.gridmax = self.dims * self.spacing + 1.5
-        # set origin
+        self.gridmax = self.dims * self.spacing + 1.5        # set origin
         o = self.center - (0.5 * self.dims * self.spacing)
         self.origin = np.around(o, decimals=3)
+
         # set grid size (in terms of total points alog each axis)
         length = np.array(self.dims / self.spacing, dtype=np.float_)
         self.grid_size = np.ceil((length / self.spacing) + 1.0)
         self.grid_size = np.cast['uint32'](self.grid_size)
+
         # Finally allocate the space for the grid
         self.grid = np.zeros(self.dims, dtype=np.int_)
-        #self.generate_nonbonded_params()
-        #self.assign_hb_types()
 
     def initialize_voxel_data(self):
+        """
+        Initializes data structures where GIST data is stored
+
+        Returns
+        -------
+        voxel_array : numpy.ndarray
+            A numpy array with rows equal to the number of voxels and columns corresponding
+            to various properties of each voxel.
+        voxel_quarts : list
+            A list containing N empty list, where N is equal to the number of voxels, each empty
+            list will store quaternions of each water found in the corresponding voxel during the simulation.
+        voxel_coords : list
+            A list containing N empty list, where N is equal to the number of voxels, each empty
+            list will store coordinates of the oxygen of each water found in the corresponding voxel
+             during the simulation.
+        """
+
         v_count = 0
-        #TODO: generate separate arrays for each quantity to avoid indexing hell
         voxel_array = np.zeros((self.grid.size, 35), dtype="float64")
-        # print voxel_quarts_new.shape
         for index, value in np.ndenumerate(self.grid):
-            # point = grid.pointForIndex(index) # get cartesian coords for the
-            # grid point
             _index = np.array(index, dtype=np.int32)
-            # point = self.spacing * _index + self._origin
             point = _index * self.spacing + self.origin + 0.5 * self.spacing
             voxel_array[v_count, 1] = point[0]
             voxel_array[v_count, 2] = point[1]
             voxel_array[v_count, 3] = point[2]
             voxel_array[v_count, 0] = v_count
-            # print voxel_quarts_new[v_count, 0], voxel_quarts_new[v_count, 1],
-            # voxel_quarts_new[v_count, 2]
-            # create a dictionary key-value pair with voxel index as key and
-            # it's coords as
-            # voxel_quarts[v_count].append(np.zeros(14, dtype="float64"))
             v_count += 1
         voxel_quarts = [[] for i in range(voxel_array.shape[0])]
         voxel_O_coords = [[] for i in range(voxel_array.shape[0])]
@@ -135,28 +174,20 @@ class GridWaterAnalysis(WaterAnalysis):
 
     def calculate_euler_angles(self, water, coords):
         """
+        Calculates quaternion representing orientation of a water molecule.
+        Adapted from: https://github.com/Amber-MD/cpptraj/blob/master/src/Action_GIST.cpp
 
         Parameters
         ----------
-        water :
-        coords :
-
-        Returns
-        -------
-
+        water : tuple
+            A tuple with two elements, index of the oxygen atom of current water and frame number.
+        coords : numpy.ndarray
+            An array of x, y, z coordinates corresponding to atom positions in current frame.
         """
-        pi = np.pi
-        twopi = 2 * np.pi
         # define the lab frame of reference
-        # xlab = np.asarray([1.0, 0.0, 0.0], dtype="float64")
-        # ylab = np.asarray([0.0, 1.0, 0.0], dtype="float64")
-        # zlab = np.asarray([0.0, 0.0, 1.0], dtype="float64")
-
         xlab = np.asarray([1.0, 0.0, 0.0])
-        # ylab = np.asarray([0.0, 1.0, 0.0], dtype="float64")
         zlab = np.asarray([0.0, 0.0, 1.0])
         # create array for water oxygen atom coords, and append to this voxel's
-        # coord list
         voxel_id = water[0]
         owat = coords[water[1], :]
         # create array for water's hydrogen 1 and 2
@@ -200,7 +231,6 @@ class GridWaterAnalysis(WaterAnalysis):
         H_temp[2] = 2*(x2*z2+w2*y2) * h1wat[0]
         H_temp[2] = (2*(y2*z2-w2*x2)*h1wat[1]) + H_temp[2]
         H_temp[2] = ((w2*w2-x2*x2-y2*y2+z2*z2)*h1wat[2]) + H_temp[2]
-        h1wat = H_temp
 
         H_temp2 = np.zeros(3,)
         H_temp2[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*h2wat[0]
@@ -214,8 +244,6 @@ class GridWaterAnalysis(WaterAnalysis):
         H_temp2[2] = 2*(x2*z2+w2*y2)*h2wat[0]
         H_temp2[2] = (2*(y2*z2-w2*x2)*h2wat[1]) +H_temp2[2]
         H_temp2[2] = ((w2*w2-x2*x2-y2*y2+z2*z2)*h2wat[2]) + H_temp2[2]
-
-        h2wat = H_temp2
 
         ar2 = np.cross(H_temp, H_temp2)
         ar2 /= np.linalg.norm(ar2)
@@ -246,27 +274,48 @@ class GridWaterAnalysis(WaterAnalysis):
     @function_timer
     def calculate_entropy(self, num_frames=None):
         """
+        Calculate solute-water translational and orientational entropy for each grid voxel using a nearest neighbors
+        approach. This calculation can only be run after the voxels are populated with corresponding waters.
 
         Parameters
         ----------
-        num_frames :
-
-        Returns
-        -------
+        num_frames : int
+            Number of frames processed during the analysis.
 
         """
         if num_frames is None:
             num_frames = self.num_frames
         calc.getNNTrEntropy(num_frames, self.voxel_vol, self.rho_bulk, 300.0, self.grid_dims, self.voxeldata, self.voxel_O_coords, self.voxel_quarts)
 
-    def _process_frame(self, trj, frame_i, energy, hbonds, entropy):
+
+    def _process_frame(self, trj, energy, hbonds, entropy):
+        """
+        Frame wise calculation of GIST quantities.
+
+        Parameters
+        ----------
+        trj :
+            Molecular dynamic trajectory representing current frame.
+        energy :
+            If True, solute-water and water-water energies are calculated for each water in each voxel in current
+            frame.
+        hbonds : bool
+            If True, solute-water and water-water hydrogen bonds are calculated for each water in each voxel in current
+            frame.
+        entropy : bool
+            If True, water coordinates and quaternions are stored for each water in each voxel in current frame.
+        """
+
+
         nbr_cutoff_sq = 3.5 ** 2
         trj.xyz *= 10.0
         coords = trj.xyz
-        uc     = trj.unitcell_vectors[0]*10.
+        uc = trj.unitcell_vectors[0]*10.
         waters = []
         calc.assign_voxels(trj.xyz, self.dims, self.gridmax, self.origin, waters, self.wat_oxygen_atom_ids)
+
         distance_matrix = np.zeros((self.water_sites, self.all_atom_ids.shape[0]))
+
         for wat in waters:
             self.voxeldata[wat[0], 4] += 1
             ### wat[0]: Voxel index
@@ -296,8 +345,11 @@ class GridWaterAnalysis(WaterAnalysis):
                 calc.calculate_energy(wat[1], distance_matrix, e_elec_array, e_lj_array, self.bcoeff)
 
                 if self.prot_atom_ids.shape[0] != 0:
-                    self.voxeldata[wat[0], 13] += np.sum(e_lj_array[:, self.prot_atom_ids])
-                    self.voxeldata[wat[0], 13] += np.sum(e_elec_array[:, self.prot_atom_ids])
+                    #self.voxeldata[wat[0], 13] += np.sum(e_lj_array[:, self.prot_atom_ids])
+                    #self.voxeldata[wat[0], 13] += np.sum(e_elec_array[:, self.prot_atom_ids])
+                    self.voxeldata[wat[0], 13] += np.sum(e_lj_array[:, self.non_water_atom_ids])
+                    self.voxeldata[wat[0], 13] += np.sum(e_elec_array[:, self.non_water_atom_ids])
+
                 self.voxeldata[wat[0], 15] += np.sum(
                     e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_lj_array[:, wat[1] + self.water_sites:])
                 self.voxeldata[wat[0], 15] += np.sum(
@@ -306,6 +358,7 @@ class GridWaterAnalysis(WaterAnalysis):
                 e_nbr_list = [np.sum(e_lj_array[:, wat_nbrs + i] + e_elec_array[:, wat_nbrs + i]) for i in
                               range(self.water_sites)]
                 self.voxeldata[wat[0], 17] += np.sum(e_nbr_list)
+
 
                 ### Might be usefull for API to have the neighbors and shell
                 ### indices available.
@@ -333,10 +386,11 @@ class GridWaterAnalysis(WaterAnalysis):
                 print "Ref: ", test_1, test_2, test_3, test_4, test_5
                 ###DEBUG END###
                 """
+
                 # H-bond calculations
                 if hbonds:
-                    prot_nbrs_all = self.non_water_atom_ids[
-                        np.where(distance_matrix[0, :][self.non_water_atom_ids] <= nbr_cutoff_sq)]
+                    prot_nbrs_all = self.prot_atom_ids[
+                        np.where(distance_matrix[0, :][self.prot_atom_ids] <= nbr_cutoff_sq)]
                     prot_nbrs_hb = prot_nbrs_all[np.where(self.prot_hb_types[prot_nbrs_all] != 0)]
 
                     if wat_nbrs.shape[0] > 0:
@@ -379,23 +433,28 @@ class GridWaterAnalysis(WaterAnalysis):
 
         """
         print_progress_bar(0, self.num_frames)
-        topology = md.load_topology(self.topology_file)
+        if not self.topology_file.endswith(".h5"):
+            topology = md.load_topology(self.topology_file)
         read_num_frames = 0
         with md.open(self.trajectory) as f:
             for frame_i in range(self.start_frame, self.start_frame + self.num_frames):
                 print_progress_bar(frame_i - self.start_frame, self.num_frames)
                 f.seek(frame_i)
-                trj = f.read_as_traj(topology, n_frames=1, stride=1)
+                if not self.trajectory.endswith(".h5"):
+                    trj = f.read_as_traj(topology, n_frames=1, stride=1)
+                else:
+                    trj = f.read_as_traj(n_frames=1, stride=1)
                 if trj.n_frames == 0:
                     print("No more frames to read.")
                     break
                 else:
-                    self._process_frame(trj, frame_i, energy, hbonds, entropy)
+                    self._process_frame(trj, energy, hbonds, entropy)
                     read_num_frames += 1
-            if  read_num_frames < self.num_frames:
+            if read_num_frames < self.num_frames:
                 print(("{0:d} frames found in the trajectory, resetting self.num_frames.".format(read_num_frames)))
                 self.num_frames = read_num_frames
-        # Normalize
+
+        # Normalize voxel quantities
         for voxel in range(self.voxeldata.shape[0]):
             if self.voxeldata[voxel, 4] > 1.0:
                 self.voxeldata[voxel, 14] = self.voxeldata[voxel, 13] / (self.voxeldata[voxel, 4] * 2.0)
@@ -409,30 +468,27 @@ class GridWaterAnalysis(WaterAnalysis):
                     self.voxeldata[voxel, i + 1] = self.voxeldata[voxel, i] / self.voxeldata[voxel, 4]
                     self.voxeldata[voxel, i] /= (self.num_frames * self.voxel_vol)
             else:
-                #self.voxeldata[voxel, 14] = self.voxeldata[voxel, 13] / (self.voxeldata[voxel, 4] * 2.0)
                 self.voxeldata[voxel, 13] *= 0.0
-                #self.voxeldata[voxel, 16] = self.voxeldata[voxel, 15] / (self.voxeldata[voxel, 4] * 2.0)
                 self.voxeldata[voxel, 15] *= 0.0
                 if self.voxeldata[voxel, 19] > 0.0:
-                    #self.voxeldata[voxel, 18] = self.voxeldata[voxel, 17] / (self.voxeldata[voxel, 19] * 2.0)
                     self.voxeldata[voxel, 17] *= 0.0
                 for i in range(19, 35, 2):
-                    #self.voxeldata[voxel, i + 1] = self.voxeldata[voxel, i] / self.voxeldata[voxel, 4]
                     self.voxeldata[voxel, i] *= 0.0
 
+        # Calculate entropies
         if entropy:
             self.calculate_entropy(num_frames=self.num_frames)
 
     @function_timer
     def write_data(self, prefix=None):
         """
+        Write a tabular summary of GIST data for each voxel as a text file.
 
         Parameters
         ----------
-        prefix :
-
-        Returns
-        -------
+        prefix : str, optional
+            Prefix to be used for naming output dx files, if None, then prefix set at the time of initializing GIST
+            object is used.
 
         """
 
@@ -470,14 +526,13 @@ class GridWaterAnalysis(WaterAnalysis):
     @function_timer
     def generate_dx_files(self, prefix=None):
         """
+        Write GIST grid quantities in Data Explorer (DX) file format.
 
         Parameters
         ----------
-        prefix :
-
-        Returns
-        -------
-
+        prefix : str, optional
+            Prefix to be used for naming output dx files, if None, then prefix set at the time of initializing GIST
+            object is used.
         """
 
         if prefix == None:
@@ -508,23 +563,6 @@ class GridWaterAnalysis(WaterAnalysis):
             else:
                 dx_file_objects.append(None)
 
-        """
-        for k in range(1, len(self.voxeldata) + 1):
-            # print "writing data for voxel: ", k
-            if self.voxeldata[k - 1][4] > 1.0:
-                for column_i in range(5, len(data_keys), 2):
-                    dx_file_objects[column_i].write(
-                        "%0.6f " % (self.voxeldata[k - 1][column_i]))
-                    if k % 3 == 0:
-                        dx_file_objects[column_i].write("\n")
-            else:
-                for column_i in range(5, len(data_keys), 2):
-                    dx_file_objects[column_i].write(
-                        "%i " % (self.voxeldata[k - 1][column_i]))
-                    if k % 3 == 0:
-                        dx_file_objects[column_i].write("\n")
-        """
-        #try general formatting
         for k in range(1, len(self.voxeldata) + 1):
             # print "writing data for voxel: ", k
             for column_i in range(5, len(data_keys), 2):
@@ -539,10 +577,7 @@ class GridWaterAnalysis(WaterAnalysis):
 
     def print_system_summary(self):
         """
-
-        Returns
-        -------
-
+        Print a summary of the molecular system.
         """
 
         print("System information:")
@@ -559,14 +594,12 @@ class GridWaterAnalysis(WaterAnalysis):
 
     def print_calcs_summary(self, num_frames=None):
         """
+        Print a summary of GIST calculations
 
         Parameters
         ----------
-        num_frames :
-
-        Returns
-        -------
-
+        num_frames : int, option
+            Number of frames processed during the simulation
         """
 
         if num_frames is None:
