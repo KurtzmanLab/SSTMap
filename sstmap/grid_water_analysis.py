@@ -287,6 +287,7 @@ class GridWaterAnalysis(WaterAnalysis):
             num_frames = self.num_frames
         calc.getNNTrEntropy(num_frames, self.voxel_vol, self.rho_bulk, 300.0, self.grid_dims, self.voxeldata, self.voxel_O_coords, self.voxel_quarts)
 
+
     def _process_frame(self, trj, energy, hbonds, entropy):
         """
         Frame wise calculation of GIST quantities.
@@ -305,6 +306,7 @@ class GridWaterAnalysis(WaterAnalysis):
             If True, water coordinates and quaternions are stored for each water in each voxel in current frame.
         """
 
+
         nbr_cutoff_sq = 3.5 ** 2
         trj.xyz *= 10.0
         coords = trj.xyz
@@ -312,15 +314,33 @@ class GridWaterAnalysis(WaterAnalysis):
         waters = []
         calc.assign_voxels(trj.xyz, self.dims, self.gridmax, self.origin, waters, self.wat_oxygen_atom_ids)
 
+        distance_matrix = np.zeros((self.water_sites, self.all_atom_ids.shape[0]))
+
         for wat in waters:
             self.voxeldata[wat[0], 4] += 1
+            ### wat[0]: Voxel index
+            ### wat[1]: water molecule oxygen atom index 
             if energy or hbonds:
                 e_lj_array, e_elec_array = np.copy(self.acoeff), np.copy(self.chg_product)
-                distance_matrix = np.zeros((self.water_sites, self.all_atom_ids.shape[0]))
-                calc.get_pairwise_distances(wat, self.all_atom_ids, coords, uc, distance_matrix)
-                wat_nbrs = self.wat_oxygen_atom_ids[np.where(
-                    (distance_matrix[0, :][self.wat_oxygen_atom_ids] <= nbr_cutoff_sq) & (
-                        distance_matrix[0, :][self.wat_oxygen_atom_ids] > 0.0))]
+                ### Here it is assumed that oxygen atom is always the first atom. Is that always the case?
+                ### We should probably check that somewhere during init?
+                ###
+                ### The self.neighbor_ids array contains atom indices of all atoms that should
+                ### be considered as potential neighbors. Valid_neighbors has same shape as 
+                ### self.neighbor_ids and is False at the position where index wat occures in
+                ### self.neighbor_ids, otherwise it is True. neighbor_ids stores the indices of
+                ### the actual neighbor candidates that will be commited to get_pairwise_distances
+                ### routine and has length of self.neighbor_ids-1. wat_nbrs_shell is of length neighbor_ids
+                ### and holds the shell_index of each neighbor candidate atom (0:first shell, 1: beyond first
+                ### shell)
+                valid_neighbors = np.ones(self.neighbor_ids.shape[0], dtype=bool)
+                valid_neighbors[np.where(self.neighbor_ids==wat)] = False
+                neighbor_ids   = self.neighbor_ids[valid_neighbors]
+                wat_nbrs_shell = self.wat_nbrs_shell[valid_neighbors]
+                calc.get_pairwise_distances(wat, self.all_atom_ids, 
+                                            np.array([nbr_cutoff_sq]), neighbor_ids, wat_nbrs_shell,
+                                            coords, uc, distance_matrix, 0)
+                wat_nbrs = self.all_atom_ids[np.where(wat_nbrs_shell==0)]
                 self.voxeldata[wat[0], 19] += wat_nbrs.shape[0]
                 calc.calculate_energy(wat[1], distance_matrix, e_elec_array, e_lj_array, self.bcoeff)
 
@@ -338,6 +358,34 @@ class GridWaterAnalysis(WaterAnalysis):
                 e_nbr_list = [np.sum(e_lj_array[:, wat_nbrs + i] + e_elec_array[:, wat_nbrs + i]) for i in
                               range(self.water_sites)]
                 self.voxeldata[wat[0], 17] += np.sum(e_nbr_list)
+
+
+                ### Might be usefull for API to have the neighbors and shell
+                ### indices available.
+                self.wat_nbrs_shell[valid_neighbors] = wat_nbrs_shell
+                self.neighbor_ids[valid_neighbors] = neighbor_ids
+                """
+                ###DEBUG START###
+                elj_sw = np.sum(e_lj_array[:, :self.wat_oxygen_atom_ids[0]])
+                eelec_sw = np.sum(e_elec_array[:, :self.wat_oxygen_atom_ids[0]])
+                elj_ww = np.sum(e_lj_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_lj_array[:, wat[1] + 1:])
+                eelec_ww = np.sum(e_elec_array[:, self.wat_oxygen_atom_ids[0]:wat[1]]) + np.sum(e_elec_array[:, wat[1] + self.water_sites:])
+                e_nbr_list = [np.sum(e_lj_array[:, wat_nbrs + i] + e_elec_array[:, wat_nbrs + i]) for i in xrange(self.water_sites)]
+                enbr = np.sum(e_nbr_list)
+                print "Calc: ", elj_sw, eelec_sw, elj_ww, eelec_ww, enbr
+                distance_matrix = np.sqrt(distance_matrix)
+                energy_lj, energy_elec = self.calculate_energy(distance_matrix)
+                test_1 = np.sum(energy_lj[:self.wat_oxygen_atom_ids[0]:])
+                test_2 = np.sum(energy_elec[:, self.non_water_atom_ids])
+                test_3 = np.nansum(energy_lj[self.wat_oxygen_atom_ids[0]:])
+                test_4 = np.sum(energy_elec[:, self.wat_atom_ids[0]:wat[1]]) + np.sum(energy_elec[:, wat[1] + self.water_sites:])
+                test_5 = 0.0
+                test_5 += np.sum(energy_lj[self.wat_oxygen_atom_ids[0]:][(wat_nbrs - self.wat_oxygen_atom_ids[0]) / self.water_sites])
+                for i in range(self.water_sites):
+                    test_5 += np.sum(energy_elec[:, wat_nbrs + i])
+                print "Ref: ", test_1, test_2, test_3, test_4, test_5
+                ###DEBUG END###
+                """
 
                 # H-bond calculations
                 if hbonds:

@@ -85,7 +85,7 @@ void matrix_vector_product(float *matrix, float *vector, float *product){
 }
 
 
-float dist_mic_tric_squared(float *x1, float *x2, float *x3, float *y1, float *y2, float *y3, float *uc_vec, float *inv_uc_vec) {
+double dist_mic_tric_squared(float *x1, float *x2, float *x3, float *y1, float *y2, float *y3, float *uc_vec, float *inv_uc_vec) {
 
     /* distance calculation for mic in non-orthorombic unit cells using brute force
     */
@@ -114,7 +114,7 @@ float dist_mic_tric_squared(float *x1, float *x2, float *x3, float *y1, float *y
     // squared distance
     float x_r[3] = {0,0,0}; matrix_vector_product(uc_vec, &x_f[0], &x_r[0]);
     float y_r[3] = {0,0,0}; matrix_vector_product(uc_vec, &y_f[0], &y_r[0]);
-    float n_dist2, t_dist2;
+    double n_dist2, t_dist2;
     n_dist2 = pow(x_r[0]-y_r[0], 2) + pow(x_r[1]-y_r[1], 2) + pow(x_r[2]-y_r[2], 2);
     //printf ("DEBUG: nearest %10.7f\n", nearest);
 
@@ -146,15 +146,15 @@ float dist_mic_tric_squared(float *x1, float *x2, float *x3, float *y1, float *y
 }
 
 
-double dist_mic(double x1, double x2, double x3, double y1, double y2, double y3, double b1, double b2, double b3) {
+double dist_mic(float x1, float x2, float x3, float y1, float y2, float y3, float b1, float b2, float b3) {
     /* Method for obtaining inter atom distance using minimum image convention
      */
     //printf("x1: %f, x2: %f, x3: %f\n", x1, x2, x3);
     //printf("y1: %f, y2: %f, y3: %f\n", y1, y2, y3);
     double dx, dy, dz;
-    dx = x1-y1;
-    dy = x2-y2;
-    dz = x3-y3;
+    dx = (float) x1-y1;
+    dy = (float) x2-y2;
+    dz = (float) x3-y3;
     //printf("dx: %f, dy: %f, dz: %f\n", dx, dy, dz);
     //printf("bx: %f, by: %f, bz: %f\n", b1/2.0, b2/2.0, b3/2.0);
     if (dx > b1/2.0) dx -= b1;
@@ -173,9 +173,9 @@ double dist_mic_squared(float *x1, float *x2, float *x3, float *y1, float *y2, f
     //printf("x1: %f, x2: %f, x3: %f\n", x1, x2, x3);
     //printf("y1: %f, y2: %f, y3: %f\n", y1, y2, y3);
     double dx, dy, dz;
-    dx = *x1-*y1;
-    dy = *x2-*y2;
-    dz = *x3-*y3;
+    dx = (double) *x1-*y1;
+    dy = (double) *x2-*y2;
+    dz = (double) *x3-*y3;
     //printf("dx: %f, dy: %f, dz: %f\n", dx, dy, dz);
     //printf("bx: %f, by: %f, bz: %f\n", b1/2.0, b2/2.0, b3/2.0);
     if (dx > *b1/2.0) dx -= *b1;
@@ -238,7 +238,7 @@ PyObject *_sstmap_ext_assign_voxels(PyObject *self, PyObject *args)
         &PyArray_Type, &grid_dim,
         &PyArray_Type, &grid_max,
         &PyArray_Type, &grid_orig,
-        &PyList_Type, &frame_data,
+        &PyList_Type,  &frame_data,
         &PyArray_Type, &wat_oxygen_ids
         ))
     {
@@ -249,8 +249,6 @@ PyObject *_sstmap_ext_assign_voxels(PyObject *self, PyObject *args)
     n_wat = PyArray_DIM(wat_oxygen_ids, 0);
     //printf("The number of frames passed = %i\n", n_frames);
     //printf("The number of waters passed = %i\n", n_wat);
-
-
 
     grid_max_x = *(double *)PyArray_GETPTR1(grid_max, 0);
     grid_max_y = *(double *)PyArray_GETPTR1(grid_max, 1);
@@ -313,29 +311,44 @@ PyObject *_sstmap_ext_assign_voxels(PyObject *self, PyObject *args)
 
 PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
 {
-    PyArrayObject *wat, *target_at_ids, *coords, *uc, *dist_array;
+    PyArrayObject *wat, *target_at_ids, *coords, *uc, *dist_array, *shell_radii, *nbr_candidates;
+    PyArrayObject *shell_list;
     float uc_vec[9], inv_uc_vec[9]; // << This is unit cell matrix and reciprocal unit cell
     int wat_sites, wat_atom, wat_atom_id;
     int num_target_at, target_at, target_at_id;
+    int num_nbr_candidates, nbr_atom,  nbr_atom_map_id, nbr_atom_id;
     int frame = 0;
     double d;
+    double* d_temp;
     float *wat_x, *wat_y, *wat_z;
     float *target_at_x, *target_at_y, *target_at_z;
 
+    int n_shells, smallest_shell, i_shell;
+    double *r_shell;
+
     int is_ortho = 0;
 
-    if (!PyArg_ParseTuple(args, "O!O!O!O!O!",
+    int wat_atom_tmp;
+    int found_wat;
+
+    int verbose = 0;
+
+    if (!PyArg_ParseTuple(args, "O!O!O!O!O!O!O!O!|i",
         &PyArray_Type, &wat,
         &PyArray_Type, &target_at_ids,
+        &PyArray_Type, &shell_radii,
+        &PyArray_Type, &nbr_candidates,
+        &PyArray_Type, &shell_list,
         &PyArray_Type, &coords,
         &PyArray_Type, &uc,
-        &PyArray_Type, &dist_array
+        &PyArray_Type, &dist_array,
+        &verbose
         ))
     {
         return NULL;
     }
-    // do distance calc here
-        // retrieve unit cell lengths for this frame
+
+    // retrieve unit cell lengths for this frame
     uc_vec[0] = *(float *) PyArray_GETPTR2(uc, 0, 0);
     uc_vec[1] = *(float *) PyArray_GETPTR2(uc, 0, 1);
     uc_vec[2] = *(float *) PyArray_GETPTR2(uc, 0, 2);
@@ -353,25 +366,34 @@ PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
          uc_vec[6] < 0.000001 && uc_vec[6] > -0.000001 &&
          uc_vec[7] < 0.000001 && uc_vec[7] > -0.000001 ) is_ortho = 1;
 
+    if ( verbose ) {
+        printf("is_ortho=%d\n", is_ortho);
+        printf("Unit cell: %f %f %f\n", uc_vec[0], uc_vec[1], uc_vec[2]);
+        printf("Unit cell: %f %f %f\n", uc_vec[3], uc_vec[4], uc_vec[5]);
+        printf("Unit cell: %f %f %f\n", uc_vec[6], uc_vec[7], uc_vec[8]);
+    }
+
     if ( !is_ortho ) {
 
         memcpy( inv_uc_vec, uc_vec, sizeof(inv_uc_vec));
 
         invert_matrix(&inv_uc_vec[0]);
 
-        //printf("Unit cell: %f %f %f\n", uc_vec[0], uc_vec[1], uc_vec[2]);
-        //printf("Unit cell: %f %f %f\n", uc_vec[3], uc_vec[4], uc_vec[5]);
-        //printf("Unit cell: %f %f %f\n", uc_vec[6], uc_vec[7], uc_vec[8]);
-        //printf("Inv. unit cell: %f %f %f\n", inv_uc_vec[0], inv_uc_vec[1], inv_uc_vec[2]);
-        //printf("Inv. unit cell: %f %f %f\n", inv_uc_vec[3], inv_uc_vec[4], inv_uc_vec[5]);
-        //printf("Inv. unit cell: %f %f %f\n", inv_uc_vec[6], inv_uc_vec[7], inv_uc_vec[8]);
-        //printf("\n");
+        if ( verbose ) {
+            printf("Inv. unit cell: %f %f %f\n", inv_uc_vec[0], inv_uc_vec[1], inv_uc_vec[2]);
+            printf("Inv. unit cell: %f %f %f\n", inv_uc_vec[3], inv_uc_vec[4], inv_uc_vec[5]);
+            printf("Inv. unit cell: %f %f %f\n", inv_uc_vec[6], inv_uc_vec[7], inv_uc_vec[8]);
+            printf("\n");
+        }
 
     }
 
-    wat_sites = PyArray_DIM(dist_array, 0);
+    wat_sites            = PyArray_DIM(dist_array, 0);
+    num_target_at        = PyArray_DIM(target_at_ids, 0);
+    num_nbr_candidates   = PyArray_DIM(nbr_candidates, 0);
+    n_shells             = PyArray_DIM(shell_radii, 0);
 
-    num_target_at = PyArray_DIM(target_at_ids, 0);
+    int wat_atom_id_list[wat_sites];
 
     for (wat_atom = 0; wat_atom < wat_sites; wat_atom++)
     {
@@ -380,31 +402,95 @@ PyObject *_sstmap_ext_get_pairwise_distances(PyObject *self, PyObject *args)
         wat_y = (float *) PyArray_GETPTR3(coords, frame, wat_atom_id, 1); 
         wat_z = (float *) PyArray_GETPTR3(coords, frame, wat_atom_id, 2);
 
+        if ( verbose ) {
+            printf("Start looping over wat_atom_id %d\n", wat_atom_id);
+        }
+
         for (target_at = 0; target_at < num_target_at; target_at++)
         {
             target_at_id = *(int *) PyArray_GETPTR1(target_at_ids, target_at);
-            target_at_x = (float *) PyArray_GETPTR3(coords, frame, target_at_id, 0);
-            target_at_y = (float *) PyArray_GETPTR3(coords, frame, target_at_id, 1); 
-            target_at_z = (float *) PyArray_GETPTR3(coords, frame, target_at_id, 2);
-            //printf("Iterator: %d, atom id: %d\n", target_at, target_at_id);
-            //printf("Water atom coords %f %f %f\n", *wat_x, *wat_y, *wat_z);
-            //printf("Target atom coords %f %f %f\n", *target_at_x, *target_at_y, *target_at_z);
-            if ( is_ortho ) {
-                //printf("Using dist_mic_squared routine.\n");
-                d  = dist_mic_squared(wat_x, wat_y, wat_z, target_at_x, target_at_y, target_at_z, &uc_vec[0], &uc_vec[4], &uc_vec[8]);
+            // If the target atom and the water atom are the same, we don't have to
+            // go through the distance routines.
+            if ( wat_atom_id == target_at_id ) {
+                d = 0.;
             }
             else {
-                //printf("Using dist_mic_tric_squared routine.\n");
-                d  = dist_mic_tric_squared(wat_x, wat_y, wat_z, target_at_x, target_at_y, target_at_z, &uc_vec[0], &inv_uc_vec[0]);
+                // Check if we already calculated this distance before
+                // but with swapped wat_atom_id and target_at_id
+                found_wat = 0;
+                for (wat_atom_tmp=0; wat_atom_tmp < wat_atom; wat_atom_tmp++){
+                    if ( wat_atom_id_list[wat_atom_tmp] == target_at_id ) {
+                        d =  *(double *)PyArray_GETPTR2(dist_array, wat_atom, target_at);
+                        found_wat = 1;
+                        break;
+                    }
+                }
+                if ( !found_wat ) {
+                    target_at_x = (float *) PyArray_GETPTR3(coords, frame, target_at_id, 0);
+                    target_at_y = (float *) PyArray_GETPTR3(coords, frame, target_at_id, 1); 
+                    target_at_z = (float *) PyArray_GETPTR3(coords, frame, target_at_id, 2);
+                    if ( verbose ) {
+                        printf("Iterator: %d, atom id: %d\n", target_at, target_at_id);
+                        printf("Water atom coords %f %f %f\n", *wat_x, *wat_y, *wat_z);
+                        printf("Target atom coords %f %f %f\n", *target_at_x, *target_at_y, *target_at_z);
+                    }
+                    if ( is_ortho ) {
+                        if ( verbose ) {
+                            printf("Using dist_mic_squared routine.\n");
+                        }
+                        d  = dist_mic_squared(wat_x, wat_y, wat_z, target_at_x, target_at_y, target_at_z, &uc_vec[0], &uc_vec[4], &uc_vec[8]);
+                    }
+                    else {
+                        if ( verbose ) {
+                            printf("Using dist_mic_tric_squared routine.\n");
+                        }
+                        d  = dist_mic_tric_squared(wat_x, wat_y, wat_z, target_at_x, target_at_y, target_at_z, &uc_vec[0], &inv_uc_vec[0]);
+                    }
+                }
+                if ( verbose ) {
+                    printf("Distance between %d and %d = %3.2f\n", wat_atom_id, target_at_id, d);
+                }
             }
-            //printf("Distance between %d and %d = %3.2f\n", wat_atom_id, target_at_id, d);
-            *(double *)PyArray_GETPTR2(dist_array, wat_atom, target_at) += d;
+            *(double *)PyArray_GETPTR2(dist_array, wat_atom, target_at) = d;
         }
-
+        if ( verbose ){
+            printf("Starting calculation of neighbor shells for wat %d\n", wat_atom_id);
+        }
+        if ( wat_atom == 0 ){
+            for (nbr_atom=0; nbr_atom < num_nbr_candidates; nbr_atom++){
+                nbr_atom_map_id = *(int *) PyArray_GETPTR1(nbr_candidates, nbr_atom);
+                nbr_atom_id     = *(int *) PyArray_GETPTR1(target_at_ids, nbr_atom_map_id);
+                if ( nbr_atom_id == wat_atom_id ){
+                    smallest_shell = 0;
+                }
+                else {
+                    smallest_shell = n_shells;
+                    for (i_shell=0; i_shell < n_shells; i_shell++) {
+                        r_shell = (double*) PyArray_GETPTR1(shell_radii, i_shell);
+                        d_temp  = (double*) PyArray_GETPTR2(dist_array, 0, nbr_atom_map_id);
+                        if (*d_temp < *r_shell) {
+                            smallest_shell = i_shell;
+                            break;
+                        }
+                    }
+                }
+                
+                *(int *)PyArray_GETPTR1(shell_list, nbr_atom) = smallest_shell;
+                if ( verbose ) {
+                    printf("Nbr candidate atom %d is in shell %d of water atom %d.\n", nbr_atom_id, smallest_shell, wat_atom_id);
+                    d_temp  = (double*) PyArray_GETPTR2(dist_array, 0, nbr_atom_map_id);
+                    printf("The distance is %f Ang.\n", *d_temp);
+                }
+            }
+        }
+        wat_atom_id_list[wat_atom] = wat_atom_id;
+        if ( verbose ) {
+            printf("Finished looping over wat_atom_id %d\n", wat_atom_id);
+        }
     }
     return Py_BuildValue("i", 1);
-
 }
+
 PyObject *_sstmap_ext_getNNOrEntropy(PyObject *self, PyObject *args)
 {
     int nwtot, n, l;
