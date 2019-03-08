@@ -1,7 +1,7 @@
 from setuptools import setup, Extension, find_packages
 import numpy
 
-__version__ = "1.1.3"
+__version__ = "1.1.4"
 
 # define the extension module
 extensions = []

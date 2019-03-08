@@ -3,7 +3,7 @@
 [![Anaconda-Server Badge](https://anaconda.org/solvationtools/sstmap/badges/downloads.svg)](https://anaconda.org/solvationtools/sstmap)
 [![DOI for Citing SSTMap](https://img.shields.io/badge/DOI-10.1021%2Fj.jctc.2017.11.021-blue.svg)](http://doi.org/10.1021/acs.jctc.7b00592)
 
-Welcome to SSTMap Release version 1.1.0
+Welcome to SSTMap Release version 1.1.4
 Thank you for using SSTMap, we've gone through a great deal of work trying to ensure compatibility with various operating systems and MD packages though we have not covered all the possible combinations.  If you run into a bug, please report it on the issues and we will work to quickly resolve it.
 
 Thank you,
@@ -31,14 +31,14 @@ conda install sstmap
 You can install the latest development version from the GitHub repository by executing
 
 ```
-pip install git+git://github.com/kurtzmanlab/sstmap.git@1.1.0#egg=sstmap
+pip install git+git://github.com/kurtzmanlab/sstmap.git@1.1.4#egg=sstmap
 ```
 
 You can also download the release package manually from GitHub, unzip it, navigate into the directory, and execute the command:
 
 ```bash
-https://github.com/KurtzmanLab/SSTMap/archive/1.1.0.tar.gz or https://github.com/KurtzmanLab/SSTMap/archive/1.1.0.zip
-tar -xvf 1.1.0.tar.gz or unzip 1.0.0.zip
+https://github.com/KurtzmanLab/SSTMap/archive/1.1.4.tar.gz or https://github.com/KurtzmanLab/SSTMap/archive/1.1.4.zip
+tar -xvf 1.1.4.tar.gz or unzip 1.0.0.zip
 cd SSTMap-1.0
 python setup.py install
 ```
@@ -50,7 +50,7 @@ cd SSTMap
 ```
 **For the release version:**
 ```
-git checkout tags/1.1.0
+git checkout tags/1.1.4
 python setup.py install
 ```
 **For the developmental version:**
