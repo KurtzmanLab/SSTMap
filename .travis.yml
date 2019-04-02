@@ -41,7 +41,6 @@ os:
   - osx
   - linux
 
-
 env:
   matrix:
     - python=2.7  CONDA_PY=27
@@ -51,7 +50,6 @@ env:
     - python=3.7  CONDA_PY=37
     
   global:
-
     - PACKAGENAME="sstmap"
     - ORGNAME="solvationtools"
 
