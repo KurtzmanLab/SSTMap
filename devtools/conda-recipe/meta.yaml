@@ -20,7 +20,7 @@ requirements:
   run:
     - python
     - libgcc
-    - numpy
+    - numpy 1.14.*
     - scipy
     - mdtraj
     - parmed
