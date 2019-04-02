@@ -9,23 +9,23 @@ source:
 requirements:
   build:
     - python
-    - numpy 1.14.0
+    - numpy 1.14.*
     - setuptools
     - gcc
     - toolchain
     - libgcc
-    - gsl 2.2.1
+    - gsl >=2.2.1
     - libopenblas
 
   run:
     - python
     - libgcc
-    - numpy 1.14.*
+    - numpy >=1.14
     - scipy
     - mdtraj
     - parmed
     - matplotlib
-    - gsl 2.2.1
+    - gsl >=2.2.1
     - libopenblas
 
 #test:
