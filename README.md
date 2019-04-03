@@ -38,8 +38,8 @@ You can also download the release package manually from GitHub, unzip it, naviga
 
 ```bash
 https://github.com/KurtzmanLab/SSTMap/archive/1.1.4.tar.gz or https://github.com/KurtzmanLab/SSTMap/archive/1.1.4.zip
-tar -xvf 1.1.4.tar.gz or unzip 1.0.0.zip
-cd SSTMap-1.0
+tar -xvf 1.1.4.tar.gz or unzip 1.1.4.zip
+cd SSTMap-1.1.4
 python setup.py install
 ```
 Or you can clone the GitHub repository, navigate into the directory, and execute the command: 
@@ -109,7 +109,7 @@ Principal Developer(s)
 Co-Developers
 -------------
 * Steven Ramsey <vpsramsey@gmail.com>
-* Anthony Cruz Balberdi <anthonycruzpr@gmail.com>
+* Anthony Cruz Balberdy <anthonycruzpr@gmail.com>
 * Tobias Wulsdorf <tobias.wulsdorf@pharmazie.uni-marburg.de>
 
 Principal Investigators
