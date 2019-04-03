@@ -12,7 +12,7 @@ requirements:
     - numpy 1.14.*
     - setuptools
     - gcc
-    - toolchain
+    - toolchain3
     - libgcc
     - gsl 2.2.1
     - libopenblas
