@@ -7,6 +7,8 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
+    packages:
+      - libc6-dev
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install md5sha1sum; fi
