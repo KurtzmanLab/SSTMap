@@ -30,6 +30,8 @@ script:
   - conda config --add channels ${ORGNAME}
   # Create a test environment
   - conda create --quiet --yes -n test python=$python
+  # Activate root environment
+  - source activate root
   # Activate the test environment
   - source activate test
   # Build recipie
