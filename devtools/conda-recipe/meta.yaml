@@ -11,6 +11,7 @@ requirements:
     - python
     - numpy 1.14.*
     - setuptools
+    - conda-build 3.12.*
     - gcc
     - toolchain3
     - libgcc
