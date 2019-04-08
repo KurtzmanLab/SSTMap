@@ -31,7 +31,7 @@ script:
   # Create a test environment
   - conda create --quiet --yes -n test python=$python
   # Activate root environment
-  - source activate root
+  #- source activate root
   # Activate the test environment
   - source activate test
   # Build recipie
