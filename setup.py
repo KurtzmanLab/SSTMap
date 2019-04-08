@@ -9,7 +9,7 @@ extensions.append(Extension('_sstmap_ext',
                             sources=['sstmap/_sstmap_ext.c'],
                             include_dirs=[numpy.get_include()],
                             extra_link_args=['-lgsl','-lgslcblas'],
-                            libs_dirs=['/usr/lib/x86_64-linux-gnu/']))
+                            library_dirs=['/usr/lib/x86_64-linux-gnu/']))
 
 extensions.append(Extension('_sstmap_entropy',
                             sources=['sstmap/_sstmap_entropy.cpp', 'sstmap/kdhsa102.cpp'],
