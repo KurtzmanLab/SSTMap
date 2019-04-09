@@ -34,6 +34,8 @@ script:
   - source activate test
   # Get conda info
   - conda info 
+  # Get environment info
+  - conda list --explicit 
   # Build recipie
   - conda build devtools/conda-recipe
   # Install locally-built package
