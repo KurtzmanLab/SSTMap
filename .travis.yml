@@ -7,8 +7,6 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
-    packages:
-      - libc6-dev
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install md5sha1sum; fi
@@ -21,7 +19,7 @@ install:
   - source devtools/travis-ci/install_miniconda.sh
   - export PYTHONUNBUFFERED=true
   - export PATH=$HOME/miniconda/bin:$PATH
-  #- conda config --add channels conda-forge/label/cf201901
+  - conda config --add channels conda-forge/label/cf201901
   - conda config --add channels conda-forge # hightest priority
   - conda config --add channels omnia
 
@@ -34,6 +32,8 @@ script:
   #- source activate root
   # Activate the test environment
   - source activate test
+  # Get conda info
+  - conda info 
   # Build recipie
   - conda build devtools/conda-recipe
   # Install locally-built package
