@@ -37,7 +37,8 @@ script:
   # Get environment info
   - conda list --explicit 
   # Build recipie
-  - conda build devtools/conda-recipe
+  #- conda build devtools/conda-recipe
+  - conda-build devtools/conda-recipe -c conda-forge/label/gcc7
   # Install locally-built package
   - conda install --yes --quiet --use-local ${PACKAGENAME}
   #- conda install --yes --quiet pip nose nose-timer
