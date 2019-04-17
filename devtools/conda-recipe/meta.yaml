@@ -13,7 +13,7 @@ requirements:
     - setuptools
     - conda-build 3.12.*
     - gcc
-    - toolchain 2.1.*
+    - toolchain3
     - libgcc
     - gsl 2.2.1
     - libopenblas
