@@ -3,6 +3,11 @@
 language: C
 sudo: false
 
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+      
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install md5sha1sum; fi
 
