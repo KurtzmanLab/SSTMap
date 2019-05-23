@@ -9,21 +9,21 @@ source:
 requirements:
   build:
     - python
-    - numpy 1.14.*
-    - setuptools 40.4.*
-    - conda-build 3.12.*
-    - gcc 4.8.*
+    - numpy 
+    - setuptools 
+    - conda-build 
+    - gcc 
     - toolchain3
-    - libgcc 7.3.*
+    - libgcc 
     - gsl 2.2.1
-    - libopenblas 0.3.*
-    - libgcc-ng 7.3.*
-    - libstdcxx-ng 7.3.*
+    - libopenblas 
+    - libgcc-ng 
+    - libstdcxx-ng 
 
   run:
     - python
     - libgcc
-    - numpy 1.14.*
+    - numpy 
     - scipy
     - mdtraj
     - parmed
