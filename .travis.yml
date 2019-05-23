@@ -23,7 +23,6 @@ install:
   - conda config --add channels omnia
 
 script:
-  - mv $HOME/miniconda/compiler_compat/ld $HOME/miniconda/compiler_compat/ld2
   # Add org channel
   - conda config --add channels ${ORGNAME}
   # Create a test environment
@@ -34,6 +33,9 @@ script:
   - source activate test
   # Get conda info
   - conda info 
+  # Remove conda ld
+  - mv $PREFIX/compiler_compat/ld $PREFIX/compiler_compat/ld2 
+  - mv $HOME/miniconda/compiler_compat/ld $HOME/miniconda/compiler_compat/ld2
   # Get environment info
   - conda list --explicit 
   # Build recipie
