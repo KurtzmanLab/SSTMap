@@ -1,4 +1,3 @@
-CC      = g++
 SOURCEDIR = ./sstmap
 INSTALLDIR = ~/anaconda2/bin
 bruteclust: $(SOURCEDIR)/make_clust_brute.cpp

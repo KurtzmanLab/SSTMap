@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/kamran-haider/SSTMap.svg?branch=v1.1_dev)](https://travis-ci.org/kamran-haider/SSTMap)
+[![Build Status](https://travis-ci.org/kamran-haider/SSTMap.svg?branch=master)](https://travis-ci.org/kamran-haider/SSTMap)
 [![Anaconda-Server Badge](https://anaconda.org/solvationtools/sstmap/badges/installer/conda.svg)](https://conda.anaconda.org/solvationtools)
 [![Anaconda-Server Badge](https://anaconda.org/solvationtools/sstmap/badges/downloads.svg)](https://anaconda.org/solvationtools/sstmap)
 [![DOI for Citing SSTMap](https://img.shields.io/badge/DOI-10.1021%2Fj.jctc.2017.11.021-blue.svg)](http://doi.org/10.1021/acs.jctc.7b00592)
@@ -38,8 +38,8 @@ You can also download the release package manually from GitHub, unzip it, naviga
 
 ```bash
 https://github.com/KurtzmanLab/SSTMap/archive/1.1.4.tar.gz or https://github.com/KurtzmanLab/SSTMap/archive/1.1.4.zip
-tar -xvf 1.1.4.tar.gz or unzip 1.0.0.zip
-cd SSTMap-1.0
+tar -xvf 1.1.4.tar.gz or unzip 1.1.4.zip
+cd SSTMap-1.1.4
 python setup.py install
 ```
 Or you can clone the GitHub repository, navigate into the directory, and execute the command: 
@@ -54,6 +54,7 @@ git checkout tags/1.1.4
 python setup.py install
 ```
 **For the developmental version:**
+
 ```
 python setup.py install
 ```
@@ -109,7 +110,7 @@ Principal Developer(s)
 Co-Developers
 -------------
 * Steven Ramsey <vpsramsey@gmail.com>
-* Anthony Cruz Balberdi <anthonycruzpr@gmail.com>
+* Anthony Cruz Balberdy <anthonycruzpr@gmail.com>
 * Tobias Wulsdorf <tobias.wulsdorf@pharmazie.uni-marburg.de>
 
 Principal Investigators

@@ -8,19 +8,23 @@ source:
 
 requirements:
   build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  host:
     - python
-    - numpy 1.14.0
-    - setuptools
-    - gcc
-    - toolchain
-    - libgcc
+    - numpy 
+    - setuptools 
+    - conda-build 
+    - toolchain3
+    - libgcc 
     - gsl 2.2.1
-    - libopenblas
-
+    - libopenblas 
+    - libgcc-ng 
+    - libstdcxx-ng 
   run:
     - python
     - libgcc
-    - numpy
+    - numpy 
     - scipy
     - mdtraj
     - parmed

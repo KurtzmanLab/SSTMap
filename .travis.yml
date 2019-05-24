@@ -7,7 +7,7 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
-
+      
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install md5sha1sum; fi
 
@@ -27,10 +27,17 @@ script:
   - conda config --add channels ${ORGNAME}
   # Create a test environment
   - conda create --quiet --yes -n test python=$python
+  # Activate root environment
+  #- source activate root
   # Activate the test environment
   - source activate test
+  # Get conda info
+  - conda info 
+  # Get environment info
+  - conda list --explicit 
   # Build recipie
   - conda build devtools/conda-recipe
+  #- conda-build devtools/conda-recipe -c conda-forge/label/gcc7
   # Install locally-built package
   - conda install --yes --quiet --use-local ${PACKAGENAME}
   #- conda install --yes --quiet pip nose nose-timer
@@ -41,7 +48,6 @@ os:
   - osx
   - linux
 
-
 env:
   matrix:
     - python=2.7  CONDA_PY=27
@@ -50,7 +56,6 @@ env:
     - python=3.6  CONDA_PY=36
     
   global:
-
     - PACKAGENAME="sstmap"
     - ORGNAME="solvationtools"
 
