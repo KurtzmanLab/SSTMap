@@ -22,4 +22,5 @@ export PIP_ARGS="-U"
 export PATH=$MINICONDA_HOME/bin:$PATH
 conda update --yes conda
 conda install --yes conda-build jinja2 anaconda-client
+mv $MINICONDA_HOME/compiler_compat/ld $MINICONDA_HOME/compiler_compat/ld2
 popd
