@@ -11,8 +11,8 @@ requirements:
     - python
     - numpy 1.14.0
     - setuptools
-    - {{ compiler('c') }}
-    - toolchain3
+    - gcc
+    - toolchain
     - libgcc
     - gsl 2.2.1
     - libopenblas
