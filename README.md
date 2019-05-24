@@ -54,6 +54,7 @@ git checkout tags/1.1.4
 python setup.py install
 ```
 **For the developmental version:**
+
 ```
 python setup.py install
 ```
