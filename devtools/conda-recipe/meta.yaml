@@ -11,7 +11,7 @@ requirements:
     - python
     - numpy 1.14.0
     - setuptools
-    - gcc
+    - {{ compiler('c') }}
     - toolchain
     - libgcc
     - gsl 2.2.1
