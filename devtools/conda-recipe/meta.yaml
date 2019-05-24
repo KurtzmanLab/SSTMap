@@ -8,18 +8,18 @@ source:
 
 requirements:
   build:
+    - {{ compiler('c') }}
+  host:
     - python
     - numpy 
     - setuptools 
     - conda-build 
-    - {{ compiler() }}
     - toolchain3
     - libgcc 
     - gsl 2.2.1
     - libopenblas 
     - libgcc-ng 
     - libstdcxx-ng 
-
   run:
     - python
     - libgcc
