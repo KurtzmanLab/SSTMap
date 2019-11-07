@@ -221,7 +221,7 @@ class GridWaterAnalysis(WaterAnalysis):
 
         H_temp = np.zeros(3)
         H_temp[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*h1wat[0]
-        H_temp[0] = (2*(x2*y2 - w2*z2)*h1wat[1]) + H_temp[0]
+        H_temp[0] = (2*(x2*y2 + w2*z2)*h1wat[1]) + H_temp[0]
         H_temp[0] = (2*(x2*z2-w2*y2)*h1wat[2]) + H_temp[0]
 
         H_temp[1] = 2*(x2*y2 - w2*z2)* h1wat[0]
@@ -235,7 +235,7 @@ class GridWaterAnalysis(WaterAnalysis):
         H_temp2 = np.zeros(3,)
         H_temp2[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*h2wat[0]
         H_temp2[0] = (2*(x2*y2 + w2*z2)*h2wat[1]) + H_temp2[0]
-        H_temp2[0] = (2*(x2*z2-w2*y2)+h2wat[2]) +H_temp2[0]
+        H_temp2[0] = (2*(x2*z2-w2*y2)*h2wat[2]) +H_temp2[0]
 
         H_temp2[1] = 2*(x2*y2 - w2*z2) *h2wat[0]
         H_temp2[1] = ((w2*w2-x2*x2+y2*y2-z2*z2)*h2wat[1]) +H_temp2[1]
