@@ -1372,6 +1372,320 @@ PyObject *_sstmap_ext_getNNTrEntropy(PyObject *self, PyObject *args)
                   //printf("DEBUG2: self NNd=%f NNs=%f\n", NNd, NNs);
                  }
 
+                 /* Iterate over neighbor voxel in +X +Y +Z direction
+                */
+                n1_total = *(double *)PyArray_GETPTR2(voxel_data, voxel + addx + addz + addy, 4);
+                nbr_voxel_coords = PyList_GetItem(voxel_O_coords, voxel + addx + addy + addz);
+                nbr_voxel_quarts = PyList_GetItem(voxel_quarts, voxel + addx + addy + addz);
+
+                for (n1 = 0; n1 != (int)n1_total; n1++)
+                {
+                  // access oxygen coordinates
+                  int i1 = n1 * 3; // index over O coordinates
+                  int q1 = n1 * 4; // index over quar
+                  PyObject *VX1 = PyList_GetItem(nbr_voxel_coords, i1);
+                  double vx1 = PyFloat_AsDouble(VX1);
+                  PyObject *VY1 = PyList_GetItem(nbr_voxel_coords, i1 + 1);
+                  double vy1 = PyFloat_AsDouble(VY1);
+                  PyObject *VZ1 = PyList_GetItem(nbr_voxel_coords, i1 + 2);
+                  double vz1 = PyFloat_AsDouble(VZ1);
+                  // access quaternions
+                  PyObject *QW1 = PyList_GetItem(nbr_voxel_quarts, q1);
+                  double qw1 = PyFloat_AsDouble(QW1);
+                  PyObject *QX1 = PyList_GetItem(nbr_voxel_quarts, q1 + 1);
+                  double qx1 = PyFloat_AsDouble(QX1);
+                  PyObject *QY1 = PyList_GetItem(nbr_voxel_quarts, q1 + 2);
+                  double qy1 = PyFloat_AsDouble(QY1);
+                  PyObject *QZ1 = PyList_GetItem(nbr_voxel_quarts, q1 + 3);
+                  double qz1 = PyFloat_AsDouble(QZ1);
+
+                  double dd = dist_squared(vx0, vy0, vz0, vx1, vy1, vz1);
+                  if (dd < NNd && dd > 0) { NNd = dd; }
+                  double rR = 2 * acos(fabs(qw0 * qw1 +
+                                       qx0 * qx1 +
+                                       qy0 * qy1 +
+                                       qz0 * qz1 ));
+                  double ds = rR * rR + dd;
+                  if (ds < NNs && ds > 0) {NNs = ds; }
+                  //printf("DEBUG2: voxel=%i water=%i\n", voxel, n0);
+                  //printf("DEBUG2: self NNd=%f NNs=%f\n", NNd, NNs);
+                 }
+
+                 /* Iterate over neighbor voxel in +X +Y -Z direction
+                */
+                n1_total = *(double *)PyArray_GETPTR2(voxel_data, voxel + addx + addy - addz, 4);
+                nbr_voxel_coords = PyList_GetItem(voxel_O_coords, voxel + addx + addy - addz);
+                nbr_voxel_quarts = PyList_GetItem(voxel_quarts, voxel + addx + addy - addz);
+
+                for (n1 = 0; n1 != (int)n1_total; n1++)
+                {
+                  // access oxygen coordinates
+                  int i1 = n1 * 3; // index over O coordinates
+                  int q1 = n1 * 4; // index over quar
+                  PyObject *VX1 = PyList_GetItem(nbr_voxel_coords, i1);
+                  double vx1 = PyFloat_AsDouble(VX1);
+                  PyObject *VY1 = PyList_GetItem(nbr_voxel_coords, i1 + 1);
+                  double vy1 = PyFloat_AsDouble(VY1);
+                  PyObject *VZ1 = PyList_GetItem(nbr_voxel_coords, i1 + 2);
+                  double vz1 = PyFloat_AsDouble(VZ1);
+                  // access quaternions
+                  PyObject *QW1 = PyList_GetItem(nbr_voxel_quarts, q1);
+                  double qw1 = PyFloat_AsDouble(QW1);
+                  PyObject *QX1 = PyList_GetItem(nbr_voxel_quarts, q1 + 1);
+                  double qx1 = PyFloat_AsDouble(QX1);
+                  PyObject *QY1 = PyList_GetItem(nbr_voxel_quarts, q1 + 2);
+                  double qy1 = PyFloat_AsDouble(QY1);
+                  PyObject *QZ1 = PyList_GetItem(nbr_voxel_quarts, q1 + 3);
+                  double qz1 = PyFloat_AsDouble(QZ1);
+
+                  double dd = dist_squared(vx0, vy0, vz0, vx1, vy1, vz1);
+                  if (dd < NNd && dd > 0) { NNd = dd; }
+                  double rR = 2 * acos(fabs(qw0 * qw1 +
+                                       qx0 * qx1 +
+                                       qy0 * qy1 +
+                                       qz0 * qz1 ));
+                  double ds = rR * rR + dd;
+                  if (ds < NNs && ds > 0) {NNs = ds; }
+                  //printf("DEBUG2: voxel=%i water=%i\n", voxel, n0);
+                  //printf("DEBUG2: self NNd=%f NNs=%f\n", NNd, NNs);
+                 }
+
+                 /* Iterate over neighbor voxel in +X -Y +Z direction
+                */
+                n1_total = *(double *)PyArray_GETPTR2(voxel_data, voxel + addx - addy + addz, 4);
+                nbr_voxel_coords = PyList_GetItem(voxel_O_coords, voxel + addx - addy + addz);
+                nbr_voxel_quarts = PyList_GetItem(voxel_quarts, voxel + addx - addy + addz);
+
+                for (n1 = 0; n1 != (int)n1_total; n1++)
+                {
+                  // access oxygen coordinates
+                  int i1 = n1 * 3; // index over O coordinates
+                  int q1 = n1 * 4; // index over quar
+                  PyObject *VX1 = PyList_GetItem(nbr_voxel_coords, i1);
+                  double vx1 = PyFloat_AsDouble(VX1);
+                  PyObject *VY1 = PyList_GetItem(nbr_voxel_coords, i1 + 1);
+                  double vy1 = PyFloat_AsDouble(VY1);
+                  PyObject *VZ1 = PyList_GetItem(nbr_voxel_coords, i1 + 2);
+                  double vz1 = PyFloat_AsDouble(VZ1);
+                  // access quaternions
+                  PyObject *QW1 = PyList_GetItem(nbr_voxel_quarts, q1);
+                  double qw1 = PyFloat_AsDouble(QW1);
+                  PyObject *QX1 = PyList_GetItem(nbr_voxel_quarts, q1 + 1);
+                  double qx1 = PyFloat_AsDouble(QX1);
+                  PyObject *QY1 = PyList_GetItem(nbr_voxel_quarts, q1 + 2);
+                  double qy1 = PyFloat_AsDouble(QY1);
+                  PyObject *QZ1 = PyList_GetItem(nbr_voxel_quarts, q1 + 3);
+                  double qz1 = PyFloat_AsDouble(QZ1);
+
+                  double dd = dist_squared(vx0, vy0, vz0, vx1, vy1, vz1);
+                  if (dd < NNd && dd > 0) { NNd = dd; }
+                  double rR = 2 * acos(fabs(qw0 * qw1 +
+                                       qx0 * qx1 +
+                                       qy0 * qy1 +
+                                       qz0 * qz1 ));
+                  double ds = rR * rR + dd;
+                  if (ds < NNs && ds > 0) {NNs = ds; }
+                  //printf("DEBUG2: voxel=%i water=%i\n", voxel, n0);
+                  //printf("DEBUG2: self NNd=%f NNs=%f\n", NNd, NNs);
+                 }
+
+                 /* Iterate over neighbor voxel in +X -Y -Z direction
+                */
+                n1_total = *(double *)PyArray_GETPTR2(voxel_data, voxel + addx - addz - addy, 4);
+                nbr_voxel_coords = PyList_GetItem(voxel_O_coords, voxel + addx - addy - addz);
+                nbr_voxel_quarts = PyList_GetItem(voxel_quarts, voxel + addx - addy - addz);
+
+                for (n1 = 0; n1 != (int)n1_total; n1++)
+                {
+                  // access oxygen coordinates
+                  int i1 = n1 * 3; // index over O coordinates
+                  int q1 = n1 * 4; // index over quar
+                  PyObject *VX1 = PyList_GetItem(nbr_voxel_coords, i1);
+                  double vx1 = PyFloat_AsDouble(VX1);
+                  PyObject *VY1 = PyList_GetItem(nbr_voxel_coords, i1 + 1);
+                  double vy1 = PyFloat_AsDouble(VY1);
+                  PyObject *VZ1 = PyList_GetItem(nbr_voxel_coords, i1 + 2);
+                  double vz1 = PyFloat_AsDouble(VZ1);
+                  // access quaternions
+                  PyObject *QW1 = PyList_GetItem(nbr_voxel_quarts, q1);
+                  double qw1 = PyFloat_AsDouble(QW1);
+                  PyObject *QX1 = PyList_GetItem(nbr_voxel_quarts, q1 + 1);
+                  double qx1 = PyFloat_AsDouble(QX1);
+                  PyObject *QY1 = PyList_GetItem(nbr_voxel_quarts, q1 + 2);
+                  double qy1 = PyFloat_AsDouble(QY1);
+                  PyObject *QZ1 = PyList_GetItem(nbr_voxel_quarts, q1 + 3);
+                  double qz1 = PyFloat_AsDouble(QZ1);
+
+                  double dd = dist_squared(vx0, vy0, vz0, vx1, vy1, vz1);
+                  if (dd < NNd && dd > 0) { NNd = dd; }
+                  double rR = 2 * acos(fabs(qw0 * qw1 +
+                                       qx0 * qx1 +
+                                       qy0 * qy1 +
+                                       qz0 * qz1 ));
+                  double ds = rR * rR + dd;
+                  if (ds < NNs && ds > 0) {NNs = ds; }
+                  //printf("DEBUG2: voxel=%i water=%i\n", voxel, n0);
+                  //printf("DEBUG2: self NNd=%f NNs=%f\n", NNd, NNs);
+                 }
+
+                 /* Iterate over neighbor voxel in -X +Y +Z direction
+                */
+                n1_total = *(double *)PyArray_GETPTR2(voxel_data, voxel - addx + addz + addy, 4);
+                nbr_voxel_coords = PyList_GetItem(voxel_O_coords, voxel - addx + addy + addz);
+                nbr_voxel_quarts = PyList_GetItem(voxel_quarts, voxel - addx + addy + addz);
+
+                for (n1 = 0; n1 != (int)n1_total; n1++)
+                {
+                  // access oxygen coordinates
+                  int i1 = n1 * 3; // index over O coordinates
+                  int q1 = n1 * 4; // index over quar
+                  PyObject *VX1 = PyList_GetItem(nbr_voxel_coords, i1);
+                  double vx1 = PyFloat_AsDouble(VX1);
+                  PyObject *VY1 = PyList_GetItem(nbr_voxel_coords, i1 + 1);
+                  double vy1 = PyFloat_AsDouble(VY1);
+                  PyObject *VZ1 = PyList_GetItem(nbr_voxel_coords, i1 + 2);
+                  double vz1 = PyFloat_AsDouble(VZ1);
+                  // access quaternions
+                  PyObject *QW1 = PyList_GetItem(nbr_voxel_quarts, q1);
+                  double qw1 = PyFloat_AsDouble(QW1);
+                  PyObject *QX1 = PyList_GetItem(nbr_voxel_quarts, q1 + 1);
+                  double qx1 = PyFloat_AsDouble(QX1);
+                  PyObject *QY1 = PyList_GetItem(nbr_voxel_quarts, q1 + 2);
+                  double qy1 = PyFloat_AsDouble(QY1);
+                  PyObject *QZ1 = PyList_GetItem(nbr_voxel_quarts, q1 + 3);
+                  double qz1 = PyFloat_AsDouble(QZ1);
+
+                  double dd = dist_squared(vx0, vy0, vz0, vx1, vy1, vz1);
+                  if (dd < NNd && dd > 0) { NNd = dd; }
+                  double rR = 2 * acos(fabs(qw0 * qw1 +
+                                       qx0 * qx1 +
+                                       qy0 * qy1 +
+                                       qz0 * qz1 ));
+                  double ds = rR * rR + dd;
+                  if (ds < NNs && ds > 0) {NNs = ds; }
+                  //printf("DEBUG2: voxel=%i water=%i\n", voxel, n0);
+                  //printf("DEBUG2: self NNd=%f NNs=%f\n", NNd, NNs);
+                 }
+
+                 /* Iterate over neighbor voxel in -X +Y -Z direction
+                */
+                n1_total = *(double *)PyArray_GETPTR2(voxel_data, voxel - addx - addz + addy, 4);
+                nbr_voxel_coords = PyList_GetItem(voxel_O_coords, voxel - addx + addy - addz);
+                nbr_voxel_quarts = PyList_GetItem(voxel_quarts, voxel - addx + addy - addz);
+
+                for (n1 = 0; n1 != (int)n1_total; n1++)
+                {
+                  // access oxygen coordinates
+                  int i1 = n1 * 3; // index over O coordinates
+                  int q1 = n1 * 4; // index over quar
+                  PyObject *VX1 = PyList_GetItem(nbr_voxel_coords, i1);
+                  double vx1 = PyFloat_AsDouble(VX1);
+                  PyObject *VY1 = PyList_GetItem(nbr_voxel_coords, i1 + 1);
+                  double vy1 = PyFloat_AsDouble(VY1);
+                  PyObject *VZ1 = PyList_GetItem(nbr_voxel_coords, i1 + 2);
+                  double vz1 = PyFloat_AsDouble(VZ1);
+                  // access quaternions
+                  PyObject *QW1 = PyList_GetItem(nbr_voxel_quarts, q1);
+                  double qw1 = PyFloat_AsDouble(QW1);
+                  PyObject *QX1 = PyList_GetItem(nbr_voxel_quarts, q1 + 1);
+                  double qx1 = PyFloat_AsDouble(QX1);
+                  PyObject *QY1 = PyList_GetItem(nbr_voxel_quarts, q1 + 2);
+                  double qy1 = PyFloat_AsDouble(QY1);
+                  PyObject *QZ1 = PyList_GetItem(nbr_voxel_quarts, q1 + 3);
+                  double qz1 = PyFloat_AsDouble(QZ1);
+
+                  double dd = dist_squared(vx0, vy0, vz0, vx1, vy1, vz1);
+                  if (dd < NNd && dd > 0) { NNd = dd; }
+                  double rR = 2 * acos(fabs(qw0 * qw1 +
+                                       qx0 * qx1 +
+                                       qy0 * qy1 +
+                                       qz0 * qz1 ));
+                  double ds = rR * rR + dd;
+                  if (ds < NNs && ds > 0) {NNs = ds; }
+                  //printf("DEBUG2: voxel=%i water=%i\n", voxel, n0);
+                  //printf("DEBUG2: self NNd=%f NNs=%f\n", NNd, NNs);
+                 }
+
+                 /* Iterate over neighbor voxel in +X -Y +Z direction
+                */
+                n1_total = *(double *)PyArray_GETPTR2(voxel_data, voxel - addx + addz - addy, 4);
+                nbr_voxel_coords = PyList_GetItem(voxel_O_coords, voxel - addx - addy + addz);
+                nbr_voxel_quarts = PyList_GetItem(voxel_quarts, voxel - addx - addy + addz);
+
+                for (n1 = 0; n1 != (int)n1_total; n1++)
+                {
+                  // access oxygen coordinates
+                  int i1 = n1 * 3; // index over O coordinates
+                  int q1 = n1 * 4; // index over quar
+                  PyObject *VX1 = PyList_GetItem(nbr_voxel_coords, i1);
+                  double vx1 = PyFloat_AsDouble(VX1);
+                  PyObject *VY1 = PyList_GetItem(nbr_voxel_coords, i1 + 1);
+                  double vy1 = PyFloat_AsDouble(VY1);
+                  PyObject *VZ1 = PyList_GetItem(nbr_voxel_coords, i1 + 2);
+                  double vz1 = PyFloat_AsDouble(VZ1);
+                  // access quaternions
+                  PyObject *QW1 = PyList_GetItem(nbr_voxel_quarts, q1);
+                  double qw1 = PyFloat_AsDouble(QW1);
+                  PyObject *QX1 = PyList_GetItem(nbr_voxel_quarts, q1 + 1);
+                  double qx1 = PyFloat_AsDouble(QX1);
+                  PyObject *QY1 = PyList_GetItem(nbr_voxel_quarts, q1 + 2);
+                  double qy1 = PyFloat_AsDouble(QY1);
+                  PyObject *QZ1 = PyList_GetItem(nbr_voxel_quarts, q1 + 3);
+                  double qz1 = PyFloat_AsDouble(QZ1);
+
+                  double dd = dist_squared(vx0, vy0, vz0, vx1, vy1, vz1);
+                  if (dd < NNd && dd > 0) { NNd = dd; }
+                  double rR = 2 * acos(fabs(qw0 * qw1 +
+                                       qx0 * qx1 +
+                                       qy0 * qy1 +
+                                       qz0 * qz1 ));
+                  double ds = rR * rR + dd;
+                  if (ds < NNs && ds > 0) {NNs = ds; }
+                  //printf("DEBUG2: voxel=%i water=%i\n", voxel, n0);
+                  //printf("DEBUG2: self NNd=%f NNs=%f\n", NNd, NNs);
+                 }
+
+                 /* Iterate over neighbor voxel in -X -Y -Z direction
+                */
+                n1_total = *(double *)PyArray_GETPTR2(voxel_data, voxel - addx - addz - addy, 4);
+                nbr_voxel_coords = PyList_GetItem(voxel_O_coords, voxel - addx - addy - addz);
+                nbr_voxel_quarts = PyList_GetItem(voxel_quarts, voxel - addx - addy - addz);
+
+                for (n1 = 0; n1 != (int)n1_total; n1++)
+                {
+                  // access oxygen coordinates
+                  int i1 = n1 * 3; // index over O coordinates
+                  int q1 = n1 * 4; // index over quar
+                  PyObject *VX1 = PyList_GetItem(nbr_voxel_coords, i1);
+                  double vx1 = PyFloat_AsDouble(VX1);
+                  PyObject *VY1 = PyList_GetItem(nbr_voxel_coords, i1 + 1);
+                  double vy1 = PyFloat_AsDouble(VY1);
+                  PyObject *VZ1 = PyList_GetItem(nbr_voxel_coords, i1 + 2);
+                  double vz1 = PyFloat_AsDouble(VZ1);
+                  // access quaternions
+                  PyObject *QW1 = PyList_GetItem(nbr_voxel_quarts, q1);
+                  double qw1 = PyFloat_AsDouble(QW1);
+                  PyObject *QX1 = PyList_GetItem(nbr_voxel_quarts, q1 + 1);
+                  double qx1 = PyFloat_AsDouble(QX1);
+                  PyObject *QY1 = PyList_GetItem(nbr_voxel_quarts, q1 + 2);
+                  double qy1 = PyFloat_AsDouble(QY1);
+                  PyObject *QZ1 = PyList_GetItem(nbr_voxel_quarts, q1 + 3);
+                  double qz1 = PyFloat_AsDouble(QZ1);
+
+                  double dd = dist_squared(vx0, vy0, vz0, vx1, vy1, vz1);
+                  if (dd < NNd && dd > 0) { NNd = dd; }
+                  double rR = 2 * acos(fabs(qw0 * qw1 +
+                                       qx0 * qx1 +
+                                       qy0 * qy1 +
+                                       qz0 * qz1 ));
+                  double ds = rR * rR + dd;
+                  if (ds < NNs && ds > 0) {NNs = ds; }
+                  //printf("DEBUG2: voxel=%i water=%i\n", voxel, n0);
+                  //printf("DEBUG2: self NNd=%f NNs=%f\n", NNd, NNs);
+                 }
+
+
+
                 NNd = sqrt(NNd);
                 NNs = sqrt(NNs);
 
