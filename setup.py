@@ -25,7 +25,7 @@ setup(name='sstmap',
       license='MIT',
       url='https://github.com/KurtzmanLab/SSTMap',
       platforms=['Linux', 'Mac OS X',],
-      install_requires=['mdtraj==1.9.1','parmed==3.2.0','matplotlib==3.1.0']
+      install_requires=['mdtraj==1.9.1','parmed==3.2.0','matplotlib==3.1.0'],
       packages=find_packages(),
       ext_modules=extensions,
       zip_safe=False,
