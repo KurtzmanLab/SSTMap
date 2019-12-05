@@ -1,11 +1,11 @@
 ---
 layout: post
-author: kamran-haider
+author: Eric Chen & Kamran-Haider
 title: Installing SSTMap
-date: 2017-06-06
+date: 2019-12-06
 published: true
 ---
-The main requirement for installation of `SSTMap` is the anaconda python distribution. If you are not familiar with Anaconda, please have a look at [continuum.io/why-anaconda](https://www.continuum.io/why-anaconda). SSTMap is implemented in python 2.7, so if you do not have the anaconda installation, downlaod the anaconda for python 2.7, as shown below. Alternatively, if you have a an anaconda installation for python 3.6, you can create a python 2.7 enviornment to run sstmap.
+The main requirement for installation of `SSTMap` is the anaconda python distribution. If you are not familiar with Anaconda, please have a look at [continuum.io/why-anaconda](https://www.continuum.io/why-anaconda).
 
 <!--more-->
 
@@ -73,7 +73,7 @@ In Ubuntu:
 ```bash
 sudo apt-get install g++
 ```
-Step 5 : Install the sstmap by wheel
+Step 5 : Install the SSTMap by wheel
 
 if you get the souce code by git clone:
 ```bash
