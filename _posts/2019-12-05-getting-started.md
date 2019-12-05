@@ -5,20 +5,27 @@ title: Installing SSTMap
 date: 2019-12-06
 published: true
 ---
-The main requirement for installation of `SSTMap` is the anaconda python distribution. If you are not familiar with Anaconda, please have a look at [continuum.io/why-anaconda](https://www.continuum.io/why-anaconda).
+
+### SSTMap Installation
+
+Step 1: Install Anaconda
+
+The main requirement for installation of `SSTMap` is the anaconda python distribution.
 
 <!--more-->
 
 
-For instructions on how to download and install Anaconda, please go to [Anaconda Download page](https://www.continuum.io/downloads). 
-The installation is very easy and can be done with the following two steps. 
+For instructions on how to download and install Anaconda, please go to [Anaconda Download page](https://www.anaconda.com/distribution/).
+ 
+
+Alternatively, the Anaconda installation can be also done with the following two commands. 
 
 For Linux-64
 ```bash
-wget https://repo.continuum.io/archive/Anaconda2-4.3.1-Linux-x86_64.sh
-bash Anaconda2-4.3.1-Linux-x86_64.sh
+wget https://repo.continuum.io/archive/Anaconda3-2019.10-Linux-x86_64.sh
+bash Anaconda3-2019.10-Linux-x86_64.sh
 ```
-Step 1: Create a virtual enviroment for sstmap.
+Step 2: Create a virtual enviroment for sstmap.
 
 <!--more-->
 
@@ -30,7 +37,7 @@ source activate sstmap_py36
 ```
 
 
-Step 2: Get the gitHub Source Code by git
+Step 3: Get the gitHub Source Code by git
 
 
 You can get the source code by git clone ( provided git has been installed on your machine):
@@ -46,7 +53,7 @@ or you can also directly download the zip file by click the download botton on t
 unzip SSTMap-master.zip
 
 ```
-Step 3: Install the dependencies in case you do not have 
+Step 4: Install the dependencies in case you do not have 
 
 ```bash
 conda install -c omnia mdtraj
@@ -61,7 +68,7 @@ sudo apt-get install libgsl-dev
 ln path/to/libgsl.so path/to/libgsl.so.0
 ```
 
-Step 4: Install the compiler in case you do not have
+Step 5: Install the compiler in case you do not have
 
 In Centos:
 
@@ -73,7 +80,7 @@ In Ubuntu:
 ```bash
 sudo apt-get install g++
 ```
-Step 5 : Install the SSTMap by wheel
+Step 6: Install the SSTMap by wheel
 
 if you get the souce code by git clone:
 ```bash
@@ -85,7 +92,7 @@ if you get the source code by clicking the download button:
 pip install ./SSTmap-master/devtools/wheel/sstmap-1.1.4-cp36-cp36m-linux_x86_64.whl
 ```
 
-Step 6 : You have installed SSTMap successfully if you can use the command in your terminal( within the sstmap_py37 virtual environment)
+Step 7: You have installed SSTMap successfully if you can run these two commands in your terminal (within the sstmap_py37 virtual environment)
 
 ```bash
 run_gist
