@@ -1,76 +1,107 @@
 ---
 layout: post
-author: kamran-haider
+author: Eric Chen & Kamran-Haider
 title: Installing SSTMap
-date: 2017-06-06
+date: 2019-12-06
 published: true
 ---
-The main requirement for installation of `SSTMap` is the anaconda python distribution. If you are not familiar with Anaconda, please have a look at [continuum.io/why-anaconda](https://www.continuum.io/why-anaconda). SSTMap is implemented in python 2.7, so if you do not have the anaconda installation, downlaod the anaconda for python 2.7, as shown below. Alternatively, if you have a an anaconda installation for python 3.6, you can create a python 2.7 enviornment to run sstmap.
+
+### SSTMap Installation
+
+##Step 1: Install Anaconda
+
+The main requirement for installation of `SSTMap` is the anaconda python distribution.
 
 <!--more-->
-For instructions on how to download and install Anaconda, please go to [Anaconda Download page](https://www.continuum.io/downloads). 
-The installation is very easy and can be done with the following two steps. 
+
+
+For instructions on how to download and install Anaconda, please go to [Anaconda Download page](https://www.anaconda.com/distribution/).
+ 
+
+Alternatively, the Anaconda installation can be also done with the following two commands. 
 
 For Linux-64
 ```bash
-wget https://repo.continuum.io/archive/Anaconda2-4.3.1-Linux-x86_64.sh
-bash Anaconda2-4.3.1-Linux-x86_64.sh
+wget https://repo.continuum.io/archive/Anaconda3-2019.10-Linux-x86_64.sh
+bash Anaconda3-2019.10-Linux-x86_64.sh
 ```
-For MacOSX
-```bash
-curl -O https://repo.continuum.io/archive/Anaconda2-4.3.1-MacOSX-x86_64.sh
-bash Anaconda2-4.3.1-MacOSX-x86_64.sh
-```
-If you already have an anaconda installation for python 3.6, you can install and run SSTMap in a seprate python 2.7 envioronment. The enviornment is created as follows:
-```
-conda create -n py27 python=2.7
-source activate py27
-```
+##Step 2: Create a virtual enviroment for SSTMap
 
-### Conda Installation
-The anaconda python distribution comes with `conda` package manager, which can then be used to install `SSTMap` with the following commands.
+<!--more-->
+
+The virtual enviornment can be created as follows:
 
 ```
-conda install sstmap -c omnia -c solvationtools
+conda create -n sstmap_py36 python=3.6
+source activate sstmap_py36
 ```
 
-### GitHub Source Code
-You can install the latest development version from the GitHub repository by executing
+
+##Step 3: Get the gitHub Source Code by git
+
+
+You can get the source code by git clone ( provided git has been installed on your machine):
+
+```bash 
+git clone https://github.com/KurtzmanLab/SSTMap.git
 
 ```
-pip install git+git://github.com/kurtzmanlab/sstmap.git@v1.0#egg=sstmap
-```
 
-You can also download the release package manually from GitHub, unzip it, navigate into the directory, and execute the command:
+or you can also directly download the zip file by click the download botton on [the webpage](https://github.com/KurtzmanLab/SSTMap), then unzip it by:
 
 ```bash
-https://github.com/KurtzmanLab/SSTMap/archive/v1.0.tar.gz or https://github.com/KurtzmanLab/SSTMap/archive/v1.0.zip
-tar -xvf v1.0.tar.gz or unzip v1.0.zip
-cd SSTMap-1.0
-python setup.py install
+unzip SSTMap-master.zip
+
 ```
-Or you can clone the GitHub repository, navigate into the directory, and execute the command: 
+##Step 4: Install the dependencies in case you do not have 
 
 ```bash
-git clone git@github.com:KurtzmanLab/SSTMap.git
-cd SSTMap
+conda install -c omnia mdtraj
 ```
-**For the release version:**
+In Centos:
+```bash
+ sudo yum install gsl-devel
 ```
-git checkout tags/v1.0
-python setup.py install
+In Ubuntu:
+```bash 
+sudo apt-get install libgsl-dev  
+ln path/to/libgsl.so path/to/libgsl.so.0
 ```
-**For the developmental version:**
+
+##Step 5: Install the compiler in case you do not have
+
+In Centos:
+
+```bash
+sudo yum install g++
 ```
-python setup.py install
+
+In Ubuntu:
+```bash
+sudo apt-get install g++
 ```
-When building from the source code or using the release package, make sure that you manually install the dependencies: `mdtraj` and `parmed`. You can do this by:
+##Step 6: Install the SSTMap by wheel
+
+if you get the souce code by git clone:
+```bash
+pip install ./SSTMap/devtools/wheel/sstmap-1.1.4-cp36-cp36m-linux_x86_64.whl
 ```
-conda config --add channels omnia
-conda install mdtraj parmed
-``` 
-Or using pip:
+
+if you get the source code by clicking the download button:
+```bash
+pip install ./SSTmap-master/devtools/wheel/sstmap-1.1.4-cp36-cp36m-linux_x86_64.whl
 ```
-pip install ParmEd 
-pip install mdtraj 
-```  
+
+##Step 7: You have installed SSTMap successfully if you can run these two commands in your terminal (within the sstmap_py37 virtual environment)
+
+```bash
+run_gist
+```
+
+or
+```bash
+run_hsa
+
+```
+
+If you have question regarding the installation of SSTMap, please contact us by eric.clyang521@gmail.com, we will be glad to help!
