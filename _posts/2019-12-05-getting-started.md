@@ -104,4 +104,4 @@ run_hsa
 
 ```
 
-If you have question regarding the installation of SSTMap, please contact us eric.clyang521@gmail.com, we will be glad to help!
+If you have question regarding the installation of SSTMap, please contact us by eric.clyang521@gmail.com, we will be glad to help!
