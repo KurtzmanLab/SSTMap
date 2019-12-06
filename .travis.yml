@@ -28,7 +28,7 @@ script:
   # Create a test environment
   - conda create --quiet --yes -n test python=$python
   # Activate the test environment
-  - conda activate test
+  - source activate test
   # Build recipie
   - conda build devtools/conda-recipe
 
