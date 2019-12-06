@@ -30,7 +30,7 @@ script:
   # Activate the test environment
   - source activate test
   # Build recipie
-  - conda build devtools/conda-recipe
+  - conda install mdtraj
 
   # Install the pip package
   - pip install devtools/wheel/sstmap-1.1.4-cp36-cp36m-linux_x86_64.whl
