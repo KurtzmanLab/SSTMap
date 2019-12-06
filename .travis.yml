@@ -24,29 +24,32 @@ install:
 
 script:
   # Add org channel
-  - conda config --add channels ${ORGNAME}
+  #- conda config --add channels ${ORGNAME}
   # Create a test environment
   - conda create --quiet --yes -n test python=$python
   # Activate the test environment
-  - source activate test
+  - conda activate test
   # Build recipie
   - conda build devtools/conda-recipe
+
+  # Install the pip package
+  - pip install devtools/wheel/sstmap-1.1.4-cp36-cp36m-linux_x86_64.whl
   # Install locally-built package
-  - conda install --yes --quiet --use-local ${PACKAGENAME}
+  # - conda install --yes --quiet --use-local ${PACKAGENAME}
   #- conda install --yes --quiet pip nose nose-timer
   # Test the package (will do this once unit tests are ready)
   #- cd devtools && nosetests $PACKAGENAME --nocapture --verbosity=2 --with-doctest --with-timer && cd ..
 
 os:
-  - osx
+  #- osx
   - linux
 
 
 env:
   matrix:
-    - python=2.7  CONDA_PY=27
+  # - python=2.7  CONDA_PY=27
 #    - python=3.4  CONDA_PY=34
-    - python=3.5  CONDA_PY=35
+#  - python=3.5  CONDA_PY=35
     - python=3.6  CONDA_PY=36
     
   global:
@@ -54,5 +57,5 @@ env:
     - PACKAGENAME="sstmap"
     - ORGNAME="solvationtools"
 
-after_success:
-  - source devtools/travis-ci/deploy_anaconda.sh
+#after_success:
+# - source devtools/travis-ci/deploy_anaconda.sh
