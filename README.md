@@ -18,7 +18,7 @@ SSTMap is a tool to study structural and thermodynamic properties of water molec
 
 Installation
 ------------
-### Conda Installation
+<!--### Conda Installation
 The anaconda python distribution comes with `conda` package manager, which can then be used to install `SSTMap` with the following commands.
 
 ```
@@ -66,7 +66,7 @@ Or using pip:
 ```
 pip install ParmEd 
 pip install mdtraj 
-```  
+``` --> 
 Usage
 -----
 
