@@ -53,55 +53,20 @@ or you can also directly download the zip file by click the download botton on [
 unzip SSTMap-master.zip
 
 ```
-##Step 4: Install the dependencies in case you do not have 
+##Step 4: Install the package required by SSTMap 
 
 ```bash
 conda install -c omnia mdtraj
 ```
-In Centos:
-```bash
- sudo yum install gsl-devel
-```
-In Ubuntu:
-```bash 
-sudo apt-get install libgsl-dev  
-ln path/to/libgsl.so path/to/libgsl.so.0
-```
-
-##Step 5: Install the compiler in case you do not have
-
-In Centos:
+##Step 5: Change to the SSTMap directory where the setup.py locates, and run the installation command:
 
 ```bash
-sudo yum install g++
+python setup.py install 
 ```
+##Step 6: You have installed SSTMap successfully if you can run the following in your terminal (within the sstmap_py36 virtual environment)
 
-In Ubuntu:
-```bash
-sudo apt-get install g++
-```
-##Step 6: Install the SSTMap by wheel
-
-if you get the souce code by git clone:
-```bash
-pip install ./SSTMap/devtools/wheel/sstmap-1.1.4-cp36-cp36m-linux_x86_64.whl
-```
-
-if you get the source code by clicking the download button:
-```bash
-pip install ./SSTmap-master/devtools/wheel/sstmap-1.1.4-cp36-cp36m-linux_x86_64.whl
-```
-
-##Step 7: You have installed SSTMap successfully if you can run these two commands in your terminal (within the sstmap_py37 virtual environment)
-
-```bash
-run_gist
-```
-
-or
 ```bash
 run_hsa
-
 ```
 
-If you have question regarding the installation of SSTMap, please contact us by eric.clyang521@gmail.com, we will be glad to help!
+If you have question regarding the installation of SSTMap, feel free to contact us by simpleliquid@gmail.com. If you want to run GIST, we recommand you to install CPPTRAJ(https://github.com/Amber-MD/cpptraj), where GIST tool is well maintained.
