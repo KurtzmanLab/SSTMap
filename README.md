@@ -80,7 +80,7 @@ cd sstmap_test_suite/platforms/amber
 $ run_hsa -i testcase.prmtop -t md100ps.nc -l ligand.pdb -s 0 -f 100 -o testcase
 $ run_gist -i testcase.prmtop -t md100ps.nc -l ligand.pdb -g 20 20 20 -s 0 -f 100 -o testcase
 ```
-For examples using MD simulations generated from other packages, such as [Amber](http://ambermd.org/), [Charmm](https://www.charmm.org), [Gromacs](http://www.gromacs.org/), [NAMD](http://www.ks.uiuc.edu/Research/namd/), [OpenMM](http://openmm.org/) and [Desmond](https://www.deshawresearch.com/resources_desmond.html), please follow [this tutorial](http://sstmap.org/2017/05/03/simple-examples/) on [sstmap.org](sstmap.org). SSTMap can also be used as a Python module:
+For examples using MD simulations generated from other packages, such as [Amber](http://ambermd.org/), [Charmm](https://www.charmm.org), [Gromacs](http://www.gromacs.org/), [NAMD](http://www.ks.uiuc.edu/Research/namd/), [OpenMM](http://openmm.org/) and [Desmond](https://www.deshawresearch.com/resources_desmond.html), please follow [this tutorial](http://sstmap.org/2017/06/03/simple-examples/) on [sstmap.org](http://sstmap.org/). SSTMap can also be used as a Python module:
 
 ```python
 import sstmap as sm
