@@ -14,6 +14,20 @@ if sys.version_info.major == 3 and sys.version_info.minor >= 8:
                                                                                             sys.version_info.micro))
     sys.exit(1)
 
+# Check if Numpy is installed and if is Numpy <= 1.17.5
+try:
+    import numpy
+except ImportError:
+    sys.stderr.write("\nModuleNotFoundError: Numpy needed for installation. \n"
+                     "Please install Numpy version <= 1.17.5.\n\n")
+    sys.exit(1)
+
+if '1.17' not in numpy.__version__ and int(numpy.__version__.split(".")[1]) > 17:
+    sys.stderr.write("\nRuntimeError: Numpy version <= 1.17.5 needed for installation.\n"
+                     "You are using Numpy version {}.\n"
+                     "Please downgrade your numpy and install Numpy version <= 1.17.5.\n\n".format(numpy.__version__))
+    sys.exit(1)
+
 # Check C and C+ compiler version < 8.0
 if environ.get('CC') is None:
     cc_ver_command_line = "gcc -dumpversion"
@@ -39,20 +53,6 @@ if cc_ver > 7:
                      "    export CC=/usr/bin/gcc-7\n"
                      "    export CXX=/usr/bin/g++-7\n\n")
 
-    sys.exit(1)
-
-# Check if Numpy is installed and if is Numpy <= 1.17.5
-try:
-    import numpy
-except ImportError:
-    sys.stderr.write("\nModuleNotFoundError: Numpy needed for installation. \n"
-                     "Please install Numpy version <= 1.17.5.\n\n")
-    sys.exit(1)
-
-if '1.17' not in numpy.__version__ and int(numpy.__version__.split(".")[1]) > 17:
-    sys.stderr.write("\nRuntimeError: Numpy version <= 1.17.5 needed for installation.\n"
-                     "You are using Numpy version {}.\n"
-                     "Please downgrade your numpy and install Numpy version <= 1.17.5.\n\n".format(numpy.__version__))
     sys.exit(1)
 
 # Check that the GNU Scientific Library developmental (gsl-dev) is installed
