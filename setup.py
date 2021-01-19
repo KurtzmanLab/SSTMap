@@ -1,5 +1,5 @@
 from setuptools import setup, Extension, find_packages
-from os import environ
+from os import environ, path
 from subprocess import check_output
 import sys
 import shlex
@@ -55,6 +55,14 @@ if '1.17' not in numpy.__version__ and int(numpy.__version__.split(".")[1]) > 17
                      "Please downgrade your numpy and install Numpy version <= 1.17.5.\n\n".format(numpy.__version__))
     sys.exit(1)
 
+# Check that the GNU Scientific Library developmental (gsl-dev) is installed
+if not path.exists('/usr/include/gsl'):
+    sys.stderr.write("\nRuntimeError: GNU Scientific Library (gls) needed for installation.\n"
+                     "Please install the GNU Scientific Library development (gsl-dev) package\n"
+                     "using your Linux distribution package manager or install"
+                     " from source (https://www.gnu.org/software/gsl/).\n\n")
+
+    sys.exit(1)
 
 __version__ = "1.1.4"
 
@@ -63,7 +71,7 @@ extensions = []
 extensions.append(Extension('_sstmap_ext',
                             sources=['sstmap/_sstmap_ext.c'],
                             include_dirs=[numpy.get_include()],
-                            extra_link_args=['-lgsl','-lgslcblas']))
+                            extra_link_args=['-lgsl', '-lgslcblas']))
 extensions.append(Extension('_sstmap_entropy',
                             sources=['sstmap/_sstmap_entropy.cpp', 'sstmap/kdhsa102.cpp'],
                             language="c++"))
@@ -79,9 +87,9 @@ setup(name='sstmap',
       version=__version__,
       license='MIT',
       url='https://github.com/KurtzmanLab/SSTMap',
-      platforms=['Linux', 'Mac OS X',],
+      platforms=['Linux', 'Mac OS X', ],
       python_requires='<=3.7',
-      install_requires=['parmed==3.2.0','matplotlib==2.2.3','mdtraj','numpy<=1.17.5'],
+      install_requires=['parmed==3.2.0', 'matplotlib==2.2.3', 'mdtraj', 'numpy<=1.17.5'],
       setup_requires=['numpy<=1.17.5'],
       packages=find_packages(),
       ext_modules=extensions,
