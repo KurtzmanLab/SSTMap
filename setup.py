@@ -45,13 +45,13 @@ if cc_ver > 7:
 try:
     import numpy
 except ImportError:
-    sys.stderr.write("\nModuleNotFoundError: Numpy needed for installation. "
+    sys.stderr.write("\nModuleNotFoundError: Numpy needed for installation. \n"
                      "Please install Numpy version <= 1.17.5.\n\n")
     sys.exit(1)
 
-if '1.17' not in numpy.__version__ and int(numpy.__version__.split(".")[2]) > 17:
-    sys.stderr.write("\nRuntimeError: Numpy version <= 1.17.5 needed for installation."
-                     "You are using Numpy version {}."
+if '1.17' not in numpy.__version__ and int(numpy.__version__.split(".")[1]) > 17:
+    sys.stderr.write("\nRuntimeError: Numpy version <= 1.17.5 needed for installation.\n"
+                     "You are using Numpy version {}.\n"
                      "Please downgrade your numpy and install Numpy version <= 1.17.5.\n\n".format(numpy.__version__))
     sys.exit(1)
 
