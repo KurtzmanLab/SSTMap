@@ -4,7 +4,6 @@ from subprocess import check_output
 import sys
 import shlex
 
-
 # Check if we are using Python <= 3.7.x
 if sys.version_info.major == 3 and sys.version_info.minor >= 8:
     sys.stderr.write("\nRuntimeError: Python 3.7.x or lower is required for SSTMap installation.\n"
@@ -37,8 +36,11 @@ else:
 cc_ver_command = shlex.split(cc_ver_command_line)
 cc_ver = None
 try:
-    cc_ver = int(check_output(cc_ver_command, encoding='utf-8').strip())
-except FileNotFoundError:
+    if sys.version_info.major == 3:
+        cc_ver = int(check_output(cc_ver_command, encoding='utf-8').strip()[0])
+    else:
+        cc_ver = int(check_output(cc_ver_command).strip()[0])
+except:
     sys.stderr.write("\nFileNotFoundError: GCC and G++ compiler version < 8.0 needed for installation.\n"
                      "Please install GCC and G++ compiler version < 8.0.\n\n")
 
