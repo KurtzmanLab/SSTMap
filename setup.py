@@ -41,8 +41,8 @@ try:
     else:
         cc_ver = int(check_output(cc_ver_command).strip()[0])
 except:
-    sys.stderr.write("\nFileNotFoundError: GCC and G++ compiler version < 8.0 needed for installation.\n"
-                     "Please install GCC and G++ compiler version < 8.0.\n\n")
+    sys.stderr.write("\nCompilerNotFoundError: C and C++ compilers needed for installation.\n"
+                     "Please install GNU C (gcc) and GNU C++ (g++) compiler version < 8.0.\n\n")
 
     sys.exit(1)
 
@@ -60,7 +60,7 @@ if cc_ver > 7:
 # Check that the GNU Scientific Library developmental (gsl-dev) is installed
 if not path.exists('/usr/include/gsl'):
     sys.stderr.write("\nRuntimeError: GNU Scientific Library (gls) needed for installation.\n"
-                     "Please install the GNU Scientific Library development (gsl-dev) package\n"
+                     "Please install the GNU Scientific Library development (gsl-dev)\n"
                      "using your Linux distribution package manager or install"
                      " from source (https://www.gnu.org/software/gsl/).\n\n")
 
