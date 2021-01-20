@@ -42,25 +42,26 @@ try:
         cc_ver = int(check_output(cc_ver_command).strip()[0])
 except:
     sys.stderr.write("\nCompilerNotFoundError: C and C++ compilers needed for installation.\n"
-                     "Please install GNU C (gcc) and GNU C++ (g++) compiler version < 8.0.\n\n")
+                     "Please install GNU C (gcc) and GNU C++ (g++) compilers version < 8.0.\n\n")
 
     sys.exit(1)
 
 if cc_ver > 7:
-    sys.stderr.write("\nRuntimeError: GCC and G++ compiler version < 8.0 needed for installation.\n"
-                     "Please install GCC and G++  compile version < 8.0.\n"
+    sys.stderr.write("\nRuntimeError: GCC and G++ compilers version < 8.0 needed for installation.\n"
+                     "You are using gcc/g++ version {}.x.x (verify with gcc --version).\n\n"
+                     "Please install GCC and G++ compilers version < 8.0.\n"
                      "Set CC environment variable to the gcc executable (version < 8.0) and\n"
                      "set CXX environment variable to the g++ executable (version < 8.0).\n\n"
-                     "Ex. If you install gcc and g++ version 7 then: \n"
-                     "    export CC=/usr/bin/gcc-7\n"
-                     "    export CXX=/usr/bin/g++-7\n\n")
+                     "Ex.\n"
+                     "    export CC=/path/of/the/c/compiler_(version < 8.0)\n"
+                     "    export CXX=/path/of/the/c++/compiler_(version < 8.0)\n\n".format(cc_ver))
 
     sys.exit(1)
 
 # Check that the GNU Scientific Library developmental (gsl-dev) is installed
 if not path.exists('/usr/include/gsl'):
-    sys.stderr.write("\nRuntimeError: GNU Scientific Library (gls) needed for installation.\n"
-                     "Please install the GNU Scientific Library development (gsl-dev)\n"
+    sys.stderr.write("\nRuntimeError: GNU Scientific Library (gsl) needed for installation.\n"
+                     "Please install the GNU Scientific Library development package (gsl-dev)\n"
                      "using your Linux distribution package manager or install"
                      " from source (https://www.gnu.org/software/gsl/).\n\n")
 
