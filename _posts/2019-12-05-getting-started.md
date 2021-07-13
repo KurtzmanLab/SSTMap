@@ -56,17 +56,16 @@ unzip SSTMap-master.zip
 ##Step 4: Install the package required by SSTMap 
 
 ```bash
-conda install -c omnia mdtraj
+conda install -c omnia mdtraj numpy=1.17
 ```
-##Step 5: Change to the SSTMap directory where the setup.py locates, and run the installation command:
+##Step 5: We have tested gcc/g++=7,if you use Ubuntu20, you can use this [link]( https://linuxconfig.org/how-to-switch-between-multiple-gcc-and-g-compiler-versions-on-ubuntu-20-04-lts-focal-fossa) to swich to gcc/g++=7 compilerbefore go to next step. 
+
+##Step 6: Change to the SSTMap directory where the setup.py locates, and run the installation command:
 
 ```bash
 python setup.py install 
 ```
-##Step 6: You have installed SSTMap successfully if you can run the following in your terminal (within the sstmap_py36 virtual environment)
+##Step 7: Now you can go to the [Ussage page](https://github.com/KurtzmanLab/SSTMap#usage) to run a quick test of your instalation. Of note, you have to run the commands within the sstmap_py36 virtual environment
 
-```bash
-run_hsa
-```
 
 If you have question regarding the installation of SSTMap, feel free to contact us by simpleliquid@gmail.com. If you want to run GIST, we recommand you to install CPPTRAJ(https://github.com/Amber-MD/cpptraj), where GIST tool is well maintained.
