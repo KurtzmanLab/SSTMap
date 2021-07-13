@@ -58,7 +58,7 @@ unzip SSTMap-master.zip
 ```bash
 conda install -c omnia mdtraj numpy=1.17
 ```
-##Step 5: We have tested gcc/g++=7,if you use Ubuntu20, you can use this [link]( https://linuxconfig.org/how-to-switch-between-multiple-gcc-and-g-compiler-versions-on-ubuntu-20-04-lts-focal-fossa) to swich to gcc/g++=7 compilerbefore go to next step. 
+##Step 5: We have tested gcc/g++=7. If you use Ubuntu20, you can use this [link]( https://linuxconfig.org/how-to-switch-between-multiple-gcc-and-g-compiler-versions-on-ubuntu-20-04-lts-focal-fossa) to swich to gcc/g++=7 compiler before heading to the next step. 
 
 ##Step 6: Change to the SSTMap directory where the setup.py locates, and run the installation command:
 
