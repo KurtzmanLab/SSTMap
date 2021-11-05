@@ -21,7 +21,7 @@ using namespace std;
     }
 #endif
 
-int prob(string infile, string outfile) {
+void prob(string infile, string outfile) {
     /*
     if (argc <= 1) {
         cerr << "\nUSAGE:\n\n"
