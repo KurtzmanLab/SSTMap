@@ -55,7 +55,7 @@ This cane be run on the command-line as:
 $ vmd -dispdev text -eoftext < dtr_to_netcdf.tcl
 ```
 
-Similarly, an example Python script for tihs purposes, `dtr_to_netcdf.py` is given below:
+Similarly, an example Python script for this, `dtr_to_netcdf.py` is given below:
 
 ```python
 traj = md.load_dtr("traj/clickme.dtr", top=input.pdb)
