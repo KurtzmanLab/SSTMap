@@ -1,5 +1,6 @@
 from setuptools import setup, Extension, find_packages
 import numpy
+import os
 
 __version__ = "1.1.4"
 
@@ -7,7 +8,7 @@ __version__ = "1.1.4"
 extensions = []
 extensions.append(Extension('_sstmap_ext',
                             sources=['sstmap/_sstmap_ext.c'],
-                            include_dirs=[numpy.get_include()],
+                            include_dirs=[numpy.get_include(), '{}/include'.format(os.environ['CONDA_PREFIX'])],
                             extra_link_args=['-lgsl','-lgslcblas']))
 extensions.append(Extension('_sstmap_entropy',
                             sources=['sstmap/_sstmap_entropy.cpp', 'sstmap/kdhsa102.cpp'],
@@ -25,7 +26,7 @@ setup(name='sstmap',
       license='MIT',
       url='https://github.com/KurtzmanLab/SSTMap',
       platforms=['Linux', 'Mac OS X',],
-      install_requires=['parmed==3.2.0','matplotlib==2.2.3'],
+      install_requires=['parmed==3.2.0','matplotlib==2.2.3', 'numpy==1.17', 'mdtraj==1.9.1'],
       packages=find_packages(),
       ext_modules=extensions,
       zip_safe=False,
