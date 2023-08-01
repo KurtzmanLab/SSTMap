@@ -1,0 +1,14 @@
+name: sstmap
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - numpy=1.17
+  - mdtraj=1.9.1
+  - matplotlib==2.2.3
+  - parmed==3.2.0
+  - python=3.6
+  - gcc_linux-64=7
+  - gxx_linux-64=7
+  - gsl=2.6
+  - pandas
