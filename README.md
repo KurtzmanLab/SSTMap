@@ -20,6 +20,37 @@ Installation
 ------------
 
 Please check the instructions <a href="http://sstmap.org/2019/12/06/getting-started/">Here</a>.
+
+Installation via Docker
+------------
+## **Prerequisites**  
+Ensure you have **Docker** installed on your system. You can find the installation guide [here](https://docs.docker.com/desktop/setup/install). 
+
+1. Clone the repository and checkout the 'docker' branch.
+   
+```sh
+git clone https://github.com/KurtzmanLab/SSTMap.git
+cd SSTMap
+git checkout docker
+
+```
+2. Build the docker image.
+   
+```sh
+docker build -t kurtzmanlab/sstmap .
+```
+3. Run sstmap inside a container
+```sh
+docker build -t kurtzmanlab/sstmap .
+docker run --rm -it -v $/path/to/input/files:/app/output kurtzmanlab/sstmap:latest 
+```
+> **Note:** '/path/to/input/files' is where the input files for SSTMap are located. The output files will Also be written in this directory.
+
+4. After the job is done exit out of the container and change the file permissions of the output file.
+```sh
+exit
+chown -R user.user /path/to/SSTMap_output_files
+```
 <!--### Conda Installation
 The anaconda python distribution comes with `conda` package manager, which can then be used to install `SSTMap` with the following commands.
 
