@@ -42,7 +42,9 @@ docker build -t kurtzmanlab/sstmap .
 3. Run sstmap inside a container
 ```sh
 docker build --platform linux/x86_64 -t kurtzmanlab/sstmap .
-docker run --rm -it -v $/path/to/input/files:/app/output kurtzmanlab/sstmap:latest 
+docker run --rm -it -v $/path/to/input/files:/app/output kurtzmanlab/sstmap:latest
+cd /app/output
+run_hsa -i topology.prmtop -t trajectory.nc -l ligand.pdb
 ```
 > **Note:** '/path/to/input/files' is where the input files for SSTMap are located. The output files will Also be written in this directory.
 
