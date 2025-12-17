@@ -24,7 +24,7 @@ Please check the instructions <a href="http://sstmap.org/2019/12/06/getting-star
 Installation via Docker
 ------------
 ## **Prerequisites**  
-Ensure you have **Docker** installed on your system. You can find the installation guide [here](https://docs.docker.com/desktop/setup/install/linux/). 
+Ensure you have **Docker** installed on your system. You can find the installation guide [here](https://docs.docker.com/desktop/setup/install/linux). 
 
 1. Clone the repository and checkout the 'docker' branch.
    
